@@ -14,15 +14,15 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * @author ZhangXi
  * @date 2021年3月13日
  */
-final class ByteBufferUnit {
+public final class DataBufferUnit {
 
-	public final static int UNIT_SIZE = 2048;
-	private final static ConcurrentLinkedQueue<ByteBufferUnit> BYTE_BUFFER_UNITS = new ConcurrentLinkedQueue<>();
+	public final static int UNIT_SIZE = 1024;
+	private final static ConcurrentLinkedQueue<DataBufferUnit> BYTE_BUFFER_UNITS = new ConcurrentLinkedQueue<>();
 
-	public final static ByteBufferUnit get() {
-		ByteBufferUnit unit = BYTE_BUFFER_UNITS.poll();
+	public final static DataBufferUnit get() {
+		DataBufferUnit unit = BYTE_BUFFER_UNITS.poll();
 		if (unit == null) {
-			return new ByteBufferUnit();
+			return new DataBufferUnit();
 		}
 		return unit;
 	}
@@ -34,9 +34,9 @@ final class ByteBufferUnit {
 	////////////////////////////////////////////////////////////////////////////////
 
 	private final ByteBuffer buffer;
-	private ByteBufferUnit next;
+	private DataBufferUnit next;
 
-	private ByteBufferUnit() {
+	private DataBufferUnit() {
 		next = null;
 
 		// 为了确保缓冲即可读亦可写必须确保 ByteBuffer的position < limit <= capacity
@@ -137,8 +137,8 @@ final class ByteBufferUnit {
 	/**
 	 * 释放当前缓存单元，当前缓存单元被回收，返回下一个缓存单元，如果没有下一个缓存单元则返回null
 	 */
-	final ByteBufferUnit apart() {
-		final ByteBufferUnit unit = next;
+	final DataBufferUnit apart() {
+		final DataBufferUnit unit = next;
 		next = null;
 		release();
 		return unit;
@@ -147,8 +147,8 @@ final class ByteBufferUnit {
 	/**
 	 * 断开当前缓存单元，返回下一个缓存单元，如果没有下一个缓存单元则返回null
 	 */
-	final ByteBufferUnit braek() {
-		final ByteBufferUnit unit = next;
+	final DataBufferUnit braek() {
+		final DataBufferUnit unit = next;
 		next = null;
 		return unit;
 	}
@@ -156,7 +156,7 @@ final class ByteBufferUnit {
 	/**
 	 * 连接一个缓存单元，如果被连接缓存单元也连接有其它缓存单元则返回最后一个
 	 */
-	final ByteBufferUnit link(ByteBufferUnit unit) {
+	final DataBufferUnit link(DataBufferUnit unit) {
 		next = unit;
 		while (unit.next() != null) {
 			unit = unit.next();
@@ -169,7 +169,7 @@ final class ByteBufferUnit {
 	 * 
 	 * @return null / ByteBufferUnit
 	 */
-	final ByteBufferUnit next() {
+	final DataBufferUnit next() {
 		return next;
 	}
 

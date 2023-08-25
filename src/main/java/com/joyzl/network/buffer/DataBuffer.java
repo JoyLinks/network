@@ -8,9 +8,10 @@ package com.joyzl.network.buffer;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import com.joyzl.codec.BigEndianDataInput;
+import com.joyzl.codec.BigEndianDataOutput;
 import com.joyzl.codec.DataInput;
 import com.joyzl.codec.DataOutput;
 import com.joyzl.network.verifies.EmptyVerifier;
@@ -23,7 +24,7 @@ import com.joyzl.network.verifies.Verifier;
  * @author ZhangXi
  * @date 2021年3月13日
  */
-public final class DataBuffer implements Verifiable, DataInput, DataOutput {
+public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigEndianDataInput, BigEndianDataOutput {
 
 	// 对象实例缓存
 	private final static ConcurrentLinkedQueue<DataBuffer> BYTE_BUFFERS = new ConcurrentLinkedQueue<>();
@@ -45,20 +46,11 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput {
 		return BYTE_BUFFERS.size();
 	}
 
-	/**
-	 * 获取可用缓存单元数量
-	 * 
-	 * @return 0~n
-	 */
-	public final static int freeUnitCount() {
-		return ByteBufferUnit.freeCount();
-	}
-
 	////////////////////////////////////////////////////////////////////////////////
 
-	private ByteBufferUnit read;
-	private ByteBufferUnit mark;
-	private ByteBufferUnit write;
+	private DataBufferUnit read;
+	private DataBufferUnit mark;
+	private DataBufferUnit write;
 
 	private int length;
 	private int bounds;
@@ -70,7 +62,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput {
 	// 不能保证每个缓存单元都是写满的
 
 	private DataBuffer() {
-		read = write = ByteBufferUnit.get();
+		read = write = DataBufferUnit.get();
 		bounds = -1;
 		length = 0;
 		units = 1;
@@ -88,7 +80,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput {
 	 * 获取缓存总容量
 	 */
 	public final int capacity() {
-		return units * ByteBufferUnit.UNIT_SIZE;
+		return units * DataBufferUnit.UNIT_SIZE;
 	}
 
 	/**
@@ -110,14 +102,30 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput {
 	 *
 	 * @param index 0~{@link #readable()}-1
 	 * @param value byte
+	 * @see {{@link #set(int, byte)}
 	 */
+	@Deprecated
 	public final void writeByte(int index, byte value) {
-		ByteBufferUnit item = read;
-		while (index >= item.readable()) {
-			index -= item.readable();
-			item = item.next();
+		set(index, value);
+	}
+
+	/**
+	 * 设置指定位置字节，读写位置不变，不参与校验
+	 *
+	 * @param index 0~{@link #readable()}-1
+	 * @param value byte
+	 */
+	public final void set(int index, byte value) {
+		if (index >= 0 && index < length) {
+			DataBufferUnit item = read;
+			while (index >= item.readable()) {
+				index -= item.readable();
+				item = item.next();
+			}
+			item.writeByte(item.readIndex() + index, value);
+		} else {
+			throw new IndexOutOfBoundsException(index);
 		}
-		item.writeByte(item.readIndex() + index, value);
 	}
 
 	/**
@@ -151,14 +159,29 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput {
 	 * 读取指定位置字节，读取位置不变，不参与校验
 	 *
 	 * @param index 0~{@link #readable()}-1
+	 * @see {{@link #get(int)}
 	 */
+	@Deprecated
 	public final byte readByte(int index) {
-		ByteBufferUnit item = read;
-		while (index >= item.readable()) {
-			index -= item.readable();
-			item = item.next();
+		return get(index);
+	}
+
+	/**
+	 * 获取指定位置字节，读写位置不变，不参与校验
+	 *
+	 * @param index 0~{@link #readable()}-1
+	 */
+	public final byte get(int index) {
+		if (index >= 0 && index < length) {
+			DataBufferUnit item = read;
+			while (index >= item.readable()) {
+				index -= item.readable();
+				item = item.next();
+			}
+			return item.readByte(item.readIndex() + index);
+		} else {
+			throw new IndexOutOfBoundsException(index);
 		}
-		return item.readByte(item.readIndex() + index);
 	}
 
 	/**
@@ -243,10 +266,11 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput {
 		}
 
 		int size = 0;
-		while (bounds > read.readable()) {
+		while (bounds >= read.readable()) {
 			bounds -= read.readable();
 			size += read.readable();
 			read = read.apart();
+			units--;
 		}
 		read.readIndex(read.readIndex() + bounds);
 		length -= size;
@@ -268,12 +292,14 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput {
 		// 源对象未标记边界则不会转移任何数据
 		if (bounds > 0) {
 			if (bounds < length) {
+				int u = 1;
 				int size = bounds;
-				ByteBufferUnit unit = read;
-				// 跳过被整个包含在读取限制中的单元
+				// 1.跳过被整个包含在读取限制中的单元
+				DataBufferUnit unit = read;
 				while (size > unit.readable()) {
 					size -= unit.readable();
 					unit = unit.next();
+					u++;
 				}
 
 				// size此时表示当前单元可读部分署于读取限制的数量
@@ -291,13 +317,16 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput {
 				// 注意：之后的单元将整体转移，当前单元可能并未全部写完
 
 				// 整体转移后续单元
-				unit = unit.next();
+				unit = unit.braek();
 				if (unit != null) {
 					// 后续单元无须复制，进行整体转移
 					target.write = target.write.link(unit);
-					target.length += length - bounds - size;
+					target.length += length - bounds;
+					target.units += units - u;
+					units = u;
 				}
 				length = bounds;
+				bounds = -1;
 			} else {
 				// 设置了边界但是没有剩余数据需要转移
 			}
@@ -311,233 +340,6 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput {
 	}
 
 	/**
-	 * 删除指定位置指定数量字节,删除的字节不会参与校验,也无法通过reset()恢复
-	 *
-	 * @param index 0~{@link #readable()}-1
-	 * @param len 字节数量
-	 */
-	public final void delete(int index, int len) {
-		if (index >= 0) {
-			if (len > 0) {
-				if (index + len < readable()) {
-					// 从缓存单元删除字节，不移动前后字节
-					// 删除后为空的缓存单元被释放
-
-					// 查找删除开始位置
-					ByteBufferUnit prev = null, unit = read;
-					while (index > unit.readable()) {
-						prev = unit;
-						index -= unit.readable();
-						unit = unit.next();
-					}
-
-					// 总长度减
-					length -= len;
-					// 限制减
-					if (bounds > 0) {
-						bounds -= len;
-					}
-
-					// 情况1单元头部删除
-					// 情况2单元中间删除,需要移动后部数据
-					// 情况3单元尾部删除
-					// 情况4单元全部删除
-					do {
-						if (index == 0) {
-							if (len >= unit.readable()) {
-								// 单元全部删除,当前单元需要释放
-								len -= unit.readable();
-								if (write == unit) {
-									write = prev;
-								}
-								if (read == unit) {
-									read = unit = unit.apart();
-								} else {
-									prev.link(unit = unit.apart());
-								}
-								units--;
-							} else {
-								// 单元头部删除,当前单元不能释放
-								unit.readIndex(unit.readIndex() + len);
-								len = 0;
-							}
-						} else {
-							if (index + len >= unit.writeIndex()) {
-								// 单元尾部删除
-								len -= unit.writeIndex() - unit.readIndex() - index;
-								unit.writeIndex(unit.readIndex() + index);
-								index = 0;
-							} else {
-								// 单元中间删除,需要移动后部数据,当前单元不能释放
-								/**
-								 * <pre>
-								 *       P                                         LIMIT
-								 * [ 0 0 1 1 1 1 1 1 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 ]
-								 *              LEFT |_______| RIGHT
-								 * </pre>
-								 */
-								index = index + unit.readIndex();// LEFT
-								while (index + len < unit.writeIndex()) {
-									unit.writeByte(index, unit.readByte(index + len));
-									index++;
-								}
-								unit.writeIndex(index);
-								len = 0;
-							}
-						}
-					} while (len > 0);
-				} else {
-					throw new IndexOutOfBoundsException(index + len);
-				}
-			} else {
-				throw new IllegalArgumentException("长度无效,len:" + len);
-			}
-		} else {
-			throw new IllegalArgumentException("索引位置无效,index:" + index);
-		}
-	}
-
-	/**
-	 * 将源缓存对象中的数据全部转移到当前缓存对象中，源对象数据被清空，不参与校验
-	 * 
-	 * <p>
-	 * 如果设置了读取限制，则仅转移限制内的数据；如果设置了mark则标记将被取消
-	 * 
-	 * @param source 数据源
-	 */
-	public final void transmit(DataBuffer source) {
-		if (source.readable() > 0) {
-			if (length == 0) {
-				// 当前缓存实例无数据
-
-				if (source.bounds > 0) {
-					// 源缓存实例有边界设置
-
-					// 1 用mark变量临时记录缓存单元头
-					mark = source.read;
-
-					// 2 检查头是否可全部转移
-					int len = source.bounds;
-					if (len > mark.readable()) {
-						len -= mark.readable();
-						source.units--;
-						// 检查后续可全部转移的的单元
-						write = mark;
-						while (write.next() != null) {
-							if (len >= write.next().readable()) {
-								len -= write.next().readable();
-								write = write.next();
-								source.units--;
-								units++;
-							} else {
-								break;
-							}
-						}
-
-						source.read = write.braek();
-						if (source.read == null) {
-							source.read = read;
-							source.write = read;
-						} else {
-							read.release();
-						}
-						read = mark;
-					}
-					mark = null;
-
-					// 3 转移边界单元残留数据,如果有
-					while (len-- > 0) {
-						writeByte(source.readByte());
-					}
-
-					length = source.bounds;
-					source.length -= source.bounds;
-					source.bounds = 0;
-				} else {
-					// 源缓存实例无边界设置
-					// 交换两个实例的缓存单元
-
-					mark = read;
-
-					read = source.read;
-					write = source.write;
-					length = source.length;
-					units = source.units;
-
-					source.read = mark;
-					source.write = mark;
-					source.length = 0;
-					source.bounds = -1;
-					source.units = 1;
-					source.mark = null;
-
-					mark = null;
-				}
-			} else {
-				// 当前缓存实例有数据
-
-				if (source.bounds > 0) {
-					// 源缓存实例有边界设置
-					mark = source.read;
-					int len = source.bounds;
-					if (len > mark.readable()) {
-						len -= mark.readable();
-						source.units--;
-						units++;
-
-						ByteBufferUnit temp = mark;
-						while (temp.next() != null) {
-							if (len >= temp.next().readable()) {
-								len -= temp.next().readable();
-								temp = temp.next();
-								source.units--;
-								units++;
-							} else {
-								break;
-							}
-						}
-
-						source.read = temp.braek();
-						if (source.read == null) {
-							source.read = ByteBufferUnit.get();
-							source.write = source.read;
-						}
-						write = write.link(mark);
-					}
-					mark = null;
-
-					// 3 转移边界单元残留数据,如果有
-					while (len-- > 0) {
-						writeByte(source.readByte());
-					}
-
-					length += source.bounds;
-					source.length -= source.bounds;
-					source.bounds = 0;
-				} else {
-					// 源缓存实例无边界设置
-					// 将源实例的缓存单元连接到当前实例
-					// 可能会出现未写完的缓存单元
-
-					write = write.link(source.read);
-					length += source.length;
-					units += source.units;
-					mark = null;
-
-					source.read = ByteBufferUnit.get();
-					source.write = source.read;
-					source.length = 0;
-					source.bounds = -1;
-					source.units = 1;
-					source.mark = null;
-				}
-			}
-		} else {
-			// 源缓存无可读数据，什么也不用做
-		}
-	}
-
-	/**
 	 * 将源缓存对象中的数据全部复制到当前缓存对象中，源对象数据被保留，不参与校验
 	 * <p>
 	 * 此方法是多线程安全的，可支持多个线程对一个数据源并发执行复制操作
@@ -545,12 +347,12 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput {
 	public final void replicate(DataBuffer source) {
 		if (source.readable() > 0) {
 			int index;
-			ByteBufferUnit temp = source.read;
-			while (temp != null) {
-				for (index = temp.readIndex(); index < temp.writeIndex(); index++) {
-					writeByte(temp.readByte(index));
+			DataBufferUnit unit = source.read;
+			while (unit != null) {
+				for (index = unit.readIndex(); index < unit.writeIndex(); index++) {
+					writeByte(unit.readByte(index));
 				}
-				temp = temp.next();
+				unit = unit.next();
 			}
 		}
 	}
@@ -581,7 +383,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput {
 		// end 计算成长度
 		end = end - start;
 
-		ByteBufferUnit temp = source.read;
+		DataBufferUnit temp = source.read;
 		while (temp != null) {
 			if (start >= temp.readable()) {
 				start -= temp.readable();
@@ -613,10 +415,6 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput {
 		}
 	}
 
-	public ByteBuffer[] getByteBuffers() {
-		return null;
-	}
-
 	/**
 	 * 清除所有数据
 	 */
@@ -631,9 +429,9 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput {
 		// 释放ByteBufferUnit只保留一个
 		while (read.next() != null) {
 			read = read.apart();
+			units--;
 		}
 		write.clear();
-		units = 1;
 	}
 
 	public void release() {
@@ -643,34 +441,10 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput {
 
 	////////////////////////////////////////////////////////////////////////////////
 
-	private final static String HEX_UPPERCASE = "0123456789ABCDEF";
+	public DataBufferUnit[] getUnits() {
+		final DataBufferUnit[] buffers = new DataBufferUnit[units];
 
-	@Override
-	public final String toString() {
-		final StringBuilder builder = new StringBuilder();
-		builder.append("DataBuffer:");
-		builder.append(length);
-		if (length > 0) {
-			ByteBufferUnit unit = read;
-			while (unit != null) {
-				builder.append("\n");
-				builder.append(unit.readIndex());
-				builder.append("~");
-				builder.append(unit.writeIndex());
-				builder.append(" [");
-				for (int index = unit.readIndex(); index < unit.writeIndex(); index++) {
-					if (index > unit.readIndex()) {
-						builder.append(' ');
-					}
-					int value = unit.readByte(index) & 0xFF;
-					builder.append(HEX_UPPERCASE.charAt(value >>> 4));
-					builder.append(HEX_UPPERCASE.charAt(value & 0x0F));
-				}
-				builder.append(']');
-				unit = unit.next();
-			}
-		}
-		return builder.toString();
+		return buffers;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
@@ -693,7 +467,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput {
 	@Override
 	public void writeByte(byte value) {
 		if (write.isFull()) {
-			write = write.link(ByteBufferUnit.get());
+			write = write.link(DataBufferUnit.get());
 			units++;
 		}
 		length++;
@@ -791,5 +565,37 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput {
 	public double readDouble() throws IOException {
 		// TODO Auto-generated method stub
 		return 0;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
+
+	private final static String HEX_UPPERCASE = "0123456789ABCDEF";
+
+	@Override
+	public final String toString() {
+		final StringBuilder builder = new StringBuilder();
+		builder.append("DataBuffer:");
+		builder.append(length);
+		if (length > 0) {
+			DataBufferUnit unit = read;
+			while (unit != null) {
+				builder.append("\n");
+				builder.append(unit.readIndex());
+				builder.append("~");
+				builder.append(unit.writeIndex());
+				builder.append(" [");
+				for (int index = unit.readIndex(); index < unit.writeIndex(); index++) {
+					if (index > unit.readIndex()) {
+						builder.append(' ');
+					}
+					int value = unit.readByte(index) & 0xFF;
+					builder.append(HEX_UPPERCASE.charAt(value >>> 4));
+					builder.append(HEX_UPPERCASE.charAt(value & 0x0F));
+				}
+				builder.append(']');
+				unit = unit.next();
+			}
+		}
+		return builder.toString();
 	}
 }
