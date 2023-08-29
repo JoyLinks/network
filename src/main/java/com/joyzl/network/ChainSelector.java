@@ -102,7 +102,7 @@ public final class ChainSelector {
 									chain = (ChainChannel<?>) selection_key.attachment();
 									// 通知链路数据发送完成
 									chain.send(null);
-									System.out.println("SELECTOR_WRITES"+chain);
+									System.out.println("SELECTOR_WRITES" + chain);
 								} else {
 									// 忽略
 								}
@@ -170,6 +170,7 @@ public final class ChainSelector {
 	}
 
 	public static final void shutdown() {
+		// 关闭读选择器
 		if (THREAD_READS_SELECTOR != null) {
 			if (ChainSelector.SELECTOR_READS != null && ChainSelector.SELECTOR_READS.isOpen()) {
 				try {
@@ -187,6 +188,7 @@ public final class ChainSelector {
 				THREAD_READS_SELECTOR = null;
 			}
 		}
+		// 关闭写选择器
 		if (THREAD_WRITES_SELECTOR != null) {
 			if (ChainSelector.SELECTOR_WRITES != null && ChainSelector.SELECTOR_WRITES.isOpen()) {
 				try {
@@ -204,6 +206,7 @@ public final class ChainSelector {
 				THREAD_WRITES_SELECTOR = null;
 			}
 		}
+		// 关闭连接选择器
 		if (THREAD_CONNECTS_SELECTOR != null) {
 			if (ChainSelector.SELECTOR_CONNECTS != null && ChainSelector.SELECTOR_CONNECTS.isOpen()) {
 				try {

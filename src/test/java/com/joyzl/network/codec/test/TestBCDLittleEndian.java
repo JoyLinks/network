@@ -1,4 +1,4 @@
-package com.joyzl.network.test;
+package com.joyzl.network.codec.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -12,13 +12,13 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.joyzl.network.codec.BigEndianBCDInput;
-import com.joyzl.network.codec.BigEndianBCDOutput;
+import com.joyzl.network.codec.LittleEndianBCDInput;
+import com.joyzl.network.codec.LittleEndianBCDOutput;
 
-class TestBCDBigEndian {
+class TestBCDLittleEndian {
 
 	final ByteArrayOutputStream out = new ByteArrayOutputStream();
-	final BigEndianBCDOutput output = new BigEndianBCDOutput() {
+	final LittleEndianBCDOutput output = new LittleEndianBCDOutput() {
 		@Override
 		public void writeByte(int b) {
 			out.write(b);
@@ -45,7 +45,7 @@ class TestBCDBigEndian {
 		}
 	};
 	ByteArrayInputStream in;
-	final BigEndianBCDInput input = new BigEndianBCDInput() {
+	final LittleEndianBCDInput input = new LittleEndianBCDInput() {
 		@Override
 		public byte readByte() {
 			return (byte) in.read();

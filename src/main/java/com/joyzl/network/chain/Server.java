@@ -5,6 +5,7 @@
  */
 package com.joyzl.network.chain;
 
+import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -30,6 +31,10 @@ public abstract class Server<M> extends ChainChannel<M> {
 		super(k);
 		handler = h;
 	}
+
+	protected abstract void accepted(AsynchronousSocketChannel channel);
+
+	protected abstract void accepted(Throwable e);
 
 	public final ChainHandler<M> handler() {
 		return handler;

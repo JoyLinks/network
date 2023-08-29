@@ -8,10 +8,10 @@
  */
 package com.joyzl.network.chain;
 
+import java.io.IOException;
 import java.net.SocketAddress;
 
 import com.joyzl.network.Point;
-import com.joyzl.network.buffer.DataBuffer;
 
 /**
  * UDP通道
@@ -55,73 +55,37 @@ public class UDPSlave<M> extends Slave<M> {
 
 	@Override
 	public void receive() {
-		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected void read(DataBuffer reader) {
-		reader.release();
-		throw new UnsupportedOperationException();
+	protected void received(int size) {
+	}
+
+	@Override
+	protected void received(Throwable e) {
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
 	public void send(Object message) {
-		if (messages().isEmpty()) {
-			messages().addLast((M) message);
-			if (message == messages().peekFirst()) {
-				write(message);
-			}
-		} else {
-			messages().addLast((M) message);
+		try {
+			((UDPServer<M>) server()).send(this, (M) message);
+		} catch (IOException e) {
+			sent(e);
 		}
-
-		// if (message == null) {
-		// } else {
-		// try {
-		// handler().send(this, (M) message);
-		// } catch (Exception e) {
-		// handler().error(this, e);
-		// }
-		// }
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
-	protected void write(Object message) {
-		if (message == null) {
-			// 消息全部发送完成
-		} else {
-			DataBuffer buffer = null;
-			try {
-				buffer = handler().encode(this, (M) message);
-				if (buffer == null) {
-					if (messages().remove(message)) {
-						handler().sent(this, (M) message);
-						// 继续发送队列中的消息
-						write(messages().peekFirst());
-					} else {
-						throw new IllegalStateException("怎么会出现不在队列中的消息呢" + message);
-					}
-				} else if (buffer.readable() <= 0) {
-					throw new IllegalStateException("未编码数据 " + message);
-				} else {
-					((UDPServer<M>) server()).write(buffer, this);
-					write(message);
-				}
-			} catch (Exception e) {
-				if (buffer != null) {
-					buffer.release();
-				}
-				handler().error(this, e);
-			}
-		}
+	protected void sent(int size) {
+	}
+
+	@Override
+	protected void sent(Throwable e) {
 	}
 
 	@Override
 	public void close() {
 		server().offSlave(this);
-
 		// UDP从连接与UDP Server共用通道,因此不能关闭通道
 		try {
 			handler().disconnected(this);

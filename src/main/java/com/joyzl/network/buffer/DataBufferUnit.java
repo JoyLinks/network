@@ -49,95 +49,95 @@ public final class DataBufferUnit {
 	/**
 	 * 获取缓存大小
 	 */
-	final int size() {
+	public final int size() {
 		return buffer.capacity();
 	}
 
 	/**
 	 * 指示缓存已写满
 	 */
-	final boolean isFull() {
+	public final boolean isFull() {
 		return buffer.limit() == buffer.capacity();
 	}
 
 	/**
 	 * 指示缓存已读完
 	 */
-	final boolean isEmpty() {
+	public final boolean isEmpty() {
 		return buffer.position() == buffer.limit();
 	}
 
 	/**
 	 * 指示缓存无数据
 	 */
-	final boolean isBlank() {
+	public final boolean isBlank() {
 		return buffer.position() == 0 && buffer.limit() == 0;
 	}
 
 	/**
 	 * 获取缓存可读字节数量
 	 */
-	final int readable() {
+	public final int readable() {
 		return buffer.limit() - buffer.position();
 	}
 
 	/**
 	 * 获取缓存当前读取位置索引
 	 */
-	final int readIndex() {
+	public final int readIndex() {
 		return buffer.position();
 	}
 
 	/**
 	 * 设置缓存当前读取位置索引
 	 */
-	final void readIndex(int index) {
+	public final void readIndex(int index) {
 		buffer.position(index);
 	}
 
 	/**
 	 * 从缓存当前位置读取值,读取位置自动推进
 	 */
-	final byte readByte() {
+	public final byte readByte() {
 		return buffer.get();
 	}
 
 	/**
 	 * 从缓存指定位置读取值,读取位置不变
 	 */
-	final byte readByte(int index) {
+	public final byte readByte(int index) {
 		return buffer.get(index);
 	}
 
-	final int writeable() {
+	public final int writeable() {
 		return buffer.capacity() - buffer.limit();
 	}
 
-	final int writeIndex() {
+	public final int writeIndex() {
 		return buffer.limit();
 	}
 
-	final void writeIndex(int index) {
+	public final void writeIndex(int index) {
 		buffer.limit(index);
 	}
 
-	final void writeByte(byte value) {
+	public final void writeByte(byte value) {
 		buffer.limit(buffer.limit() + 1);
 		buffer.put(buffer.limit() - 1, value);
 	}
 
-	final void writeByte(int index, byte value) {
+	public final void writeByte(int index, byte value) {
 		buffer.put(index, value);
 	}
 
-	final ByteBuffer buffer() {
+	public final ByteBuffer buffer() {
 		return buffer;
 	}
 
 	/**
 	 * 释放当前缓存单元，当前缓存单元被回收，返回下一个缓存单元，如果没有下一个缓存单元则返回null
 	 */
-	final DataBufferUnit apart() {
+	public final DataBufferUnit apart() {
 		final DataBufferUnit unit = next;
 		next = null;
 		release();
@@ -147,7 +147,7 @@ public final class DataBufferUnit {
 	/**
 	 * 断开当前缓存单元，返回下一个缓存单元，如果没有下一个缓存单元则返回null
 	 */
-	final DataBufferUnit braek() {
+	public final DataBufferUnit braek() {
 		final DataBufferUnit unit = next;
 		next = null;
 		return unit;
@@ -156,7 +156,7 @@ public final class DataBufferUnit {
 	/**
 	 * 连接一个缓存单元，如果被连接缓存单元也连接有其它缓存单元则返回最后一个
 	 */
-	final DataBufferUnit link(DataBufferUnit unit) {
+	public final DataBufferUnit link(DataBufferUnit unit) {
 		next = unit;
 		while (unit.next() != null) {
 			unit = unit.next();
@@ -169,16 +169,16 @@ public final class DataBufferUnit {
 	 * 
 	 * @return null / ByteBufferUnit
 	 */
-	final DataBufferUnit next() {
+	public final DataBufferUnit next() {
 		return next;
 	}
 
-	final void clear() {
+	public final void clear() {
 		buffer.position(0);// 读位置
 		buffer.limit(0);// 写位置
 	}
 
-	final void release() {
+	public final void release() {
 		clear();
 		BYTE_BUFFER_UNITS.offer(this);
 	}

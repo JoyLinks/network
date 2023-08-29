@@ -12,7 +12,6 @@ import java.net.StandardSocketOptions;
 import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.InterruptedByTimeoutException;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import com.joyzl.network.Executor;
@@ -20,7 +19,7 @@ import com.joyzl.network.Point;
 import com.joyzl.network.buffer.DataBuffer;
 
 /**
- * 基于TCP连接的客户端，提供心跳，中断重连等机制
+ * 基于TCP连接的链路，链接无心跳和重连机制
  * <p>
  * 工作机制：
  * <ol>
@@ -37,28 +36,17 @@ import com.joyzl.network.buffer.DataBuffer;
  * 链路关闭后可再次请求连接。对象不是多线程安全的，在多线程收发情形下使用者应实现消息排队。
  * <p>
  *
- * @author simon(ZhangXi TEL:13883833982) 2019年7月12日
- *
+ * @author simon(ZhangXi TEL : 13883833982) 2019年7月12日
  */
-public class TCPClient<M> extends Client<M> {
+public class TCPLink<M> extends Client<M> {
 
 	private final SocketAddress address;
-	private final ReconnectTask reconnect_task;
-	private final HeartbeatTask heartbeat_task;
-
 	private AsynchronousSocketChannel socket_channel;
-
-	/** 重新连接间隔时间(秒) */
-	private int reconnect_interval = 6;
-	/** 连接空闲心跳间隔时间(秒) */
-	private int heartbeat_interval = 60 * 3;
 	/** 连接状态 */
 	private volatile boolean connected;
-	/** 关闭状态 */
-	private volatile boolean closed;
 
 	/**
-	 * 创建TCPClient由接点标识指定连接信息
+	 * 创建TCPShort由接点标识指定连接信息
 	 * <p>
 	 * 自动生成接点标识 "192.168.0.1:1030"
 	 *
@@ -66,26 +54,21 @@ public class TCPClient<M> extends Client<M> {
 	 * @param host 主机
 	 * @param port 端口
 	 */
-	public TCPClient(ChainHandler<M> handler, String host, int port) {
+	public TCPLink(ChainHandler<M> handler, String host, int port) {
 		super(handler);
-
 		address = new InetSocketAddress(host, port);
-		reconnect_task = new ReconnectTask();
-		heartbeat_task = new HeartbeatTask();
-
-		closed = false;
 		connected = false;
-		ChainGroup.add(this);
+		// ChainGroup.add(this);
 	}
 
 	@Override
 	public ChainType type() {
-		return ChainType.TCP_CLIENT;
+		return ChainType.TCP_SHORT;
 	}
 
 	@Override
 	public boolean active() {
-		return !closed && connected && socket_channel != null && socket_channel.isOpen();
+		return connected && socket_channel != null && socket_channel.isOpen();
 	}
 
 	@Override
@@ -119,74 +102,24 @@ public class TCPClient<M> extends Client<M> {
 		}
 	}
 
-	/**
-	 * 获取自动重新连接间隔时间
-	 *
-	 * @return 秒
-	 */
-	public int getReconnectInterval() {
-		return reconnect_interval;
-	}
-
-	/**
-	 * 设置自动重新连接间隔时间
-	 *
-	 * @param interval 10~n秒
-	 */
-	public void setReconnectInterval(int interval) {
-		if (interval < 10) {
-			interval = 10;
-		}
-		reconnect_interval = interval;
-	}
-
-	/**
-	 * 获取连接空闲心跳间隔时间
-	 *
-	 * @return 秒
-	 */
-	public int getHeartbeatInterval() {
-		return heartbeat_interval;
-	}
-
-	/**
-	 * 设置连接空闲心跳间隔时间
-	 *
-	 * @param time 60~n秒
-	 */
-	public void setHeartbeatInterval(int time) {
-		if (time < 60) {
-			heartbeat_interval = 60;
-		} else {
-			heartbeat_interval = time;
-		}
-	}
-
-	public boolean isClosed() {
-		return closed;
-	}
-
 	////////////////////////////////////////////////////////////////////////////////
 
 	public void connect() {
-		if (closed) {
-			// 用户关闭
-			return;
-		}
+		// 此方法多次调用须防止已创建的AsynchronousSocketChannel对象实例泄露
+		// 持续调用最终会导致AsynchronousSocketChannel创建抛出"文件打开过多异常"
+		// 已关闭的AsynchronousSocketChannel不能重用否则抛出java.nio.channels.ClosedChannelException
 		if (socket_channel == null) {
 			try {
 				socket_channel = AsynchronousSocketChannel.open(Executor.channelGroup());
 				if (socket_channel.isOpen()) {
-					socket_channel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
-					socket_channel.setOption(StandardSocketOptions.TCP_NODELAY, true);
+					socket_channel.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.TRUE);
+					socket_channel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.TRUE);
 					socket_channel.connect(address, this, ClientConnectHandler.INSTANCE);
 				} else {
 					socket_channel = null;
 				}
 			} catch (Exception e) {
-				// 连接异常,延迟后重试
 				handler().error(this, e);
-				reset();
 			}
 		}
 	}
@@ -194,17 +127,12 @@ public class TCPClient<M> extends Client<M> {
 	@Override
 	protected void connected() {
 		// 连接成功
-		// ZhangXi 2020-05-25
-		// 在执行handler().connected()之前必须设置连接状态connected=true，否则handler().connected()事件中将无法发送数据
-		// 因为Chain发送时会检查连接状态Chain.Active()，如果connected不为true，数据将不会发送
 		connected = true;
 		try {
 			handler().connected(this);
 		} catch (Exception e) {
 			handler().error(this, e);
-			reset();
 		}
-		heartbeat_task.start();
 	}
 
 	@Override
@@ -212,11 +140,13 @@ public class TCPClient<M> extends Client<M> {
 		// 连接异常
 		connected = false;
 		if (e instanceof AsynchronousCloseException) {
-			// 正在执行通道关闭
+			// 主动关闭正在尝试连接的链路
 			return;
+		} else if (e instanceof InterruptedByTimeoutException) {
+			// 连接超时
 		}
 		handler().error(this, e);
-		reset();
+		close();
 	}
 
 	private M receive_message;
@@ -302,7 +232,7 @@ public class TCPClient<M> extends Client<M> {
 			read.release();
 			read = null;
 			// 关闭链路
-			reset();
+			close();
 		}
 	}
 
@@ -406,7 +336,7 @@ public class TCPClient<M> extends Client<M> {
 			send_message = null;
 			write.release();
 			write = null;
-			reset();
+			close();
 		}
 	}
 
@@ -434,8 +364,8 @@ public class TCPClient<M> extends Client<M> {
 		}
 	}
 
-	private void reset() {
-		// 关闭链路
+	@Override
+	public void close() {
 		if (socket_channel != null) {
 			if (connected) {
 				connected = false;
@@ -469,92 +399,6 @@ public class TCPClient<M> extends Client<M> {
 				write.release();
 				write = null;
 			}
-		}
-
-		if (!closed) {
-			heartbeat_task.stop();
-			// 延迟一定时间后尝试重新连接
-			reconnect_task.start();
-		}
-	}
-
-	private class ReconnectTask implements Runnable {
-
-		private ScheduledFuture<?> future;
-
-		public void start() {
-			if (Executor.isActive()) {
-				if (getReconnectInterval() > 0) {
-					future = Executor.schedule(this, getReconnectInterval(), TimeUnit.SECONDS);
-				}
-			}
-		}
-
-		public void stop() {
-			if (future != null) {
-				future.cancel(true);
-				future = null;
-			}
-		}
-
-		@Override
-		public void run() {
-			connect();
-
-			if (future != null) {
-				future = null;
-			}
-		}
-	}
-
-	private class HeartbeatTask implements Runnable {
-		/**
-		 * 最后一次成功读/写的时间戳
-		 */
-		private ScheduledFuture<?> future;
-
-		public void start() {
-			if (Executor.isActive()) {
-				if (getHeartbeatInterval() > 0) {
-					future = Executor.schedule(this, getHeartbeatInterval(), TimeUnit.SECONDS);
-				}
-			}
-		}
-
-		public void stop() {
-			if (future != null) {
-				future.cancel(true);
-				future = null;
-			}
-		}
-
-		@Override
-		public void run() {
-			long delay = getLastRead() > getLastWrite() ? getLastRead() : getLastWrite();
-			delay = getHeartbeatInterval() - (System.currentTimeMillis() - delay) / 1000;
-			if (delay <= 0) {
-				try {
-					handler().beat(TCPClient.this);
-				} catch (Exception e) {
-					handler().error(TCPClient.this, e);
-				}
-				future = Executor.schedule(this, getHeartbeatInterval(), TimeUnit.SECONDS);
-			} else {
-				future = Executor.schedule(this, delay, TimeUnit.SECONDS);
-			}
-		}
-	}
-
-	@Override
-	public void close() {
-		if (closed) {
-		} else {
-			closed = true;
-			reset();
-
-			ChainGroup.off(this);
-			reconnect_task.stop();
-			heartbeat_task.stop();
 		}
 	}
 }

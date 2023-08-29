@@ -21,6 +21,14 @@ public abstract class Slave<M> extends ChainChannel<M> {
 		server = s;
 	}
 
+	protected abstract void received(int size);
+
+	protected abstract void received(Throwable e);
+
+	protected abstract void sent(int size);
+
+	protected abstract void sent(Throwable e);
+
 	public final Server<M> server() {
 		return server;
 	}

@@ -5,7 +5,7 @@
  */
 package com.joyzl.network.web;
 
-import com.joyzl.network.chain.TCPShort;
+import com.joyzl.network.chain.TCPLink;
 import com.joyzl.network.http.Message;
 
 /**
@@ -14,7 +14,7 @@ import com.joyzl.network.http.Message;
  * @author ZhangXi
  * @date 2020年6月26日
  */
-public final class WEBClient extends TCPShort<Message> {
+public final class WEBClient extends TCPLink<Message> {
 
 	public WEBClient(WEBClientHandler handler, String host, int port) {
 		super(handler, host, port);

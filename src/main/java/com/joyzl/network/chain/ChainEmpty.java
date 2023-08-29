@@ -10,12 +10,10 @@ package com.joyzl.network.chain;
 
 import java.net.SocketAddress;
 
-import com.joyzl.network.buffer.DataBuffer;
-
 /**
  * 空链路
  * <p>
- * 创建空链路时可以指定null值的ChainHandler和key，空链路实例将不会执行任何网络操作； 也可通过ChainEmpty.INSTANCE获取空链路实例
+ * 创建空链路时可以指定null值的ChainHandler和key，空链路实例将不会执行任何网络操作；
  * </p>
  */
 public class ChainEmpty<M> extends ChainChannel<M> {
@@ -48,68 +46,23 @@ public class ChainEmpty<M> extends ChainChannel<M> {
 
 	@Override
 	public void receive() {
+		try {
+			final M message = handler().decode(this, null);
+			handler().received(this, message);
+		} catch (Exception e) {
+			handler().error(this, e);
+		}
 	}
 
 	@Override
+	@SuppressWarnings("unchecked")
 	public void send(Object message) {
-		write(message);
-	}
-
-	@Override
-	protected void write(Object writer) {
-	}
-
-	@Override
-	protected void read(DataBuffer reader) {
-		if (reader.readable() > 0) {
-			M message;
-			try {
-				while (true) {
-					message = handler().decode(this, reader);
-					if (message == null) {
-						break;
-					} else {
-						if (reader.reference()) {
-							if (reader.hasResidue()) {
-								// final DataBuffer buffer =
-								// handler().receive(this);
-								final DataBuffer buffer = DataBuffer.getB2048();
-								reader.residue(buffer);
-								reader.release();
-								reader = buffer;
-
-								handler().received(this, message);
-							} else {
-								reader.release();
-								reader = null;
-
-								handler().received(this, message);
-								return;
-							}
-						} else {
-							if (reader.hasResidue() || reader.readable() > 0) {
-								handler().received(this, message);
-								// 有剩余数据,继续尝试解包,继续接收数据
-							} else {
-								reader.release();
-								reader = null;
-
-								handler().received(this, message);
-								return;
-							}
-						}
-					}
-				}
-			} catch (Exception e) {
-				if (reader != null) {
-					reader.release();
-					reader = null;
-				}
-				handler().error(this, e);
-			}
-		} else {
-			reader.release();
-			close();
+		try {
+			final M m = (M) message;
+			handler().encode(this, m);
+			handler().sent(this, m);
+		} catch (Exception e) {
+			handler().error(this, e);
 		}
 	}
 

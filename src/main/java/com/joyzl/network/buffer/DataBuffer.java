@@ -8,6 +8,7 @@ package com.joyzl.network.buffer;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import com.joyzl.codec.BigEndianDataInput;
@@ -20,6 +21,7 @@ import com.joyzl.network.verifies.Verifier;
 
 /**
  * 数据缓存对象，数据将写入多个ByteBuffer中，或者从多个ByteBuffer中读取数据，根据需要会自动扩展和回收ByteBuffer。
+ * 实例不是多线程安全的，不能在多个线程同时访问实例。
  * 
  * @author ZhangXi
  * @date 2021年3月13日
@@ -441,10 +443,123 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 
 	////////////////////////////////////////////////////////////////////////////////
 
-	public DataBufferUnit[] getUnits() {
-		final DataBufferUnit[] buffers = new DataBufferUnit[units];
+	/**
+	 * 获取缓存单元用于从通道(Channel)读取数据，通道数据写入后必须通过{@link #written(int)}设置数量；<br>
+	 * 从通道读取数据写入到缓存单元。
+	 * 
+	 * @return ByteBuffer
+	 * @see #written(int)
+	 */
+	public ByteBuffer write() {
+		if (write.isFull()) {
+			// 防止用已满的ByteBuffer接收数据,将导致读零
+			write = write.link(DataBufferUnit.get());
+		}
+		// 调整ByteBuffer用于Channel接收数据
+		write.buffer().mark();
+		write.buffer().position(write.buffer().limit());
+		write.buffer().limit(write.buffer().capacity());
+		return write.buffer();
+	}
 
+	/**
+	 * 获取缓存单元用于从通道(Channel)读取数据，通道数据写入后必须通过{@link #written(int)}设置数量；<br>
+	 * 从通道读取数据写入到缓存单元，指定可能的数据长度以获取多个缓存单元。
+	 * 
+	 * @param size 将要写入的最大数据长度
+	 * @return ByteBuffer[]
+	 */
+	public ByteBuffer[] writes(int size) {
+		return null;
+	}
+
+	/**
+	 * 设置缓存单元从通道读取的字节数量，必须事先调用{@link #write()}从通道读取数据；<br>
+	 * 此方法将更新{@link #DataBuffer()}中的可读字节数量。
+	 * 
+	 * @param size 字节数量
+	 * @see #write()
+	 */
+	public void written(int size) {
+		if (size > 0) {
+			length += size;
+		}
+		// 调整ByteBuffer用于DataBuffer读写数据
+		if (write.buffer().position() > 0) {
+			write.buffer().limit(write.buffer().position());
+			write.buffer().reset();
+
+			// 不能用flip()会将mark设置为-1
+			// 设置limit时如果mark>limit则ByteBuffer内部重置mark=-1
+			// mark=-1时执行ByteBuffer.reset()将抛出InvalidMarkException
+			// Channel只要写入过数据ByteBuffer.position>0
+		} else {
+			write.clear();
+		}
+	}
+
+	/**
+	 * 获取缓存单元用于写入数据到通道(Channel)，写入数据到通道后必须通过{@link #read(int)}设置数量；<br>
+	 * 将缓存单元的数据写入到通道。
+	 * 
+	 * @return DataBufferUnit
+	 * @see #read(int)
+	 * @see #read(long)
+	 */
+	public ByteBuffer read() {
+		while (read.isEmpty()) {
+			// 防止用已空的ByteBuffer发送数据,将导致零写
+			read = read.apart();
+		}
+		return read.buffer();
+	}
+
+	/**
+	 * @see #read()
+	 * @return
+	 */
+	public ByteBuffer[] reads() {
+		final ByteBuffer[] buffers = new ByteBuffer[units];
+		DataBufferUnit unit = read;
+		for (int index = 0; index < buffers.length; index++) {
+			buffers[index] = unit.buffer();
+			unit = unit.next();
+		}
 		return buffers;
+	}
+
+	/**
+	 * 设置缓存单元写入到通道的字节数量，必须事先调用{@link #read()}写入数据到通道；<br>
+	 * 此方法将更新{@link #DataBuffer()}中的可读字节数量，并视情况释放已读完的缓存单元。
+	 * 
+	 * @param size 字节数量
+	 * @see #read()
+	 */
+	public void read(int size) {
+		// Channel发送后ByteBuffer的position会改变
+		if (size > 0) {
+			length -= size;
+			while (read.isEmpty()) {
+				if (read == write) {
+					break;
+				} else {
+					read = read.apart();
+					units--;
+				}
+			}
+		}
+	}
+
+	/**
+	 * @see #read(int)
+	 * @param size
+	 */
+	public void read(long size) {
+		while (size > Integer.MAX_VALUE) {
+			read(Integer.MAX_VALUE);
+			size -= Integer.MAX_VALUE;
+		}
+		read((int) size);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////

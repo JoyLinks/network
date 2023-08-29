@@ -10,7 +10,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
-import java.util.concurrent.locks.ReentrantLock;
 
 import com.joyzl.network.ChainSelector;
 import com.joyzl.network.Point;
@@ -37,13 +36,13 @@ public class UDPClient<M> extends Client<M> {
 			datagram_channel.configureBlocking(false);
 			// 注册NIO.1选择器,当可读时触发receive()方法
 			datagram_channel.register(ChainSelector.reads(), SelectionKey.OP_READ, this);
-			// datagram_channel.register(ChainSelector.writes(),SelectionKey.OP_WRITE,this);
 		} else {
 			throw new IOException("UDP连接打开失败，" + key());
 		}
 
 		ChainGroup.add(this);
 		ChainSelector.reads().wakeup();
+		// datagram_channel.register(ChainSelector.writes(),SelectionKey.OP_WRITE,this);
 		// ChainSelector.writes().wakeup();
 	}
 
@@ -88,9 +87,20 @@ public class UDPClient<M> extends Client<M> {
 		}
 	}
 
+	////////////////////////////////////////////////////////////////////////////////
+
 	public void connect() {
 		try {
 			datagram_channel.connect(address);
+			connected();
+		} catch (Exception e) {
+			connected(e);
+		}
+	}
+
+	@Override
+	protected void connected() {
+		try {
 			handler().connected(this);
 		} catch (Exception e) {
 			handler().error(this, e);
@@ -98,97 +108,53 @@ public class UDPClient<M> extends Client<M> {
 	}
 
 	@Override
-	public void receive() {
-		read(DataBuffer.getB2048());
+	protected void connected(Throwable e) {
+		handler().error(this, e);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	protected void read(DataBuffer reader) {
+	public void receive() {
+		// UDP数据报特性:如果ByteBuffer不足够接收所有的数据，剩余的被静默抛弃，不会抛出任何异常
+		// DataBuffer不能接续，必须清空并确保可以接受最长数据
+		final DataBuffer buffer = DataBuffer.instance();
 		try {
-			final int length = datagram_channel.read(reader.getWriteableBuffer());
-			// UDP数据报特性:如果ByteBuffer不足够接收所有的数据,剩余的被静默抛弃
-			// DataBuffer不能接续,必须清空并确保可以接受最长数据
-
-			if (length > 0) {
+			int size = datagram_channel.read(buffer.write());
+			if (size > 0) {
 				// 确认接收到的数据量
-				reader.writtenBuffers(length);
+				buffer.written(size);
 				// 解包
-				final Object source = handler().decode(this, reader);
+				final M source = handler().decode(this, buffer);
 				if (source == null) {
-					// 数据不足,无补救措施
+					// 数据不足，无补救措施
 					// UDP特性决定后续接收的数据只会是另外的数据帧
-					reader.release();
+					buffer.clear();
 				} else {
-					reader.release();
-					// 防止handler().received()异常时重复释放缓存对象
-					reader = null;
-
-					handler().received(this, (M) source);
+					handler().received(this, source);
 				}
-			} else if (length == 0) {
-				// 1.接收完成
-				// 2.DataBuffer提供的ByteBuffer已满
-				// 好像无补救措施
-				reader.release();
+			} else if (size == 0) {
+				// DataBuffer提供的ByteBuffer已满，无补救措施
 			} else {
-				reader.release();
+				// 未知情况
 			}
 		} catch (Exception e) {
-			if (reader != null) {
-				// handler().decode()异常时由此释放缓存对象
-				reader.release();
-			}
-			handler().error(this, e);
-		}
-	}
-
-	// 用于发送数据的锁
-	final ReentrantLock writing = new ReentrantLock();
-
-	@SuppressWarnings("unchecked")
-	@Override
-	public void send(Object message) {
-		writing.lock();
-		try {
-			if (messages().isEmpty()) {
-				if (messages().offerLast((M) message)) {
-					// 通过message==null表示当前消息是否应立即发送
-				} else {
-					message = null;
-				}
-			} else {
-				if (messages().offerLast((M) message)) {
-					message = null;
-				} else {
-					throw new IllegalStateException("消息发送队列满");
-				}
-			}
+			received(e);
 		} finally {
-			writing.unlock();
-		}
-		if (message == null) {
-			return;
-		} else {
-			write(message);
+			buffer.release();
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	protected void write(Object message) {
-		if (message == null) {
-			writing.lock();
-			try {
-				message = messages().pollFirst();
-				message = messages().peekFirst();
-			} finally {
-				writing.unlock();
-			}
-			if (message == null) {
-				return;
-			}
-		}
+	protected void received(int size) {
+	}
+
+	@Override
+	protected void received(Throwable e) {
+		handler().error(this, e);
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public void send(Object message) {
 		// 执行消息编码
 		DataBuffer buffer = null;
 		try {
@@ -196,53 +162,61 @@ public class UDPClient<M> extends Client<M> {
 			if (buffer == null) {
 				throw new IllegalStateException("消息未编码数据 " + message);
 			} else if (buffer.readable() <= 0) {
-				throw new IllegalStateException("消息编码0数据 " + message);
+				throw new IllegalStateException("消息编码零数据 " + message);
 			} else {
-				write(buffer);
-				handler().sent(this, (M) message);
+				if (buffer.units() > 1) {
+					long length = datagram_channel.write(buffer.reads());
+					buffer.read(length);
+				} else {
+					int length = datagram_channel.write(buffer.read());
+					buffer.read(length);
+				}
+				if (buffer.readable() > 0) {
+					// 如果超出UDP包最大长度可能出现
+					throw new IllegalStateException("数据未能全部送出 " + message);
+				} else {
+					handler().sent(this, (M) message);
+				}
 			}
 		} catch (Exception e) {
 			if (buffer != null) {
 				buffer.release();
 			}
-			handler().error(this, e);
+			sent(e);
 		}
 	}
 
-	private void write(DataBuffer buffer) throws IOException {
-		// TODO :UDP发送方式需要调整为一次性将所有ByteBuffer发送
-		int length;
-		while (buffer.hasReadableBuffer()) {
-			length = datagram_channel.write(buffer.getReadableBuffer());
-			if (length > 0) {
-				buffer.readBuffers(length);
-			} else if (length == 0) {
-				continue;
-			} else {
-				// 好像没有补救措施
-				break;
-			}
-		}
-		buffer.release();
-		// 数据发送完成，请求继续编码
-		write((Object) null);
+	@Override
+	protected void sent(int size) {
+		// 此方法未使用
+	}
+
+	@Override
+	protected void sent(Throwable e) {
+		handler().error(this, e);
 	}
 
 	@Override
 	public void close() {
-		if (datagram_channel != null && datagram_channel.isConnected()) {
+		if (datagram_channel.isOpen()) {
 			ChainGroup.off(this);
+			if (datagram_channel.isConnected()) {
+				try {
+					datagram_channel.disconnect();
+				} catch (Exception e) {
+					handler().error(this, e);
+				} finally {
+					try {
+						handler().disconnected(this);
+					} catch (Exception e) {
+						handler().error(this, e);
+					}
+				}
+			}
 			try {
-				datagram_channel.disconnect();
 				datagram_channel.close();
 			} catch (Exception e) {
 				handler().error(this, e);
-			} finally {
-				try {
-					handler().disconnected(this);
-				} catch (Exception e) {
-					handler().error(this, e);
-				}
 			}
 		}
 	}

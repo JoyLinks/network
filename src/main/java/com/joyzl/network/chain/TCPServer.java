@@ -11,11 +11,9 @@ import java.net.SocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
-import java.nio.channels.CompletionHandler;
 
 import com.joyzl.network.Executor;
 import com.joyzl.network.Point;
-import com.joyzl.network.buffer.DataBuffer;
 
 /**
  * TCP服务端，监听指定端口接收连接（TCPSlave）
@@ -25,7 +23,8 @@ import com.joyzl.network.buffer.DataBuffer;
  */
 public class TCPServer<M> extends Server<M> {
 
-	private final static int BACKLOG = 1024;
+	private final static int BACKLOG = 512;
+
 	private final SocketAddress address;
 	private final AsynchronousServerSocketChannel server_socket_channel;
 
@@ -35,8 +34,9 @@ public class TCPServer<M> extends Server<M> {
 		server_socket_channel = AsynchronousServerSocketChannel.open(Executor.channelGroup());
 		if (server_socket_channel.isOpen()) {
 			server_socket_channel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.TRUE);
-			// server_socket_channel.setOption(StandardSocketOptions.SO_REUSEPORT, Boolean.FALSE);
+			// server_socket_channel.setOption(StandardSocketOptions.SO_REUSEPORT,Boolean.FALSE);
 			if (port > 0) {
+				// 指定端口
 				if (host == null || host.length() == 0) {
 					address = new InetSocketAddress(port);
 				} else {
@@ -44,6 +44,7 @@ public class TCPServer<M> extends Server<M> {
 				}
 				server_socket_channel.bind(new InetSocketAddress(port), BACKLOG);
 			} else {
+				// 随机端口
 				server_socket_channel.bind(null, BACKLOG);
 				address = server_socket_channel.getLocalAddress();
 			}
@@ -63,20 +64,6 @@ public class TCPServer<M> extends Server<M> {
 	@Override
 	public boolean active() {
 		return server_socket_channel != null && server_socket_channel.isOpen();
-	}
-
-	@Override
-	public void close() {
-		ChainGroup.off(this);
-
-		if (server_socket_channel.isOpen()) {
-			try {
-				server_socket_channel.close();
-				super.close();
-			} catch (IOException e) {
-				handler().error(TCPServer.this, e);
-			}
-		}
 	}
 
 	@Override
@@ -108,55 +95,51 @@ public class TCPServer<M> extends Server<M> {
 	}
 
 	@Override
-	protected void write(Object writer) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
 	public void receive() {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected void read(DataBuffer reader) {
-		throw new UnsupportedOperationException();
+	public void close() {
+		if (server_socket_channel.isOpen()) {
+			ChainGroup.off(this);
+			try {
+				server_socket_channel.close();
+				super.close();
+			} catch (IOException e) {
+				handler().error(TCPServer.this, e);
+			}
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
 
 	private void accept() {
-		if (Executor.channelGroup().isShutdown()) {
-			// 线程组已关闭
+		if (Executor.channelGroup().isShutdown() || Executor.channelGroup().isTerminated()) {
 			return;
 		}
+		// AcceptPendingException
 		if (server_socket_channel.isOpen()) {
-			server_socket_channel.accept(this, ACCEPT_HANDLER);
+			server_socket_channel.accept(this, ServerAcceptHandler.INSTANCE);
 		}
 	}
 
-	protected Slave<M> accepted(AsynchronousSocketChannel socket_channel) throws IOException {
+	@Override
+	protected void accepted(AsynchronousSocketChannel socket_channel) {
 		// 继承者可重载此方法实现自己的连接创建
-		return new TCPSlave<>(this, socket_channel);
+		try {
+			final Slave<M> slave = new TCPSlave<>(this, socket_channel);
+			handler().connected(slave);
+		} catch (Exception e) {
+			handler().error(this, e);
+		} finally {
+			accept();
+		}
 	}
 
-	protected final CompletionHandler<AsynchronousSocketChannel, TCPServer<M>> ACCEPT_HANDLER = new CompletionHandler<AsynchronousSocketChannel, TCPServer<M>>() {
-
-		@Override
-		public void completed(AsynchronousSocketChannel socket_channel, TCPServer<M> server) {
-			try {
-				final Slave<M> slave = server.accepted(socket_channel);
-				server.handler().connected(slave);
-				addSlave(slave);
-			} catch (Exception e) {
-				server.handler().error(server, e);
-			}
-			server.accept();
-		}
-
-		@Override
-		public void failed(Throwable e, TCPServer<M> server) {
-			server.handler().error(server, e);
-			server.accept();
-		}
-	};
+	@Override
+	protected void accepted(Throwable e) {
+		handler().error(this, e);
+		accept();
+	}
 }

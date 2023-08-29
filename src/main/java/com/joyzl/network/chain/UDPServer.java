@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 
@@ -41,12 +42,12 @@ public class UDPServer<M> extends Server<M> {
 				address = new InetSocketAddress(host, port);
 			}
 			datagram_channel.bind(address);
-
-			ChainGroup.add(this);
-			ChainSelector.reads().wakeup();
 		} else {
 			throw new IOException("UDP服务端打开失败，" + key());
 		}
+
+		ChainGroup.add(this);
+		ChainSelector.reads().wakeup();
 	}
 
 	@Override
@@ -82,29 +83,35 @@ public class UDPServer<M> extends Server<M> {
 		return null;
 	}
 
+	////////////////////////////////////////////////////////////////////////////////
+
 	@Override
-	public void receive() {
-		read(DataBuffer.getB2048());
+	protected void accepted(AsynchronousSocketChannel channel) {
 	}
 
 	@Override
-	protected void read(DataBuffer reader) {
-		ByteBuffer buffer = reader.getWriteableBuffer();
-		int position = buffer.position();
+	protected void accepted(Throwable e) {
+	}
+
+	@Override
+	public void receive() {
+		DataBuffer read = DataBuffer.instance();
+		ByteBuffer buffer = read.write();
 		Slave<M> slave = null;
 		try {
 			// receive 未提供读取数量返回，需要通过位置计算
+			int position = buffer.position();
 			final SocketAddress address = datagram_channel.receive(buffer);
 			if (address == null) {
+				// read.release();
 			} else {
-				reader.writtenBuffers(buffer.position() - position);
+				read.written(buffer.position() - position);
 				slave = getSlave(Point.getPoint(address));
 				if (slave == null) {
-					slave = new UDPSlave<>(this, address);
-					addSlave(slave);
+					addSlave(slave = new UDPSlave<>(this, address));
 					handler().connected(slave);
 				}
-				final M message = handler().decode(this, reader);
+				final M message = handler().decode(this, read);
 				if (message == null) {
 					// 数据不足,无补救措施,UDP特性决定后续接收的数据只会是另外的数据帧
 				} else {
@@ -114,8 +121,8 @@ public class UDPServer<M> extends Server<M> {
 		} catch (Exception e) {
 			handler().error(slave == null ? this : slave, e);
 		} finally {
-			if (reader != null) {
-				reader.release();
+			if (read != null) {
+				read.release();
 			}
 		}
 	}
@@ -127,27 +134,31 @@ public class UDPServer<M> extends Server<M> {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override
-	protected void write(Object writer) {
-		// 必须通过UDPSlave发送
-		// UDPServer无法明确目标地址
-		throw new UnsupportedOperationException();
-	}
-
-	protected void write(DataBuffer buffer, UDPSlave<M> slave) throws IOException {
-		// TODO :UDP发送方式需要调整为一次性将所有ByteBuffer发送
-		int length;
-		while (buffer.hasReadableBuffer()) {
-			length = datagram_channel.send(buffer.getReadableBuffer(), slave.getRemoteAddress());
-			if (length > 0) {
-				buffer.readBuffers(length);
-			} else if (length == 0) {
-				continue;
+	protected void send(UDPSlave<M> slave, M message) throws IOException {
+		// 执行消息编码
+		DataBuffer buffer = null;
+		try {
+			buffer = handler().encode(this, (M) message);
+			if (buffer == null) {
+				throw new IllegalStateException("消息未编码数据 " + message);
+			} else if (buffer.readable() <= 0) {
+				throw new IllegalStateException("消息编码零数据 " + message);
 			} else {
-				break;
+				if (buffer.units() > 1) {
+					int length = datagram_channel.send(buffer.read(), slave.getRemoteAddress());
+					buffer.read(length);
+				} else {
+					int length = datagram_channel.send(buffer.read(), slave.getRemoteAddress());
+					buffer.read(length);
+				}
+				handler().sent(this, (M) message);
 			}
+		} catch (Exception e) {
+			if (buffer != null) {
+				buffer.release();
+			}
+			slave.sent(e);
 		}
-		buffer.release();
 	}
 
 	@Override
