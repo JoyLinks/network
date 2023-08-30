@@ -591,38 +591,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 
 	@Override
 	public void writeByte(int b) throws IOException {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void writeShort(short value) throws IOException {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void writeInt(int value) throws IOException {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void writeLong(long value) throws IOException {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void writeFloat(float value) throws IOException {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void writeDouble(double value) throws IOException {
-		// TODO Auto-generated method stub
-
+		writeByte((byte) b);
 	}
 
 	@Override
@@ -644,42 +613,6 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 			return getVerifier().check(read.readByte());
 		}
 		throw new IllegalStateException("无数据可读");
-	}
-
-	@Override
-	public short readShort() throws IOException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public int readUnsignedShort() throws IOException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public int readInt() throws IOException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public long readLong() throws IOException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public float readFloat() throws IOException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public double readDouble() throws IOException {
-		// TODO Auto-generated method stub
-		return 0;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////

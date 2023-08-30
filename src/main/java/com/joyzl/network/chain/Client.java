@@ -15,11 +15,14 @@ public abstract class Client<M> extends ChainChannel<M> {
 
 	/** 消息处理对象 */
 	private final ChainHandler<M> handler;
-	private volatile long read, write;
 
 	public Client(ChainHandler<M> h) {
 		super(Long.toString(System.currentTimeMillis() + System.nanoTime(), Character.MAX_RADIX));
 		handler = h;
+	}
+
+	public final ChainHandler<M> handler() {
+		return handler;
 	}
 
 	protected abstract void connected();
@@ -33,24 +36,4 @@ public abstract class Client<M> extends ChainChannel<M> {
 	protected abstract void sent(int size);
 
 	protected abstract void sent(Throwable e);
-
-	public final ChainHandler<M> handler() {
-		return handler;
-	}
-
-	protected void refreshLastRead() {
-		read = System.currentTimeMillis();
-	}
-
-	protected void refreshLastWrite() {
-		read = System.currentTimeMillis();
-	}
-
-	public long getLastRead() {
-		return read;
-	}
-
-	public long getLastWrite() {
-		return write;
-	}
 }

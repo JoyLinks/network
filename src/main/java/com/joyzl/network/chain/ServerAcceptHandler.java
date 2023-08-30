@@ -14,8 +14,8 @@ public class ServerAcceptHandler implements CompletionHandler<AsynchronousSocket
 	final static ServerAcceptHandler INSTANCE = new ServerAcceptHandler();
 
 	@Override
-	public void completed(AsynchronousSocketChannel channel, Server<?> chain) {
-		chain.accepted(channel);
+	public void completed(AsynchronousSocketChannel channel, Server<?> server) {
+		server.accepted(channel);
 	}
 
 	@Override

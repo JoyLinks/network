@@ -114,11 +114,15 @@ public class TCPLink<M> extends Client<M> {
 				if (socket_channel.isOpen()) {
 					socket_channel.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.TRUE);
 					socket_channel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.TRUE);
-					socket_channel.connect(address, this, ClientConnectHandler.INSTANCE);
 				} else {
 					socket_channel = null;
+					return;
 				}
+				// 如果无法建立连接，则自动关闭通道。
+				socket_channel.connect(address, this, ClientConnectHandler.INSTANCE);
 			} catch (Exception e) {
+				// UnresolvedAddressException
+				// java.io.IOException: 在其上下文中，该请求的地址无效。
 				handler().error(this, e);
 			}
 		}
@@ -145,8 +149,10 @@ public class TCPLink<M> extends Client<M> {
 		} else if (e instanceof InterruptedByTimeoutException) {
 			// 连接超时
 		}
+		// java.io.IOException:信号灯超时时间已到
 		handler().error(this, e);
-		close();
+		// 重置链路
+		reset();
 	}
 
 	private M receive_message;
@@ -182,6 +188,7 @@ public class TCPLink<M> extends Client<M> {
 			try {
 				// 多次请求解包直到没有对象返回
 				while (true) {
+					size = read.readable();
 					// 在数据包粘连的情况下，可能会接收到两个数据包的数据
 					receive_message = handler().decode(this, read);
 					if (receive_message == null) {
@@ -194,9 +201,13 @@ public class TCPLink<M> extends Client<M> {
 						break;
 					} else {
 						// 已解析消息对象
+						if (read.readable() >= size) {
+							// 解析数据应减少
+							throw new IllegalStateException("已解析消息但字节数据未减少");
+						}
 						if (read.discard() > 0) {
 							// 解析数据不应出现残留
-							throw new IllegalStateException("设置了读取范围但数据有残留");
+							throw new IllegalStateException("设置了读取范围但字节数据有残留");
 						}
 						if (read.readable() > 0) {
 							// 注意:以下方法中可能会调用receive()
@@ -231,8 +242,8 @@ public class TCPLink<M> extends Client<M> {
 			// 缓存对象未投递给处理对象，须释放
 			read.release();
 			read = null;
-			// 关闭链路
-			close();
+			// 重置链路
+			reset();
 		}
 	}
 
@@ -255,6 +266,8 @@ public class TCPLink<M> extends Client<M> {
 		} else {
 			handler().error(this, e);
 		}
+		// 重置链路
+		reset();
 	}
 
 	private M send_message;
@@ -336,7 +349,8 @@ public class TCPLink<M> extends Client<M> {
 			send_message = null;
 			write.release();
 			write = null;
-			close();
+			// 重置链路
+			reset();
 		}
 	}
 
@@ -362,10 +376,14 @@ public class TCPLink<M> extends Client<M> {
 		} else {
 			handler().error(this, e);
 		}
+		// 重置链路
+		reset();
 	}
 
-	@Override
-	public void close() {
+	/**
+	 * 重置链路，重置后可再次执行连接
+	 */
+	void reset() {
 		if (socket_channel != null) {
 			if (connected) {
 				connected = false;
@@ -391,14 +409,11 @@ public class TCPLink<M> extends Client<M> {
 			} finally {
 				socket_channel = null;
 			}
-			if (read != null) {
-				read.release();
-				read = null;
-			}
-			if (write != null) {
-				write.release();
-				write = null;
-			}
 		}
+	}
+
+	@Override
+	public void close() {
+		reset();
 	}
 }

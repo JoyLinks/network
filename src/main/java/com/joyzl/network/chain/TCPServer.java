@@ -139,6 +139,9 @@ public class TCPServer<M> extends Server<M> {
 
 	@Override
 	protected void accepted(Throwable e) {
+		if (e instanceof java.nio.channels.AsynchronousCloseException) {
+			return;
+		}
 		handler().error(this, e);
 		accept();
 	}

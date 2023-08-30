@@ -20,7 +20,7 @@ import com.joyzl.network.Point;
 import com.joyzl.network.buffer.DataBuffer;
 
 /**
- * TCP从连接，由TCPServer创建，此链路不会单独维护连接状态
+ * TCP从连接，由TCPServer创建，此链路不会单独维护连接状态，从链路也不能断开后再重置连接
  * <p>
  * 工作机制：
  * <ol>
@@ -128,6 +128,7 @@ public class TCPSlave<M> extends Slave<M> {
 			try {
 				// 多次请求解包直到没有对象返回
 				while (true) {
+					size = read.readable();
 					// 在数据包粘连的情况下，可能会接收到两个数据包的数据
 					receive_message = handler().decode(this, read);
 					if (receive_message == null) {
@@ -140,9 +141,13 @@ public class TCPSlave<M> extends Slave<M> {
 						break;
 					} else {
 						// 已解析消息对象
+						if (read.readable() >= size) {
+							// 解析数据应减少
+							throw new IllegalStateException("已解析消息但字节数据未减少");
+						}
 						if (read.discard() > 0) {
 							// 解析数据不应出现残留
-							throw new IllegalStateException("设置了读取范围但数据有残留");
+							throw new IllegalStateException("设置了读取范围但字节数据有残留");
 						}
 						if (read.readable() > 0) {
 							// 注意:以下方法中可能会调用receive()
@@ -201,6 +206,8 @@ public class TCPSlave<M> extends Slave<M> {
 		} else {
 			handler().error(this, e);
 		}
+		// 关闭链路
+		close();
 	}
 
 	private M send_message;
@@ -308,6 +315,8 @@ public class TCPSlave<M> extends Slave<M> {
 		} else {
 			handler().error(this, e);
 		}
+		// 关闭链路
+		close();
 	}
 
 	@Override
