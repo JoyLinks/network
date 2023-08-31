@@ -1,26 +1,29 @@
 package com.joyzl.network.chain.test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.joyzl.network.Executor;
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.chain.ChainHandler;
-import com.joyzl.network.chain.TCPClient;
-import com.joyzl.network.chain.TCPServer;
+import com.joyzl.network.chain.UDPClient;
+import com.joyzl.network.chain.UDPServer;
 
-class TestTCPClient implements ChainHandler<Message> {
+class TestUDPClient implements ChainHandler<Message> {
 
-	static TCPServer<Message> server;
+	static UDPServer<Message> server;
 
 	@BeforeAll
 	static void setUpBeforeClass() throws Exception {
 		Executor.initialize(0);
-		server = new TCPServer<>(new ServerHandler(), null, 1000);
+		server = new UDPServer<>(new ServerHandler(), null, 1000);
 	}
 
 	@AfterAll
@@ -30,28 +33,86 @@ class TestTCPClient implements ChainHandler<Message> {
 	}
 
 	@Test
-	void test() throws Exception {
-		final TestTCPClient handler = new TestTCPClient();
-		final TCPClient<Message> client = new TCPClient<>(handler, "127.0.0.1", 1000);
-		client.setHeartbeat(10);
-		client.setReconnect(10);
+	@Disabled
+	void test1() throws Exception {
+		final TestUDPClient handler = new TestUDPClient();
+		final UDPClient<Message> link = new UDPClient<>(handler, "", 0);
+		// FIRST
+		link.connect();
+		// 127.0.0.1:0 Can't connect to port 0
+		assertFalse(link.active());
 
-		client.connect();
+		// SECOND
+		link.connect();
+		assertFalse(link.active());
+
+		// CLOSE
+		link.close();
+	}
+
+	@Test
+	@Disabled
+	void test2() throws Exception {
+		final TestUDPClient handler = new TestUDPClient();
+		final UDPClient<Message> link = new UDPClient<>(handler, "", 1024);
+		// FIRST
+		link.connect();
+		assertTrue(link.active());
+
+		// SECOND
+		link.connect();
+		assertTrue(link.active());
+
+		// CLOSE
+		link.close();
+	}
+
+	@Test
+	@Disabled
+	void test3() throws Exception {
+		final TestUDPClient handler = new TestUDPClient();
+		final UDPClient<Message> link = new UDPClient<>(handler, "192.168.0.2", 1024);
+		// FIRST
+		link.connect();
+		assertTrue(link.active());
+
+		// SECOND
+		link.connect();
+		assertTrue(link.active());
+
+		// CLOSE
+		link.close();
+	}
+
+	@Test
+	void test4() throws Exception {
+		final TestUDPClient handler = new TestUDPClient();
+		final UDPClient<Message> link = new UDPClient<>(handler, "127.0.0.1", 1000);
+		// FIRST
+		link.connect();
 		synchronized (handler) {
 			handler.wait();
 		}
-		client.close();
+		link.close();
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
-
-	private int id = 0;
 
 	@Override
 	public void connected(ChainChannel<Message> chain) throws Exception {
 		System.out.println("LINK:CONNECTED");
 		assertTrue(chain.active());
-		chain.receive();
+
+		// 构造消息
+		final Message message = new Message();
+		final byte[] bytes = new byte[512];
+		for (int index = 0; index < bytes.length; index++) {
+			bytes[index] = (byte) index;
+		}
+		message.setLength(bytes.length);
+		message.setBytes(bytes);
+		message.setId(1);
+		chain.send(message);
 	}
 
 	@Override
@@ -67,18 +128,7 @@ class TestTCPClient implements ChainHandler<Message> {
 
 	@Override
 	public void sent(ChainChannel<Message> chain, Message message) throws Exception {
-		// System.out.println("LINK:SENT");
-	}
-
-	@Override
-	public void beat(ChainChannel<Message> chain) throws Exception {
-		System.out.println("LINK:BEAT");
-		// 构造消息
-		final Message message = new Message();
-		message.setLength(0);
-		message.setBytes(new byte[0]);
-		message.setId(id++);
-		chain.send(message);
+		System.out.println("LINK:SENT");
 	}
 
 	@Override
@@ -107,26 +157,32 @@ class TestTCPClient implements ChainHandler<Message> {
 		// System.out.println("LINK:RECEIVED");
 		if (message == null) {
 		} else {
-			if (message.getId() < 5) {
+			for (int index = 0; index < message.getLength(); index++) {
+				assertEquals(message.getBytes()[index], (byte) index);
+			}
+			if (message.getId() < 10) {
+				message.setId(message.getId() + 1);
+				chain.send(message);
 			} else {
-				synchronized (this) {
-					this.notify();
-				}
+				chain.close();
+				return;
 			}
 		}
-		chain.receive();
 	}
 
 	@Override
 	public void disconnected(ChainChannel<Message> chain) throws Exception {
 		System.out.println("LINK:DISCONNECTED");
+		synchronized (this) {
+			this.notify();
+		}
 	}
 
 	@Override
 	public void error(ChainChannel<Message> chain, Throwable e) {
 		System.out.println("LINK:ERROR");
 		System.out.println(chain.getPoint() + " " + e.getMessage());
-		// e.printStackTrace();
+		e.printStackTrace();
 
 		synchronized (this) {
 			this.notify();

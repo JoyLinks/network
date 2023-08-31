@@ -4,7 +4,7 @@ import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.chain.ChainHandler;
 
-public class TCPServerHandler implements ChainHandler<Message> {
+public class ServerHandler implements ChainHandler<Message> {
 
 	@Override
 	public void connected(ChainChannel<Message> chain) throws Exception {
@@ -46,6 +46,7 @@ public class TCPServerHandler implements ChainHandler<Message> {
 
 	@Override
 	public DataBuffer encode(ChainChannel<Message> chain, Message message) throws Exception {
+		// System.out.println("SERVER:ENCODE");
 		final DataBuffer writer = DataBuffer.instance();
 		writer.writeInt(message.getLength());
 		writer.writeInt(message.getId());

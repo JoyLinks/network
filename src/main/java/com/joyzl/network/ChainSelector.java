@@ -9,6 +9,7 @@
 package com.joyzl.network;
 
 import java.io.IOException;
+import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
@@ -157,16 +158,40 @@ public final class ChainSelector {
 		// THREAD_CONNECTS_SELECTOR.start();
 	}
 
-	public final static Selector reads() {
-		return SELECTOR_READS;
+	public static void register(ChainChannel<?> chain, SelectableChannel channel, int key) throws IOException {
+		switch (key) {
+			case SelectionKey.OP_ACCEPT:
+			case SelectionKey.OP_CONNECT:
+				channel.register(SELECTOR_CONNECTS, key, chain);
+				SELECTOR_CONNECTS.wakeup();
+				break;
+			case SelectionKey.OP_WRITE:
+				channel.register(SELECTOR_WRITES, key, chain);
+				SELECTOR_WRITES.wakeup();
+				break;
+			case SelectionKey.OP_READ:
+				channel.register(SELECTOR_READS, key, chain);
+				SELECTOR_READS.wakeup();
+				break;
+		}
 	}
 
-	public final static Selector writes() {
-		return SELECTOR_WRITES;
-	}
-
-	public final static Selector connects() {
-		return SELECTOR_WRITES;
+	public static void unRegister(ChainChannel<?> chain, SelectableChannel channel) {
+		SelectionKey key = channel.keyFor(SELECTOR_CONNECTS);
+		if (key != null) {
+			SELECTOR_CONNECTS.wakeup();
+			key.cancel();
+		}
+		key = channel.keyFor(SELECTOR_WRITES);
+		if (key != null) {
+			SELECTOR_WRITES.wakeup();
+			key.cancel();
+		}
+		key = channel.keyFor(SELECTOR_READS);
+		if (key != null) {
+			SELECTOR_READS.wakeup();
+			key.cancel();
+		}
 	}
 
 	public static final void shutdown() {

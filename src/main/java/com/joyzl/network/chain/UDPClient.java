@@ -16,9 +16,20 @@ import com.joyzl.network.Point;
 import com.joyzl.network.buffer.DataBuffer;
 
 /**
- * UDP通道
+ * UDP通道，无连接协议因此无心跳无重连机制
  * <p>
- * 有数据时自动调用receive()接收数据
+ * 工作机制：
+ * <ol>
+ * <li>connect()请求连接;</li>
+ * <li>connected()连接返回（成功/失败）;</li>
+ * <li>receive()接收数据（选择器调用）；</li>
+ * <li>received()接收数据返回（成功/失败）；</li>
+ * <li>send()请求发送数据；</li>
+ * <li>sent()发送数据返回（成功/失败）；</li>
+ * <li>close()关闭链路；</li>
+ * </ol>
+ * 链路关闭后可再次请求连接。对象是多线程安全的。
+ * <p>
  *
  * @author simon(ZhangXi TEL : 13883833982) 2019年7月9日
  */
@@ -34,14 +45,13 @@ public class UDPClient<M> extends Client<M> {
 		datagram_channel = DatagramChannel.open();
 		if (datagram_channel.isOpen()) {
 			datagram_channel.configureBlocking(false);
-			// 注册NIO.1选择器,当可读时触发receive()方法
-			datagram_channel.register(ChainSelector.reads(), SelectionKey.OP_READ, this);
 		} else {
 			throw new IOException("UDP连接打开失败，" + key());
 		}
-
+		// 注册NIO.1选择器,当可读时触发receive()方法
+		ChainSelector.register(this, datagram_channel, SelectionKey.OP_READ);
 		ChainGroup.add(this);
-		ChainSelector.reads().wakeup();
+
 		// datagram_channel.register(ChainSelector.writes(),SelectionKey.OP_WRITE,this);
 		// ChainSelector.writes().wakeup();
 	}
@@ -90,11 +100,17 @@ public class UDPClient<M> extends Client<M> {
 	////////////////////////////////////////////////////////////////////////////////
 
 	public void connect() {
-		try {
-			datagram_channel.connect(address);
-			connected();
-		} catch (Exception e) {
-			connected(e);
+		if (datagram_channel.isOpen()) {
+			try {
+				if (datagram_channel.isConnected()) {
+					datagram_channel.disconnect();
+				}
+				datagram_channel.connect(address);
+				// ChainSelector.reads().wakeup();
+				connected();
+			} catch (Exception e) {
+				connected(e);
+			}
 		}
 	}
 
@@ -173,6 +189,7 @@ public class UDPClient<M> extends Client<M> {
 				}
 				if (buffer.readable() > 0) {
 					// 如果超出UDP包最大长度可能出现
+					// 经Windows11测试65536数据时发送数量为16384(16Kb)
 					throw new IllegalStateException("数据未能全部送出 " + message);
 				} else {
 					handler().sent(this, (M) message);
@@ -214,6 +231,7 @@ public class UDPClient<M> extends Client<M> {
 				}
 			}
 			try {
+				ChainSelector.unRegister(this, datagram_channel);
 				datagram_channel.close();
 			} catch (Exception e) {
 				handler().error(this, e);

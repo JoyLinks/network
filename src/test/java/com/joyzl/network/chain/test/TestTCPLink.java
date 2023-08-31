@@ -23,7 +23,7 @@ class TestTCPLink implements ChainHandler<Message> {
 	@BeforeAll
 	static void setUpBeforeClass() throws Exception {
 		Executor.initialize(0);
-		server = new TCPServer<>(new TCPServerHandler(), null, 1000);
+		server = new TCPServer<>(new ServerHandler(), null, 1000);
 	}
 
 	@AfterAll

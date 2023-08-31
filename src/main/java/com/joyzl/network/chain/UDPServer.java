@@ -35,7 +35,6 @@ public class UDPServer<M> extends Server<M> {
 		datagram_channel = DatagramChannel.open();
 		if (datagram_channel.isOpen()) {
 			datagram_channel.configureBlocking(false);
-			datagram_channel.register(ChainSelector.reads(), SelectionKey.OP_READ, this);
 			if (host == null || host.length() == 0) {
 				address = new InetSocketAddress(port);
 			} else {
@@ -45,9 +44,8 @@ public class UDPServer<M> extends Server<M> {
 		} else {
 			throw new IOException("UDP服务端打开失败，" + key());
 		}
-
+		ChainSelector.register(this, datagram_channel, SelectionKey.OP_READ);
 		ChainGroup.add(this);
-		ChainSelector.reads().wakeup();
 	}
 
 	@Override
@@ -100,12 +98,15 @@ public class UDPServer<M> extends Server<M> {
 		Slave<M> slave = null;
 		try {
 			// receive 未提供读取数量返回，需要通过位置计算
-			int position = buffer.position();
+			int size = buffer.position();
+			// 如果要支持接收最大可能的数据包，则需要额外的ByteBuffer用于接收，然后转写到DataBuffer
+			// receive接收缓冲区之外的数据静默丢弃，再次执行receive也不会收到额外的数据
 			final SocketAddress address = datagram_channel.receive(buffer);
 			if (address == null) {
 				// read.release();
 			} else {
-				read.written(buffer.position() - position);
+				size = buffer.position() - size;
+				read.written(size);
 				slave = getSlave(Point.getPoint(address));
 				if (slave == null) {
 					addSlave(slave = new UDPSlave<>(this, address));
@@ -113,7 +114,8 @@ public class UDPServer<M> extends Server<M> {
 				}
 				final M message = handler().decode(this, read);
 				if (message == null) {
-					// 数据不足,无补救措施,UDP特性决定后续接收的数据只会是另外的数据帧
+					// 数据不足,无补救措施
+					// UDP特性决定后续接收的数据只会是另外的数据帧
 				} else {
 					handler().received(slave, message);
 				}
@@ -164,6 +166,7 @@ public class UDPServer<M> extends Server<M> {
 	@Override
 	public void close() {
 		try {
+			ChainSelector.unRegister(this, datagram_channel);
 			datagram_channel.close();
 		} catch (IOException e) {
 			handler().error(this, e);
