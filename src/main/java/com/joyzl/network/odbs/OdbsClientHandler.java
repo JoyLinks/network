@@ -6,7 +6,7 @@
 package com.joyzl.network.odbs;
 
 import com.joyzl.network.chain.ChainChannel;
-import com.joyzl.odbs.ODBSBinary;
+import com.joyzl.odbs.ODBS;
 
 /**
  * ODBS客户端处理类基础实现
@@ -16,8 +16,13 @@ import com.joyzl.odbs.ODBSBinary;
  */
 public abstract class OdbsClientHandler<M extends ODBSMessage> extends OdbsClientCoder<M> {
 
-	public OdbsClientHandler(ODBSBinary ob) {
-		super(ob);
+	public OdbsClientHandler(ODBS o) {
+		super(o);
+	}
+
+	@Override
+	public M take(ChainChannel<M> chain, int tag) {
+		return ((TCPOdbsClient<M>) chain).take(tag);
 	}
 
 	@Override
@@ -26,12 +31,12 @@ public abstract class OdbsClientHandler<M extends ODBSMessage> extends OdbsClien
 	}
 
 	@Override
-	public void received(ChainChannel<M> chain, M source) throws Exception {
+	public void received(ChainChannel<M> chain, M message) throws Exception {
 		chain.receive();
 	}
 
 	@Override
-	public void sent(ChainChannel<M> chain, M source) throws Exception {
-
+	public void sent(ChainChannel<M> chain, M message) throws Exception {
+		((TCPOdbsClient<M>) chain).sent(message);
 	}
 }

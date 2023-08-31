@@ -15,7 +15,16 @@ import com.joyzl.network.chain.Chain;
  */
 public abstract class ODBSMessage {
 
+	private int tag;
 	private Chain chain;
+
+	int tag() {
+		return tag;
+	}
+
+	void tag(int value) {
+		tag = value;
+	}
 
 	/**
 	 * 获取消息的来源链路，当消息需要在多个链路发送时，可通过来源链路判断消息来源；

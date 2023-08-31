@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
 
 import com.joyzl.network.chain.ChainType;
+import com.joyzl.network.chain.Slave;
 import com.joyzl.network.chain.TCPServer;
 
 /**
@@ -29,7 +30,7 @@ public class TCPOdbsServer<M extends ODBSMessage> extends TCPServer<M> {
 	}
 
 	@Override
-	protected TCPOdbsSlave<M> accepted(AsynchronousSocketChannel socket_channel) throws IOException {
+	protected Slave<M> create(AsynchronousSocketChannel socket_channel) throws Exception {
 		return new TCPOdbsSlave<>(this, socket_channel);
 	}
 }

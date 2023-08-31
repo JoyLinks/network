@@ -21,7 +21,7 @@ public abstract class OdbsFrame<M extends ODBSMessage> implements ChainHandler<M
 	/** 帧最小长度(字节) */
 	public final static int MIN_FRAME = 1 + 3 + 1;
 	/** 帧最大长度(字节) */
-	public final static int MAX_FRAME = 65536 * 256;// 16384 Kb
+	public final static int MAX_FRAME = 65536 * 256;// 16384 Kb / 16Mb
 	/** 帧数据最大长度(字节) */
 	public final static int MAX_LENGTH = MAX_FRAME - MIN_FRAME;
 	/** 帧开始标记 */

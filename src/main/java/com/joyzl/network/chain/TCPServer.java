@@ -128,8 +128,7 @@ public class TCPServer<M> extends Server<M> {
 	protected void accepted(AsynchronousSocketChannel socket_channel) {
 		// 继承者可重载此方法实现自己的连接创建
 		try {
-			final Slave<M> slave = new TCPSlave<>(this, socket_channel);
-			handler().connected(slave);
+			handler().connected(create(socket_channel));
 		} catch (Exception e) {
 			handler().error(this, e);
 		} finally {
@@ -144,5 +143,9 @@ public class TCPServer<M> extends Server<M> {
 		}
 		handler().error(this, e);
 		accept();
+	}
+
+	protected Slave<M> create(AsynchronousSocketChannel socket_channel) throws Exception {
+		return new TCPSlave<>(this, socket_channel);
 	}
 }

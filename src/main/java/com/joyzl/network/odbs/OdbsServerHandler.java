@@ -6,7 +6,7 @@
 package com.joyzl.network.odbs;
 
 import com.joyzl.network.chain.ChainChannel;
-import com.joyzl.odbs.ODBSBinary;
+import com.joyzl.odbs.ODBS;
 
 /**
  * @author ZhangXi
@@ -14,8 +14,8 @@ import com.joyzl.odbs.ODBSBinary;
  */
 public abstract class OdbsServerHandler<M extends ODBSMessage> extends OdbsServerCoder<M> {
 
-	public OdbsServerHandler(ODBSBinary ob) {
-		super(ob);
+	public OdbsServerHandler(ODBS o) {
+		super(o);
 	}
 
 	@Override
@@ -24,13 +24,13 @@ public abstract class OdbsServerHandler<M extends ODBSMessage> extends OdbsServe
 	}
 
 	@Override
-	public void received(ChainChannel<M> chain, M source) throws Exception {
+	public void received(ChainChannel<M> chain, M message) throws Exception {
 		chain.receive();
 	}
 
 	@Override
-	public void sent(ChainChannel<M> chain, M source) throws Exception {
-		chain.receive();
+	public void sent(ChainChannel<M> chain, M message) throws Exception {
+		((TCPOdbsSlave<M>) chain).sent(message);
 	}
 
 	@Override
