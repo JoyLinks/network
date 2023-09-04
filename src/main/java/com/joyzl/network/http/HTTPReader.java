@@ -30,7 +30,7 @@ public class HTTPReader extends Reader {
 
 	@Override
 	public int read() throws IOException {
-		return buffer.read();
+		return buffer.readUnsignedByte();
 	}
 
 	@Override
@@ -104,7 +104,7 @@ public class HTTPReader extends Reader {
 	 */
 	public void skipWhitespace() {
 		while (buffer.readable() > 0) {
-			if (Character.isWhitespace(buffer.readByte(0))) {
+			if (Character.isWhitespace(buffer.get(0))) {
 				buffer.read();
 			} else {
 				break;
@@ -289,7 +289,7 @@ public class HTTPReader extends Reader {
 	 */
 	public boolean readBy(final OutputStream output, final CharSequence end) throws IOException {
 		int value, e = 0;
-		while ((value = buffer.read()) >= 0) {
+		while ((value = buffer.readUnsignedByte()) >= 0) {
 			if (value == end.charAt(e)) {
 				e++;
 				if (e >= end.length()) {
@@ -358,7 +358,8 @@ public class HTTPReader extends Reader {
 	public String toString() {
 		builder.setLength(0);
 		buffer.mark();
-		while ((c = buffer.read()) >= 0) {
+		while (buffer.readable() > 0) {
+			c = buffer.readByte() & 0xFF;
 			if (c == HTTPCoder.CR) {
 				builder.append("CR");
 			} else if (c == HTTPCoder.LF) {

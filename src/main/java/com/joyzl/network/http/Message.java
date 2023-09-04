@@ -9,7 +9,7 @@ import java.io.Closeable;
 import java.util.Collection;
 import java.util.Map;
 
-import com.joyzl.collection.CaseInsensitiveMap;
+import com.joyzl.network.CaseInsensitiveMap;
 
 /**
  * Request和Response的超类

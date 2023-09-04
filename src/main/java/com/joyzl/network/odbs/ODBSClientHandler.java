@@ -9,13 +9,20 @@ import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.odbs.ODBS;
 
 /**
+ * ODBS客户端处理类基础实现
+ * 
  * @author ZhangXi
  * @date 2020年12月13日
  */
-public abstract class OdbsServerHandler<M extends ODBSMessage> extends OdbsServerCoder<M> {
+public abstract class ODBSClientHandler<M extends ODBSMessage> extends ODBSClientCoder<M> {
 
-	public OdbsServerHandler(ODBS o) {
+	public ODBSClientHandler(ODBS o) {
 		super(o);
+	}
+
+	@Override
+	public M take(ChainChannel<M> chain, int tag) {
+		return ((ODBSClient<M>) chain).take(tag);
 	}
 
 	@Override
@@ -30,11 +37,8 @@ public abstract class OdbsServerHandler<M extends ODBSMessage> extends OdbsServe
 
 	@Override
 	public void sent(ChainChannel<M> chain, M message) throws Exception {
-		((TCPOdbsSlave<M>) chain).sent(message);
+		((ODBSClient<M>) chain).sent(message);
 	}
 
-	@Override
-	public void error(ChainChannel<M> chain, Throwable e) {
-		chain.close();
-	}
+	public abstract void beat(ChainChannel<M> chain) throws Exception;
 }

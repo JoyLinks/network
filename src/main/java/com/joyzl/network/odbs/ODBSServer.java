@@ -18,9 +18,9 @@ import com.joyzl.network.chain.TCPServer;
  * @author simon(ZhangXi TEL:13883833982) 2019年7月12日
  *
  */
-public class TCPOdbsServer<M extends ODBSMessage> extends TCPServer<M> {
+public class ODBSServer<M extends ODBSMessage> extends TCPServer<M> {
 
-	public TCPOdbsServer(OdbsServerCoder<M> handler, String host, int port) throws IOException {
+	public ODBSServer(ODBSServerCoder<M> handler, String host, int port) throws IOException {
 		super(handler, host, port);
 	}
 
@@ -31,6 +31,6 @@ public class TCPOdbsServer<M extends ODBSMessage> extends TCPServer<M> {
 
 	@Override
 	protected Slave<M> create(AsynchronousSocketChannel socket_channel) throws Exception {
-		return new TCPOdbsSlave<>(this, socket_channel);
+		return new ODBSSlave<>(this, socket_channel);
 	}
 }

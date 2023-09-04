@@ -5,8 +5,6 @@
  */
 package com.joyzl.network.http;
 
-import com.joyzl.common.Assist;
-
 /**
  * Content-Type实体头部用于指示资源的MIME类型 media type。 在请求中(如POST或 PUT)，客户端告诉服务器实际发送的数据类型。
  * RFC7231 缺省为"application/octet-stream"
@@ -53,7 +51,7 @@ public final class ContentType extends Header {
 		if (type.startsWith("multipart")) {
 			if (isEmpty(boundary)) {
 				// "multipart"必须设置boundary
-				boundary = "JOYZL-HTTP-" + Assist.timestampKey();
+				boundary = "JOYZL-HTTP-" + timestampKey();
 			}
 			return type + HTTPCoder.SEMI + HTTPCoder.SPACE + BOUNDARY + HTTPCoder.EQUAL + boundary;
 		}
@@ -93,6 +91,13 @@ public final class ContentType extends Header {
 			return header;
 		}
 		return null;
+	}
+
+	/**
+	 * 获取当前时间戳生成的KEY
+	 */
+	static String timestampKey() {
+		return Long.toString(System.currentTimeMillis(), Character.MAX_RADIX);
 	}
 
 	public String getType() {

@@ -105,7 +105,7 @@ public class WEBCoder {
 					}
 					writer.write(item.getKey());
 					writer.write(HTTPCoder.EQUAL);
-					writer.write(URLEncoder.encode(item.getValue()[index], Assist.DEFAULT_CHARSET));
+					writer.write(URLEncoder.encode(item.getValue()[index], HTTPCoder.URL_CHARSET));
 				}
 			}
 		}
@@ -128,7 +128,7 @@ public class WEBCoder {
 		while (reader.readTo(HTTPCoder.EQUAL)) {
 			name = reader.string();
 			if (reader.readTo(HTTPCoder.AND)) {
-				request.addParameter(name, URLDecoder.decode(reader.string(), Assist.DEFAULT_CHARSET));
+				request.addParameter(name, URLDecoder.decode(reader.string(), HTTPCoder.URL_CHARSET));
 			} else {
 				request.addParameter(name, null);
 			}

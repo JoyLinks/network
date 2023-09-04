@@ -590,7 +590,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	}
 
 	@Override
-	public void writeByte(int b) throws IOException {
+	public void writeByte(int b) {
 		writeByte((byte) b);
 	}
 

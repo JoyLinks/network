@@ -16,7 +16,7 @@ import com.joyzl.network.chain.ChainHandler;
  * @author simon(ZhangXi TEL:13883833982) 2019年7月15日
  *
  */
-public abstract class OdbsFrame<M extends ODBSMessage> implements ChainHandler<M> {
+public abstract class ODBSFrame<M extends ODBSMessage> implements ChainHandler<M> {
 
 	/** 帧最小长度(字节) */
 	public final static int MIN_FRAME = 1 + 3 + 1;

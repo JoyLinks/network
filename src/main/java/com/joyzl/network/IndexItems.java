@@ -20,6 +20,10 @@ public class IndexItems<T> implements Iterator<T> {
 		last = 0;
 	}
 
+	public int size() {
+		return size;
+	}
+
 	public boolean isFull() {
 		return size == items.length;
 	}
@@ -62,6 +66,14 @@ public class IndexItems<T> implements Iterator<T> {
 	@SuppressWarnings("unchecked")
 	public final T peek(int index) {
 		return (T) items[index];
+	}
+
+	public final void clear() {
+		size = 0;
+		for (last = 0; last < items.length; last++) {
+			items[last] = null;
+		}
+		last = 0;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////

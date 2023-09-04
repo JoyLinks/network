@@ -22,12 +22,12 @@ import com.joyzl.network.chain.TCPSlave;
  * @author simon(ZhangXi TEL:13883833982) 2019年7月9日
  *
  */
-public class TCPOdbsSlave<M extends ODBSMessage> extends TCPSlave<M> {
+public class ODBSSlave<M extends ODBSMessage> extends TCPSlave<M> {
 
 	private final ReentrantLock k = new ReentrantLock(true);
 	private final ArrayDeque<M> messages = new ArrayDeque<>(Byte.MAX_VALUE);
 
-	public TCPOdbsSlave(TCPOdbsServer<M> server, AsynchronousSocketChannel channel) throws IOException {
+	public ODBSSlave(ODBSServer<M> server, AsynchronousSocketChannel channel) throws IOException {
 		super(server, channel);
 	}
 

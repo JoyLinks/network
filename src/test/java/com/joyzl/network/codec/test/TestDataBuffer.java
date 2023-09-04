@@ -16,6 +16,12 @@ import org.junit.jupiter.api.Test;
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.buffer.DataBufferUnit;
 
+/**
+ * 测试 {@link DataBuffer}
+ * 
+ * @author ZhangXi
+ * @date 2023年9月3日
+ */
 class TestDataBuffer {
 
 	// 65536 Byte = 64Kb

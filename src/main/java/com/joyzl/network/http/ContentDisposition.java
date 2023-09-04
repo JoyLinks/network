@@ -9,8 +9,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 
-import com.joyzl.common.Assist;
-
 /**
  * Content-Disposition
  * 
@@ -80,13 +78,13 @@ public final class ContentDisposition extends Header {
 				builder.append(disposition);
 				builder.append(HTTPCoder.SEMI);
 				builder.append(HTTPCoder.SPACE);
-				if (Assist.hasChinese(filename)) {
+				if (hasChinese(filename)) {
 					builder.append(FILENAME_);
 					builder.append(HTTPCoder.EQUAL);
 					builder.append(HTTPCoder.QUOTE);
-					builder.append(Assist.DEFAULT_CHARSET_NAME);
+					builder.append(HTTPCoder.URL_CHARSET_NAME);
 					builder.append(SEPARATER);
-					builder.append(URLEncoder.encode(filename, Assist.DEFAULT_CHARSET));
+					builder.append(URLEncoder.encode(filename, HTTPCoder.URL_CHARSET));
 					builder.append(HTTPCoder.QUOTE);
 				} else {
 					builder.append(FILENAME);
@@ -114,13 +112,13 @@ public final class ContentDisposition extends Header {
 				if (noEmpty(filename)) {
 					builder.append(HTTPCoder.SEMI);
 					builder.append(HTTPCoder.SPACE);
-					if (Assist.hasChinese(filename)) {
+					if (hasChinese(filename)) {
 						builder.append(FILENAME_);
 						builder.append(HTTPCoder.EQUAL);
 						builder.append(HTTPCoder.QUOTE);
-						builder.append(Assist.DEFAULT_CHARSET_NAME);
+						builder.append(HTTPCoder.URL_CHARSET_NAME);
 						builder.append(SEPARATER);
-						builder.append(URLEncoder.encode(filename, Assist.DEFAULT_CHARSET));
+						builder.append(URLEncoder.encode(filename, HTTPCoder.URL_CHARSET));
 						builder.append(HTTPCoder.QUOTE);
 					} else {
 						builder.append(FILENAME);
@@ -210,5 +208,20 @@ public final class ContentDisposition extends Header {
 
 	public void setDisposition(String value) {
 		disposition = value;
+	}
+
+	/**
+	 * 检查字符串中是否包含双字节字符(ASCII之外的字符)
+	 *
+	 * @param value
+	 * @return true/false
+	 */
+	static boolean hasChinese(String value) {
+		for (int index = 0; index < value.length(); index++) {
+			if (value.charAt(index) < 0 || value.charAt(index) > 127) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

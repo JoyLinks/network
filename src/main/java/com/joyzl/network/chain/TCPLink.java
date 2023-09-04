@@ -210,13 +210,16 @@ public class TCPLink<M> extends Client<M> {
 							throw new IllegalStateException("设置了读取范围但字节数据有残留");
 						}
 						if (read.readable() > 0) {
-							// 注意:以下方法中可能会调用receive()
 							handler().received(this, receive_message);
+							// 注意:handler().received()方法中可能会调用receive()
+							// 因此必须阻止用户发起数据接收，以下语句后执行
 							receive_message = null;
 							// 有剩余数据,继续尝试解包
 							continue;
 						} else {
 							final M message = receive_message;
+							// 注意:handler().received()方法中可能会调用receive()
+							// 因此必须阻止用户发起数据接收，以下语句前执行
 							receive_message = null;
 							handler().received(this, message);
 							// 没有剩余数据,停止尝试解包
@@ -226,9 +229,9 @@ public class TCPLink<M> extends Client<M> {
 				}
 			} catch (Exception e) {
 				receive_message = null;
+				handler().error(this, e);
 				read.release();
 				read = null;
-				handler().error(this, e);
 			}
 		} else if (size == 0) {
 			// 没有数据并且没有达到流的末端时返回0

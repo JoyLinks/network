@@ -54,6 +54,7 @@ public final class ChainSelector {
 	}
 
 	public static final void initialize(int thead_size) {
+		// NIO.1 READ SELECTOR
 		final Runnable reads = new Runnable() {
 			@Override
 			public void run() {
@@ -84,6 +85,7 @@ public final class ChainSelector {
 				}
 			}
 		};
+		// NIO.1 WRITE SELECTOR
 		final Runnable writes = new Runnable() {
 			@Override
 			public void run() {
@@ -103,7 +105,6 @@ public final class ChainSelector {
 									chain = (ChainChannel<?>) selection_key.attachment();
 									// 通知链路数据发送完成
 									chain.send(null);
-									System.out.println("SELECTOR_WRITES" + chain);
 								} else {
 									// 忽略
 								}
@@ -115,36 +116,37 @@ public final class ChainSelector {
 				}
 			}
 		};
-		// final Runnable connects = new Runnable() {
-		// @Override
-		// public void run() {
-		// Iterator<SelectionKey> selection_keys;
-		// SelectionKey selection_key;
-		// ChainChannel<?> chain;
-		//
-		// try {
-		// while (SELECTOR_CONNECTS.isOpen()) {
-		// while (SELECTOR_CONNECTS.select() > 0) {
-		// selection_keys = SELECTOR_CONNECTS.selectedKeys().iterator();
-		// while (selection_keys.hasNext()) {
-		// selection_key = selection_keys.next();
-		// selection_keys.remove();
-		// Logger.debug(selection_key.attachment());
-		// if (selection_key.isConnectable()) {
-		// chain = (ChainChannel<?>) selection_key.attachment();
-		// // 通知链路连接完成
-		// chain.connected();
-		// } else {
-		// // 忽略
-		// }
-		// }
-		// }
-		// }
-		// } catch (Exception e) {
-		// throw new RuntimeException(e);
-		// }
-		// }
-		// };
+		// NIO.1 CONNECT SELECTOR
+		final Runnable connects = new Runnable() {
+			@Override
+			public void run() {
+				Iterator<SelectionKey> selection_keys;
+				SelectionKey selection_key;
+				ChainChannel<?> chain;
+
+				try {
+					while (SELECTOR_CONNECTS.isOpen()) {
+						while (SELECTOR_CONNECTS.select() > 0) {
+							selection_keys = SELECTOR_CONNECTS.selectedKeys().iterator();
+							while (selection_keys.hasNext()) {
+								selection_key = selection_keys.next();
+								selection_keys.remove();
+
+								if (selection_key.isConnectable()) {
+									chain = (ChainChannel<?>) selection_key.attachment();
+									// 通知链路连接完成
+									chain.active();
+								} else {
+									// 忽略
+								}
+							}
+						}
+					}
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}
+		};
 
 		// 初始化NIO.1选择器主线程
 
@@ -154,8 +156,8 @@ public final class ChainSelector {
 		THREAD_WRITES_SELECTOR = new Thread(writes, "nio.1-writes");
 		THREAD_WRITES_SELECTOR.start();
 
-		// THREAD_CONNECTS_SELECTOR = new Thread(connects, "nio.1-connects");
-		// THREAD_CONNECTS_SELECTOR.start();
+		THREAD_CONNECTS_SELECTOR = new Thread(connects, "nio.1-connects");
+		THREAD_CONNECTS_SELECTOR.start();
 	}
 
 	public static void register(ChainChannel<?> chain, SelectableChannel channel, int key) throws IOException {

@@ -13,9 +13,8 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.Writer;
 
-import com.joyzl.common.Assist;
-import com.joyzl.common.rw.InputDataReader;
 import com.joyzl.network.buffer.DataBuffer;
+import com.joyzl.network.buffer.DataBufferInput;
 
 /**
  * HTTPWriter
@@ -84,7 +83,7 @@ public final class HTTPWriter extends Writer {
 	@Override
 	public final String toString() {
 		StringBuilder writer = new StringBuilder();
-		try (Reader reader = new InputStreamReader(new InputDataReader(buffer), Assist.DEFAULT_CHARSET)) {
+		try (Reader reader = new InputStreamReader(new DataBufferInput(buffer), HTTPCoder.URL_CHARSET)) {
 			int value;
 			buffer.mark();
 			while ((value = reader.read()) >= 0) {

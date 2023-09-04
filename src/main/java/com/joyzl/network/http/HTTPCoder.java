@@ -7,18 +7,23 @@ package com.joyzl.network.http;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.joyzl.common.Assist;
-
 /**
  * HTTP(Hyper Text Transfer Protocol)
+ * <p>
+ * URL编码RFC3986,ASCII+UNICODE
+ * </p>
  * 
  * @author ZhangXi
  * @date 2021年10月7日
  */
 public class HTTPCoder {
+
+	public final static String URL_CHARSET_NAME = "UTF-8";
+	public final static Charset URL_CHARSET = Charset.forName(URL_CHARSET_NAME);
 
 	public final static char CR = '\r';
 	public final static char LF = '\n';
@@ -249,7 +254,7 @@ public class HTTPCoder {
 				}
 				builder.append(item.getKey());
 				builder.append(EQUAL);
-				builder.append(URLEncoder.encode(item.getValue()[index], Assist.DEFAULT_CHARSET));
+				builder.append(URLEncoder.encode(item.getValue()[index], URL_CHARSET));
 			}
 		}
 		return builder.toString();

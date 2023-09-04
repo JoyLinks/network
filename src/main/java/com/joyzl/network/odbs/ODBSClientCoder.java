@@ -14,7 +14,7 @@ import com.joyzl.odbs.ODBS;
 import com.joyzl.odbs.ODBSBinary;
 
 /**
- * ODBS 帧和包服务端编解码
+ * ODBS 帧和包客户端编解码
  *
  * <pre>
  * 帧结构
@@ -26,20 +26,42 @@ import com.joyzl.odbs.ODBSBinary;
  * @author ZhangXi 2019年7月15日
  *
  */
-public abstract class OdbsServerCoder<M extends ODBSMessage> extends OdbsFrame<M> {
+public abstract class ODBSClientCoder<M extends ODBSMessage> extends ODBSFrame<M> {
 
 	private final ODBSBinary odbs;
 
-	public OdbsServerCoder(ODBS o) {
+	public ODBSClientCoder(ODBS o) {
 		odbs = new ODBSBinary(o);
 	}
 
 	@Override
-	public void beat(ChainChannel<M> chain) throws Exception {
-		// SERVER 端默认不执行心跳检测
+	public final DataBuffer encode(ChainChannel<M> chain, M message) throws Exception {
+		final DataBuffer writer = DataBuffer.instance();
+		// 1Byte
+		writer.write(HEAD);
+		// 3Byte
+		writer.writeMedium(0);
+		// TAG 1Byte
+		writer.writeByte(message.tag());
+		// Entity nByte
+		odbs.writeEntity(message, writer);
+
+		int length = writer.readable();
+		if (length > MAX_LENGTH) {
+			// 超过最长数据字节数,丢弃数据
+			writer.release();
+			throw new IllegalStateException("数据长度" + length + "超过最大值" + MAX_LENGTH);
+		}
+		// 长度不包括 HEAD 和 LENGTH 本身
+		length -= 4;
+		writer.set(1, (byte) (length >>> 16));
+		writer.set(2, (byte) (length >>> 8));
+		writer.set(3, (byte) (length));
+		return writer;
 	}
 
 	@Override
+	@SuppressWarnings("unchecked")
 	public final M decode(ChainChannel<M> chain, DataBuffer reader) throws Exception {
 		int length = reader.readable();
 		if (length < MIN_FRAME) {
@@ -57,15 +79,20 @@ public abstract class OdbsServerCoder<M extends ODBSMessage> extends OdbsFrame<M
 			// 数据长度
 			length = reader.readUnsignedMedium();
 			// 判断帧是否接收完
-			if (reader.readable() > length) {
+			if (reader.readable() >= length) {
 				// 解包，设置读取限制
 				reader.bounds(length);
 				// TAG
-				length = reader.readUnsignedByte();
-				// ENTITY
-				@SuppressWarnings("unchecked")
-				final M message = (M) odbs.readEntity(null, reader);
-				message.tag(length);
+				length = reader.readByte();
+				M message = null;
+				if (length >= 0) {
+					// 获取实体实例
+					message = take(chain, length);
+					// if (message == null) {
+					// System.out.println("TAG NULL " + length);
+					// }
+				}
+				message = (M) odbs.readEntity(message, reader);
 				message.setChain(chain);
 				return message;
 			} else {
@@ -79,34 +106,5 @@ public abstract class OdbsServerCoder<M extends ODBSMessage> extends OdbsFrame<M
 		return null;
 	}
 
-	@Override
-	public final DataBuffer encode(ChainChannel<M> chain, M message) throws Exception {
-		final DataBuffer writer = DataBuffer.instance();
-		// HEAD 1Byte
-		writer.write(HEAD);
-		// LENGTH 3Byte
-		writer.writeMedium(0);
-		// TAG 1Byte
-		if (message.getChain() == chain) {
-			// 消息标识仅对发起链路有效
-			writer.writeByte(message.tag());
-		} else {
-			writer.write(0);
-		}
-		// DATA Entity
-		odbs.writeEntity(message, writer);
-
-		int length = writer.readable();
-		if (length > MAX_LENGTH) {
-			// 超过最长数据字节数,丢弃数据
-			writer.release();
-			throw new IllegalStateException("数据被丢弃，数据长度" + length + "超过最大值" + MAX_LENGTH);
-		}
-		// 长度不包括 HEAD 和 LENGTH 本身
-		length -= 4;
-		writer.set(1, (byte) (length >>> 16));
-		writer.set(2, (byte) (length >>> 8));
-		writer.set(3, (byte) (length));
-		return writer;
-	}
+	public abstract M take(ChainChannel<M> chain, int tag);
 }

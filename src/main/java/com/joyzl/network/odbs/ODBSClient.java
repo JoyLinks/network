@@ -18,13 +18,13 @@ import com.joyzl.network.chain.TCPClient;
  * @author simon(ZhangXi TEL:13883833982) 2019年7月12日
  *
  */
-public class TCPOdbsClient<M extends ODBSMessage> extends TCPClient<M> {
+public class ODBSClient<M extends ODBSMessage> extends TCPClient<M> {
 
 	private final ReentrantLock k = new ReentrantLock(true);
 	private final IndexItems<M> items = new IndexItems<>(Byte.MAX_VALUE);
 	private final ArrayDeque<M> messages = new ArrayDeque<>(Byte.MAX_VALUE);
 
-	public TCPOdbsClient(OdbsClientHandler<M> h, String host, int port) {
+	public ODBSClient(ODBSClientHandler<M> h, String host, int port) {
 		super(h, host, port);
 	}
 
@@ -80,6 +80,11 @@ public class TCPOdbsClient<M extends ODBSMessage> extends TCPClient<M> {
 	 * @return M / null
 	 */
 	protected M take(int tag) {
-		return items.take(tag);
+		k.lock();
+		try {
+			return items.take(tag);
+		} finally {
+			k.unlock();
+		}
 	}
 }

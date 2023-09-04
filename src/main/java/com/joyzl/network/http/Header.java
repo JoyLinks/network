@@ -18,6 +18,8 @@ package com.joyzl.network.http;
  */
 public abstract class Header {
 
+	final static String EMPTY_STRIN = "";
+
 	public abstract String getHeaderName();
 
 	public abstract String getHeaderValue();

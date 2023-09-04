@@ -6,7 +6,8 @@
 package com.joyzl.network.http;
 
 import java.io.File;
-import java.security.Security;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 
 /**
  * 响应头是资源的特定版本的标识符。
@@ -30,7 +31,10 @@ public final class ETag {
 	 * @return W/"[length][lastModified][name.ext]"
 	 */
 	public final static String makeWTag(File file) {
-		return "W/\"" + Long.toString(file.length(), Character.MAX_RADIX) + Long.toString(file.lastModified(), Character.MAX_RADIX) + Security.Base64Encode(file.getName()) + "\"";
+		final String length = Long.toString(file.length(), Character.MAX_RADIX);
+		final String lastModified = Long.toString(file.lastModified(), Character.MAX_RADIX);
+		final String name = URLEncoder.encode(file.getName(), HTTPCoder.URL_CHARSET);
+		return "W/\"" + length + lastModified + name + "\"";
 	}
 
 	/**
@@ -46,7 +50,7 @@ public final class ETag {
 		sb.append("-");
 		sb.append(Long.toString(file.lastModified(), Character.MAX_RADIX));
 		sb.append("-");
-		sb.append(Security.Base64Encode(file.getName()));
+		sb.append(URLEncoder.encode(file.getName(), HTTPCoder.URL_CHARSET));
 		for (int index = 0; index < keys.length; index++) {
 			sb.append("-");
 			sb.append(keys[index]);
@@ -66,7 +70,7 @@ public final class ETag {
 		}
 		final String[] texts = tag.split("-");
 		if (texts.length == 4) {
-			texts[2] = Security.Base64Decode(texts[2]);
+			texts[2] = URLDecoder.decode(texts[2], HTTPCoder.URL_CHARSET);
 			return texts;
 		}
 		return null;

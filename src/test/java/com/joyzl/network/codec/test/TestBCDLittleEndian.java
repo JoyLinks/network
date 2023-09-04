@@ -15,6 +15,12 @@ import org.junit.jupiter.api.Test;
 import com.joyzl.network.codec.LittleEndianBCDInput;
 import com.joyzl.network.codec.LittleEndianBCDOutput;
 
+/**
+ * 测试BCD编码 {@link LittleEndianBCDOutput}
+ * 
+ * @author ZhangXi
+ * @date 2023年9月3日
+ */
 class TestBCDLittleEndian {
 
 	final ByteArrayOutputStream out = new ByteArrayOutputStream();

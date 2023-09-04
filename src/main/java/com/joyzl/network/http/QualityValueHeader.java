@@ -5,8 +5,6 @@
  */
 package com.joyzl.network.http;
 
-import com.joyzl.common.Assist;
-
 /**
  * 具有多个权重值的消息头
  * 
@@ -21,7 +19,7 @@ public abstract class QualityValueHeader extends Header {
 	@Override
 	public String getHeaderValue() {
 		if (values == EMPTY) {
-			return Assist.EMPTY;
+			return EMPTY_STRIN;
 		}
 		if (values.length == 1) {
 			return getValue();

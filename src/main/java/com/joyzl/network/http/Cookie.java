@@ -10,8 +10,6 @@ import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.joyzl.common.Assist;
-
 /**
  * HTTP Cookie
  * 
@@ -25,8 +23,8 @@ import com.joyzl.common.Assist;
  * Cookie: PHPSESSID=298zf09hf012fh2; csrftoken=u32t4o3tb3gg43; _gat=1;
  * </pre>
  * 
- * <name>可以是除了控制字符CTLs、空格spaces或制表符tab之外的任何US-ASCII字符。同时不能包含以下分隔字符：()<>@,;:\"/[]?={}.
- * <value>支持除了控制字符CTLs、空格whitespace、双引号double-quotes、逗号comma、分号semicolon以及反斜线backslash之外的任意US-ASCII字符。
+ * <name>可以是除了控制字符CTLs、空格spaces或制表符tab之外的任何ASCII字符。同时不能包含以下分隔字符：()<>@,;:\"/[]?={}.
+ * <value>支持除了控制字符CTLs、空格whitespace、双引号double-quotes、逗号comma、分号semicolon以及反斜线backslash之外的任意ASCII字符。
  * 名称/值对之间用分号和空格 ('; ')隔开。
  * 
  * @author ZhangXi
@@ -61,7 +59,7 @@ public class Cookie extends Header {
 			}
 			sb.append(item.getKey());
 			sb.append(HTTPCoder.EQUAL);
-			sb.append(URLEncoder.encode(item.getValue(), Assist.DEFAULT_CHARSET));
+			sb.append(URLEncoder.encode(item.getValue(), HTTPCoder.URL_CHARSET));
 		}
 		return sb.toString();
 	}
@@ -74,7 +72,7 @@ public class Cookie extends Header {
 				if (name == null) {
 					break;
 				} else {
-					setValue(name, URLDecoder.decode(value.substring(start, end), Assist.DEFAULT_CHARSET));
+					setValue(name, URLDecoder.decode(value.substring(start, end), HTTPCoder.URL_CHARSET));
 				}
 				name = null;
 				end = start = index + 1;
