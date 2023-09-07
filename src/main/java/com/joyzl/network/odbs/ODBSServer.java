@@ -1,4 +1,4 @@
-/*
+/*-
  * www.joyzl.net
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
@@ -15,7 +15,7 @@ import com.joyzl.network.chain.TCPServer;
 /**
  * TCP服务端，监听指定端口接收连接（TCPSlave）
  * 
- * @author simon(ZhangXi TEL:13883833982) 2019年7月12日
+ * @author ZhangXi 2019年7月12日
  *
  */
 public class ODBSServer<M extends ODBSMessage> extends TCPServer<M> {

@@ -1,17 +1,14 @@
-/*
+/*-
  * www.joyzl.net
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
- */
-/**
- * 2018年9月18日
  */
 package com.joyzl.network.verifies;
 
 /**
  * CRC-16/X25
  * 
- * @author simon(ZhangXi TEL:13883833982)
+ * @author ZhangXi
  *
  */
 public final class CRC16_X25 extends Verifier {

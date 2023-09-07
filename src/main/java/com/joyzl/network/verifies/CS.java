@@ -1,10 +1,7 @@
-/*
+/*-
  * www.joyzl.net
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
- */
-/**
- * 2018年9月18日
  */
 package com.joyzl.network.verifies;
 
@@ -14,7 +11,7 @@ package com.joyzl.network.verifies;
  * 字节累加不进位<br>
  * Byte wise addition (8 bits with no Carry)
  * 
- * @author simon(ZhangXi TEL:13883833982)
+ * @author ZhangXi
  *
  */
 public final class CS extends Verifier {

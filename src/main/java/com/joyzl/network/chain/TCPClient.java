@@ -1,4 +1,4 @@
-/*
+/*-
  * www.joyzl.net
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
@@ -28,7 +28,7 @@ import com.joyzl.network.Executor;
  * 链路关闭后可再次请求连接。对象不是多线程安全的，在多线程收发情形下使用者应实现消息排队。
  * <p>
  *
- * @author simon(ZhangXi TEL:13883833982) 2019年7月12日
+ * @author ZhangXi 2019年7月12日
  *
  */
 public class TCPClient<M> extends TCPLink<M> {

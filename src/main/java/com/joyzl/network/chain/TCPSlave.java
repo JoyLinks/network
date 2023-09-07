@@ -1,4 +1,4 @@
-/*
+/*-
  * www.joyzl.net
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
@@ -35,7 +35,7 @@ import com.joyzl.network.buffer.DataBuffer;
  * 链路可关闭后不能重复使用。对象不是多线程安全的，在多线程收发情形下使用者应实现消息排队。
  * <p>
  *
- * @author simon(ZhangXi TEL:13883833982) 2019年7月9日
+ * @author ZhangXi 2019年7月9日
  *
  */
 public class TCPSlave<M> extends Slave<M> {

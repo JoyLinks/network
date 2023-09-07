@@ -1,10 +1,7 @@
-/*
+/*-
  * www.joyzl.net
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
- */
-/**
- *
  */
 package com.joyzl.network;
 
@@ -17,12 +14,10 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import com.joyzl.network.daemon.Daemones;
-
 /**
  * 线程池执行器
  *
- * @author simon(ZhangXi TEL:13883833982) 2019年7月8日
+ * @author ZhangXi 2019年7月8日
  *
  */
 public final class Executor {
@@ -57,8 +52,6 @@ public final class Executor {
 		try {
 			// 初始化NIO.1线程
 			ChainSelector.initialize(2);
-			// 初始化守护进程
-			Daemones.initialize();
 
 			thead_size -= 1;
 
@@ -77,7 +70,6 @@ public final class Executor {
 
 	public static final void shutdown() {
 		ChainSelector.shutdown();
-		Daemones.shutdown();
 
 		if (CHANNEL_GROUP != null) {
 			// NIO.2 终止并关闭

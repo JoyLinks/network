@@ -1,10 +1,7 @@
-/*
+/*-
  * www.joyzl.net
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
- */
-/**
- * 2018年9月18日
  */
 package com.joyzl.network.verifies;
 
@@ -14,7 +11,7 @@ import java.security.NoSuchAlgorithmException;
 /**
  * SHA-1校验
  * 
- * @author simon(ZhangXi TEL:13883833982)
+ * @author ZhangXi
  *
  */
 public final class SHA1 extends Verifier {

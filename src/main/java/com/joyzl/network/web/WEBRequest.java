@@ -1,4 +1,4 @@
-/*
+/*-
  * www.joyzl.net
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
@@ -93,5 +93,4 @@ public final class WEBRequest extends Request {
 	public Map<String, String[]> getParametersMap() {
 		return parameters;
 	}
-
 }

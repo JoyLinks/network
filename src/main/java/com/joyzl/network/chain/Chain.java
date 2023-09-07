@@ -1,10 +1,7 @@
-/*
+/*-
  * www.joyzl.net
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
- */
-/**
- * 中翌智联（重庆）科技有限公司
  */
 package com.joyzl.network.chain;
 
@@ -21,7 +18,7 @@ import java.net.SocketAddress;
  * ChainHandler必须根据业务逻辑调用Chain.receive()继续接收客户端后续数据；
  * </p>
  *
- * @author simon(ZhangXi TEL:13883833982) 2019年7月9日
+ * @author ZhangXi 2019年7月9日
  *
  */
 public abstract class Chain {

@@ -1,3 +1,8 @@
+/*-
+ * www.joyzl.net
+ * 中翌智联（重庆）科技有限公司
+ * Copyright © JOY-Links Company. All rights reserved.
+ */
 package com.joyzl.network.chain;
 
 import java.nio.channels.CompletionHandler;

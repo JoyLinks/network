@@ -1,10 +1,7 @@
-/*
+/*-
  * www.joyzl.net
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
- */
-/**
- *
  */
 package com.joyzl.network.odbs;
 
@@ -13,7 +10,7 @@ import com.joyzl.network.chain.ChainHandler;
 /**
  * ODBS 编解码
  *
- * @author simon(ZhangXi TEL:13883833982) 2019年7月15日
+ * @author ZhangXi 2019年7月15日
  *
  */
 public abstract class ODBSFrame<M extends ODBSMessage> implements ChainHandler<M> {

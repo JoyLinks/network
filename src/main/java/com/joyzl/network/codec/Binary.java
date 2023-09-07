@@ -1,10 +1,7 @@
-/*
+/*-
  * www.joyzl.net
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
- */
-/**
- * 2018年4月23日
  */
 package com.joyzl.network.codec;
 
@@ -14,7 +11,7 @@ package com.joyzl.network.codec;
  * 默认大端序(big-endian,高位字节在低位字节前面)[76543210]最高有效字节(MSB)~后面跟着最低有效字节(LSB)
  * </p>
  * 
- * @author simon(ZhangXi TEL:13883833982)
+ * @author ZhangXi
  *
  */
 public final class Binary {

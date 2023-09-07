@@ -1,10 +1,7 @@
-/*
+/*-
  * www.joyzl.net
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
- */
-/**
- *
  */
 package com.joyzl.network;
 
@@ -21,7 +18,7 @@ import com.joyzl.network.chain.ChainChannel;
  * <p>
  * 为基于Selector的链路提供全局的选择器实现和执行
  *
- * @author simon(ZhangXi TEL:13883833982) 2019年8月15日
+ * @author ZhangXi 2019年8月15日
  *
  */
 public final class ChainSelector {

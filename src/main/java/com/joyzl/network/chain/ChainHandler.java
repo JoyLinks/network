@@ -1,10 +1,7 @@
-/*
+/*-
  * www.joyzl.net
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
- */
-/**
- * 
  */
 package com.joyzl.network.chain;
 
@@ -72,7 +69,7 @@ import com.joyzl.network.buffer.DataBuffer;
  * 如果有消息需要优先发送，可以在ChainHandler.send()方法中手动添加到消息头部；
  * 如果消息需要等待远程回复之后才能移除，可以在ChainHandler.sent()中判断是否移除，并且暂停发送其余消息。
  * 
- * @author simon(ZhangXi TEL:13883833982) 2019年7月12日
+ * @author ZhangXi 2019年7月12日
  *
  */
 public interface ChainHandler<M> {

@@ -1,4 +1,4 @@
-/*
+/*-
  * www.joyzl.net
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
@@ -11,8 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-
-import com.joyzl.network.daemon.DaemonCheck;
 
 /**
  * 网络会话状态
@@ -40,15 +38,17 @@ public final class Session<T> {
 	/** 过期时间,默认1小时 */
 	public final static long TIMEOUT = 1 * 60 * 60 * 1000;
 	/** 会话过期检查 */
-	public final static DaemonCheck DAEMON_CHECK = new DaemonCheck() {
+	public final static Runnable DAEMON_CHECK = new Runnable() {
 		@Override
-		public void check() {
+		public void run() {
 			Session<?> session;
 			Entry<String, Token> entry;
+
+			final long time = System.currentTimeMillis();
 			final Iterator<Entry<String, Token>> iterator = TOKENS.entrySet().iterator();
 			while (iterator.hasNext()) {
 				entry = iterator.next();
-				if (entry.getValue().isValid(TIMEOUT)) {
+				if (time - entry.getValue().time() > TIMEOUT) {
 					continue;
 				} else {
 					iterator.remove();
