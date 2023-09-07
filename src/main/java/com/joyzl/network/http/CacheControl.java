@@ -5,6 +5,8 @@
  */
 package com.joyzl.network.http;
 
+import com.joyzl.network.Utility;
+
 /**
  * Cache-Control通用消息头字段，被用于在http请求和响应中，通过指定指令来实现缓存机制。
  * 缓存指令是单向的，这意味着在请求中设置的指令，不一定被包含在响应中。
@@ -58,6 +60,18 @@ public final class CacheControl extends Header {
 	private String control;
 	private int seconds;
 
+	public CacheControl() {
+	}
+
+	public CacheControl(String control) {
+		this(control, 0);
+	}
+
+	public CacheControl(String control, int seconds) {
+		this.control = control;
+		this.seconds = seconds;
+	}
+
 	@Override
 	public String getHeaderName() {
 		return NAME;
@@ -86,7 +100,7 @@ public final class CacheControl extends Header {
 	}
 
 	public final static CacheControl parse(String value) {
-		if (noEmpty(value)) {
+		if (Utility.noEmpty(value)) {
 			CacheControl header = new CacheControl();
 			header.setHeaderValue(value);
 			return header;

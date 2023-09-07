@@ -18,8 +18,6 @@ package com.joyzl.network.http;
  */
 public abstract class Header {
 
-	final static String EMPTY_STRIN = "";
-
 	public abstract String getHeaderName();
 
 	public abstract String getHeaderValue();
@@ -29,13 +27,5 @@ public abstract class Header {
 	@Override
 	public String toString() {
 		return getHeaderName() + HTTPCoder.COLON + HTTPCoder.SPACE + getHeaderValue();
-	}
-
-	static boolean isEmpty(CharSequence value) {
-		return value == null || value.length() == 0;
-	}
-
-	static boolean noEmpty(CharSequence value) {
-		return value != null && value.length() > 0;
 	}
 }

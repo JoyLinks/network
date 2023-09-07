@@ -24,15 +24,6 @@ import com.joyzl.network.http.Response;
  */
 public abstract class WEBServlet extends HTTPServlet {
 
-	// METHODS
-	public final static String GET = "GET";
-	public final static String HEAD = "HEAD";
-	public final static String POST = "POST";
-	public final static String PUT = "PUT";
-	public final static String DELETE = "DELETE";
-	public final static String CONNECT = "CONNECT";
-	public final static String OPTIONS = "OPTIONS";
-	public final static String TRACE = "TRACE";
 	// HEADERS
 	public final static String DATE = "Date";
 	public final static String SERVER = "Server";

@@ -8,10 +8,13 @@ package com.joyzl.network.http;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.joyzl.network.Utility;
+
 /**
  * Authorization
  * <p>
- * HTTP协议中的 Authorization 请求消息头含有服务器用于验证用户代理身份的凭证，通常会在服务器返回401 Unauthorized 状态码以及WWW-Authenticate消息头之后在后续请求中发送此消息头。
+ * HTTP协议中的 Authorization 请求消息头含有服务器用于验证用户代理身份的凭证，通常会在服务器返回401 Unauthorized
+ * 状态码以及WWW-Authenticate消息头之后在后续请求中发送此消息头。
  * 
  * <pre>
  * Authorization: <type> <credentials>
@@ -34,9 +37,21 @@ public final class Authorization extends Header {
 
 	public final static String NAME = "Authorization";
 
+	public final static String BASIC = "Basic";
+	public final static String BEARER = "Bearer";
+	public final static String DIGEST = "Digest";
+
 	private String type;
 	private String credentials;
 	private final Map<String, Object> arguments = new HashMap<>();
+
+	public Authorization() {
+	}
+
+	public Authorization(String type, String credentials) {
+		this.credentials = credentials;
+		this.type = type;
+	}
 
 	@Override
 	public String getHeaderName() {
@@ -60,7 +75,7 @@ public final class Authorization extends Header {
 				sb.append(type);
 				sb.append(HTTPCoder.SPACE);
 				for (Map.Entry<String, Object> item : arguments.entrySet()) {
-					if (isEmpty(item.getKey()) || item.getValue() == null) {
+					if (Utility.isEmpty(item.getKey()) || item.getValue() == null) {
 						continue;
 					}
 					if (sb.length() > type.length() + 1) {
@@ -134,7 +149,7 @@ public final class Authorization extends Header {
 	}
 
 	public final static Authorization parse(String value) {
-		if (noEmpty(value)) {
+		if (Utility.noEmpty(value)) {
 			Authorization header = new Authorization();
 			header.setHeaderValue(value);
 			return header;

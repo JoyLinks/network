@@ -5,6 +5,8 @@
  */
 package com.joyzl.network.http;
 
+import com.joyzl.network.Utility;
+
 /**
  * Accept 请求头用来告知（服务器）客户端可以处理的内容类型，这种内容类型用MIME类型来表示。
  * 借助内容协商机制,服务器可以从诸多备选项中选择一项进行应用，并使用Content-Type应答头通知客户端它的选择。
@@ -28,13 +30,20 @@ public final class Accept extends QualityValueHeader {
 
 	public final static String NAME = "Accept";
 
+	public Accept() {
+	}
+
+	public Accept(String value) {
+		setHeaderValue(value);
+	}
+
 	@Override
 	public String getHeaderName() {
 		return NAME;
 	}
 
 	public final static Accept parse(String value) {
-		if (noEmpty(value)) {
+		if (Utility.noEmpty(value)) {
 			Accept header = new Accept();
 			header.setHeaderValue(value);
 			return header;

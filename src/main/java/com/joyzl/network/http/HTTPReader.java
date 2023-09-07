@@ -105,7 +105,7 @@ public class HTTPReader extends Reader {
 	public void skipWhitespace() {
 		while (buffer.readable() > 0) {
 			if (Character.isWhitespace(buffer.get(0))) {
-				buffer.read();
+				buffer.readByte();
 			} else {
 				break;
 			}
@@ -121,7 +121,8 @@ public class HTTPReader extends Reader {
 	 */
 	public boolean readTo(final char end) throws IOException {
 		builder.setLength(0);
-		while ((c = read()) >= 0) {
+		while (buffer.readable() > 0) {
+			c = read();
 			if (c == end) {
 				return true;
 			}
@@ -140,7 +141,8 @@ public class HTTPReader extends Reader {
 	 */
 	public boolean readTo(final char end1, final char end2) throws IOException {
 		builder.setLength(0);
-		while ((c = read()) >= 0) {
+		while (buffer.readable() > 0) {
+			c = read();
 			if (c == end1 || c == end2) {
 				return true;
 			}
@@ -160,7 +162,8 @@ public class HTTPReader extends Reader {
 	public boolean readTo(final char end1, final CharSequence end2) throws IOException {
 		int e = 0;
 		builder.setLength(0);
-		while ((c = read()) >= 0) {
+		while (buffer.readable() > 0) {
+			c = read();
 			if (c == end1) {
 				return true;
 			} else if (c == end2.charAt(e)) {
@@ -189,7 +192,8 @@ public class HTTPReader extends Reader {
 	public boolean readTo(final CharSequence end) throws IOException {
 		int e = 0;
 		builder.setLength(0);
-		while ((c = read()) >= 0) {
+		while (buffer.readable() > 0) {
+			c = read();
 			if (c == end.charAt(e)) {
 				e++;
 				if (e >= end.length()) {
@@ -217,7 +221,8 @@ public class HTTPReader extends Reader {
 	public boolean readAt(final char end1, final CharSequence end2) throws IOException {
 		int e = 0;
 		builder.setLength(0);
-		while ((c = read()) >= 0) {
+		while (buffer.readable() > 0) {
+			c = read();
 			if (e >= 1) {
 				if (c == end2.charAt(e - 1)) {
 					e++;
@@ -252,7 +257,8 @@ public class HTTPReader extends Reader {
 	public boolean readAt(final CharSequence end1, final CharSequence end2) throws IOException {
 		int e = 0;
 		builder.setLength(0);
-		while ((c = read()) >= 0) {
+		while (buffer.readable() > 0) {
+			c = read();
 			if (e >= end1.length()) {
 				if (c == end2.charAt(e - end1.length())) {
 					e++;
@@ -289,7 +295,8 @@ public class HTTPReader extends Reader {
 	 */
 	public boolean readBy(final OutputStream output, final CharSequence end) throws IOException {
 		int value, e = 0;
-		while ((value = buffer.readUnsignedByte()) >= 0) {
+		while (buffer.readable() > 0) {
+			value = read();
 			if (value == end.charAt(e)) {
 				e++;
 				if (e >= end.length()) {
@@ -320,7 +327,8 @@ public class HTTPReader extends Reader {
 	public boolean readBy(final OutputStream output, final CharSequence end1, final CharSequence end2) throws IOException {
 		int value, e = 0;
 		builder.setLength(0);
-		while ((value = read()) >= 0) {
+		while (buffer.readable() >= 0) {
+			value = read();
 			if (e >= end1.length()) {
 				if (value == end2.charAt(e - end1.length())) {
 					e++;

@@ -9,6 +9,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 
+import com.joyzl.network.Utility;
+
 /**
  * Content-Disposition
  * 
@@ -73,7 +75,7 @@ public final class ContentDisposition extends Header {
 	@Override
 	public String getHeaderValue() {
 		if (ATTACHMENT.equalsIgnoreCase(disposition)) {
-			if (noEmpty(filename)) {
+			if (Utility.noEmpty(filename)) {
 				StringBuilder builder = new StringBuilder();
 				builder.append(disposition);
 				builder.append(HTTPCoder.SEMI);
@@ -99,7 +101,7 @@ public final class ContentDisposition extends Header {
 			}
 		}
 		if (FORM_DATA.equalsIgnoreCase(disposition)) {
-			if (noEmpty(field)) {
+			if (Utility.noEmpty(field)) {
 				StringBuilder builder = new StringBuilder();
 				builder.append(disposition);
 				builder.append(HTTPCoder.SEMI);
@@ -109,7 +111,7 @@ public final class ContentDisposition extends Header {
 				builder.append(HTTPCoder.QUOTE);
 				builder.append(field);
 				builder.append(HTTPCoder.QUOTE);
-				if (noEmpty(filename)) {
+				if (Utility.noEmpty(filename)) {
 					builder.append(HTTPCoder.SEMI);
 					builder.append(HTTPCoder.SPACE);
 					if (hasChinese(filename)) {
@@ -178,7 +180,7 @@ public final class ContentDisposition extends Header {
 	}
 
 	public final static ContentDisposition parse(String value) {
-		if (noEmpty(value)) {
+		if (Utility.noEmpty(value)) {
 			ContentDisposition header = new ContentDisposition();
 			header.setHeaderValue(value);
 			return header;

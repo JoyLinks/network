@@ -10,6 +10,8 @@ import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.joyzl.network.Utility;
+
 /**
  * HTTP Cookie
  * 
@@ -49,7 +51,7 @@ public class Cookie extends Header {
 
 		StringBuilder sb = new StringBuilder();
 		for (Map.Entry<String, String> item : arguments.entrySet()) {
-			if (isEmpty(item.getKey()) || isEmpty(item.getValue())) {
+			if (Utility.isEmpty(item.getKey()) || Utility.isEmpty(item.getValue())) {
 				// 忽略名称或值为空的Cookie
 				continue;
 			}
@@ -90,7 +92,7 @@ public class Cookie extends Header {
 	}
 
 	public final static Cookie parse(String value) {
-		if (noEmpty(value)) {
+		if (Utility.noEmpty(value)) {
 			Cookie header = new Cookie();
 			header.setHeaderValue(value);
 			return header;

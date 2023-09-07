@@ -14,7 +14,9 @@ import java.util.Map.Entry;
 /**
  * HTTP(Hyper Text Transfer Protocol)
  * <p>
- * URL编码RFC3986,ASCII+UNICODE
+ * RFC3986 URL编码 ASCII+UNICODE<br>
+ * RFC2616 RFC7230 超文本传输​​协议HTTP/1.1<br>
+ * RFC7540 超文本传输​​协议HTTP/2
  * </p>
  * 
  * @author ZhangXi
@@ -238,7 +240,6 @@ public class HTTPCoder {
 	 * @return "/test.html?query=alibaba&name=value"
 	 */
 	public final static String makeQuery(String uri, Map<String, String[]> parameters) {
-		// RFC 3986
 		if (parameters.isEmpty()) {
 			return uri;
 		}
@@ -254,7 +255,9 @@ public class HTTPCoder {
 				}
 				builder.append(item.getKey());
 				builder.append(EQUAL);
-				builder.append(URLEncoder.encode(item.getValue()[index], URL_CHARSET));
+				if (item.getValue()[index] != null) {
+					builder.append(URLEncoder.encode(item.getValue()[index], URL_CHARSET));
+				}
 			}
 		}
 		return builder.toString();

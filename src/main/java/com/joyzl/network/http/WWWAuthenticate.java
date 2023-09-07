@@ -8,6 +8,8 @@ package com.joyzl.network.http;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.joyzl.network.Utility;
+
 /**
  * WWW-Authenticate
  * <p>
@@ -55,7 +57,7 @@ public final class WWWAuthenticate extends Header {
 			sb.append(type);
 			sb.append(HTTPCoder.SPACE);
 			for (Map.Entry<String, String> item : arguments.entrySet()) {
-				if (isEmpty(item.getKey()) || isEmpty(item.getValue())) {
+				if (Utility.isEmpty(item.getKey()) || Utility.isEmpty(item.getValue())) {
 					continue;
 				}
 				if (sb.length() > type.length() + 1) {
@@ -120,7 +122,7 @@ public final class WWWAuthenticate extends Header {
 	}
 
 	public final static WWWAuthenticate parse(String value) {
-		if (noEmpty(value)) {
+		if (Utility.noEmpty(value)) {
 			WWWAuthenticate header = new WWWAuthenticate();
 			header.setHeaderValue(value);
 			return header;

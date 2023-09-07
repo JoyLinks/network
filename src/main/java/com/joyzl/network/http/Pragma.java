@@ -5,6 +5,8 @@
  */
 package com.joyzl.network.http;
 
+import com.joyzl.network.Utility;
+
 /**
  * Pragma 是在HTTP/1.0 中规定的通用首部。
  * 
@@ -35,7 +37,7 @@ public final class Pragma extends Header {
 	}
 
 	public final static Pragma parse(String value) {
-		if (noEmpty(value)) {
+		if (Utility.noEmpty(value)) {
 			Pragma header = new Pragma();
 			header.setHeaderValue(value);
 			return header;

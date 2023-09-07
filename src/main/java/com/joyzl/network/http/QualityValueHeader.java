@@ -5,6 +5,8 @@
  */
 package com.joyzl.network.http;
 
+import com.joyzl.network.Utility;
+
 /**
  * 具有多个权重值的消息头
  * 
@@ -19,7 +21,7 @@ public abstract class QualityValueHeader extends Header {
 	@Override
 	public String getHeaderValue() {
 		if (values == EMPTY) {
-			return EMPTY_STRIN;
+			return Utility.EMPTY_STRIN;
 		}
 		if (values.length == 1) {
 			return getValue();
@@ -45,19 +47,19 @@ public abstract class QualityValueHeader extends Header {
 	@Override
 	public void setHeaderValue(String value) {
 		char c;
-		for (int begin = 0, end = 0, s = 0, e = 0, index = 0; index <= value.length(); index++) {
+		for (int begin = 0, end = 0, semi = 0, equal = 0, index = 0; index <= value.length(); index++) {
 			if (index >= value.length() || (c = value.charAt(index)) == HTTPCoder.COMMA) {
-				if (begin < s && s < e && e < end) {
-					addValue(value.substring(begin, s), Float.parseFloat(value.substring(e + 1, end + 1)));
+				if (begin < semi && semi < equal && equal < end) {
+					addValue(value.substring(begin, semi), Float.parseFloat(value.substring(equal + 1, end + 1)));
 				} else {
 					addValue(value.substring(begin, end + 1));
 				}
-				begin = end = index;
-				s = e = index;
+				begin = end = index + 1/* 跳过逗号 */;
+				semi = equal = index;
 			} else if (c == HTTPCoder.SEMI) {
-				s = index;
+				semi = index;
 			} else if (c == HTTPCoder.EQUAL) {
-				e = index;
+				equal = index;
 			} else if (Character.isWhitespace(c)) {
 				if (begin >= end) {
 					begin = index + 1;
@@ -108,9 +110,6 @@ public abstract class QualityValueHeader extends Header {
 	}
 
 	public String getValue(int index) {
-		if (index < 0 || index >= values.length) {
-			throw new IndexOutOfBoundsException(index);
-		}
 		return values[index].getValue();
 	}
 

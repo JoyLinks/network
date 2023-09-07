@@ -5,6 +5,8 @@
  */
 package com.joyzl.network.http;
 
+import com.joyzl.network.Utility;
+
 /**
  * Content-Range响应首部显示的是一个数据片段在整个文件中的位置。
  * 
@@ -86,7 +88,7 @@ public class ContentRange extends Header {
 	}
 
 	public final static ContentRange parse(String value) {
-		if (noEmpty(value)) {
+		if (Utility.noEmpty(value)) {
 			ContentRange header = new ContentRange();
 			header.setHeaderValue(value);
 			return header;

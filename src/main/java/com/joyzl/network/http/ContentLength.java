@@ -5,6 +5,8 @@
  */
 package com.joyzl.network.http;
 
+import com.joyzl.network.Utility;
+
 /**
  * Content-Length 是一个实体消息首部，用来指明发送给接收方的消息主体的大小，即用十进制数字表示的八位元组的数目。
  * 
@@ -40,7 +42,7 @@ public final class ContentLength extends Header {
 	}
 
 	public final static ContentLength parse(String value) {
-		if (noEmpty(value)) {
+		if (Utility.noEmpty(value)) {
 			ContentLength header = new ContentLength();
 			header.setHeaderValue(value);
 			return header;

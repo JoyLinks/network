@@ -30,7 +30,7 @@ public class WEBServer extends TCPServer<Message> {
 	}
 
 	@Override
-	protected WEBSlave accepted(AsynchronousSocketChannel socket_channel) throws IOException {
+	protected WEBSlave create(AsynchronousSocketChannel socket_channel) throws IOException {
 		return new WEBSlave(this, socket_channel);
 	}
 }

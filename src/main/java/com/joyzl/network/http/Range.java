@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import com.joyzl.network.Utility;
+
 /**
  * Range是一个请求首部，告知服务器返回文件的哪一部分。在一个Range首部中，可以一次性请求多个部分，服务器会以 multipart
  * 文件的形式将其返回。 如果服务器返回的是范围响应，需要使用 206 Partial Content 状态码。 假如所请求的范围不合法，那么服务器会返回
@@ -98,7 +100,7 @@ public final class Range extends Header {
 	}
 
 	public final static Range parse(String value) {
-		if (noEmpty(value)) {
+		if (Utility.noEmpty(value)) {
 			Range header = new Range();
 			header.setHeaderValue(value);
 			return header;

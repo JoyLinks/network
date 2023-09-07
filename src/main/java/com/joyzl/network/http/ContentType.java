@@ -5,6 +5,8 @@
  */
 package com.joyzl.network.http;
 
+import com.joyzl.network.Utility;
+
 /**
  * Content-Type实体头部用于指示资源的MIME类型 media type。 在请求中(如POST或 PUT)，客户端告诉服务器实际发送的数据类型。
  * RFC7231 缺省为"application/octet-stream"
@@ -49,13 +51,13 @@ public final class ContentType extends Header {
 	@Override
 	public String getHeaderValue() {
 		if (type.startsWith("multipart")) {
-			if (isEmpty(boundary)) {
+			if (Utility.isEmpty(boundary)) {
 				// "multipart"必须设置boundary
 				boundary = "JOYZL-HTTP-" + timestampKey();
 			}
 			return type + HTTPCoder.SEMI + HTTPCoder.SPACE + BOUNDARY + HTTPCoder.EQUAL + boundary;
 		}
-		if (noEmpty(charset)) {
+		if (Utility.noEmpty(charset)) {
 			return type + HTTPCoder.SEMI + HTTPCoder.SPACE + CHARSET + HTTPCoder.EQUAL + charset;
 		}
 		return type;
@@ -85,7 +87,7 @@ public final class ContentType extends Header {
 	}
 
 	public final static ContentType parse(String value) {
-		if (noEmpty(value)) {
+		if (Utility.noEmpty(value)) {
 			ContentType header = new ContentType();
 			header.setHeaderValue(value);
 			return header;

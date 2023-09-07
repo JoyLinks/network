@@ -20,7 +20,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
 
-import com.joyzl.common.Assist;
+import com.joyzl.network.Utility;
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.http.ContentDisposition;
 import com.joyzl.network.http.ContentType;
@@ -244,7 +244,7 @@ public class WEBCoder {
 						if (disposition == null) {
 							throw new IOException("PART消息头Content-Disposition缺失");
 						} else if (ContentDisposition.FORM_DATA.equalsIgnoreCase(disposition.getDisposition())) {
-							if (Assist.noEmpty(disposition.getFilename())) {
+							if (Utility.noEmpty(disposition.getFilename())) {
 								// 数据块保存为临时文件
 								final File file = File.createTempFile("JOYZL_HTTP_PART", ".tmp");
 								try (OutputStream output = new FileOutputStream(file, true)) {
@@ -401,10 +401,10 @@ public class WEBCoder {
 				} else {
 					DataBuffer buffer = (DataBuffer) response.getContent();
 					if (buffer == null) {
-						response.setContent(buffer = DataBuffer.getB2048());
+						response.setContent(buffer = DataBuffer.instance());
 					}
 					reader.buffer().bounds(length);
-					buffer.transmit(reader.buffer());
+					buffer.residue(reader.buffer());
 					reader.buffer().discard();
 					reader.readTo(HTTPCoder.CRLF);
 					return false;
@@ -471,8 +471,8 @@ public class WEBCoder {
 	 * @param message
 	 */
 	public final static void readRAW(DataBuffer buffer, Message message) {
-		final DataBuffer content = DataBuffer.getB2048();
-		content.transmit(buffer);
+		final DataBuffer content = DataBuffer.instance();
+		content.residue(buffer);
 		message.setContent(content);
 	}
 
@@ -489,27 +489,24 @@ public class WEBCoder {
 			return true;
 		}
 
+		// DataBuffer
 		if (message.getContent() instanceof DataBuffer) {
 			final DataBuffer content = (DataBuffer) message.getContent();
-			// TODO 后续应优化为整块ByteBuffer转移
-			int length = 0;
-			while (content.readable() > 0) {
-				writer.write(content.read());
-				if (++length >= BLOCK) {
-					if (content.readable() > 1024) {
-						return false;
-					} else {
-						while (content.readable() > 0) {
-							writer.write(content.read());
-						}
-						break;
-					}
+			if (content.readable() > 0) {
+				if (content.readable() > BLOCK) {
+					content.bounds(BLOCK);
+					writer.write(content);
+					content.discard();
+					return false;
+				} else {
+					writer.write(content);
 				}
 			}
 			message.setContent(null);
 			return true;
 		}
 
+		// File InputStream
 		InputStream input;
 		if (message.getContent() instanceof File) {
 			input = new FileInputStream((File) message.getContent());
@@ -519,31 +516,18 @@ public class WEBCoder {
 		} else {
 			throw new IllegalArgumentException("不支持的响应内容:" + message.getContent().getClass());
 		}
-
-		if (input == null) {
-			return true;
-		} else if (input.available() <= 0) {
-			message.setContent(null);
-			return true;
-		} else {
-			int length, total = 0;
-			byte[] cache = new byte[1024];
-			while ((length = input.read(cache)) > 0) {
-				writer.write(cache, 0, length);
-				total += length;
-				if (total >= BLOCK) {
-					if (input.available() > 1024) {
-						return false;
-					} else {
-						while ((length = input.read(cache)) > 0) {
-							writer.write(cache, 0, length);
-						}
-						break;
-					}
+		if (input.available() > 0) {
+			if (input.available() > BLOCK) {
+				int length = BLOCK;
+				while (length-- > 0) {
+					writer.write(input.read());
 				}
+				return false;
+			} else {
+				writer.write(input);
 			}
-			message.setContent(null);
-			return true;
 		}
+		message.setContent(null);
+		return true;
 	}
 }

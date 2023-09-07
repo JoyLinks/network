@@ -18,8 +18,8 @@ import java.util.List;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPOutputStream;
 
-import com.joyzl.common.Assist;
-import com.joyzl.common.rw.SegmentInputStream;
+import com.joyzl.network.SegmentInputStream;
+import com.joyzl.network.Utility;
 import com.joyzl.network.http.AcceptEncoding;
 import com.joyzl.network.http.CacheControl;
 import com.joyzl.network.http.ContentEncoding;
@@ -145,8 +145,8 @@ public abstract class FileServlet extends WEBServlet {
 
 			// ETAG不同则返回资源 RFC7232
 			String code = request.getHeader(IF_NONE_MATCH);
-			if (Assist.noEmpty(code)) {
-				if (Assist.equals(code, etag, false)) {
+			if (Utility.noEmpty(code)) {
+				if (Utility.equals(code, etag, false)) {
 					response.setStatus(HTTPStatus.NOT_MODIFIED);
 				} else {
 					response.setStatus(HTTPStatus.OK);
@@ -156,8 +156,8 @@ public abstract class FileServlet extends WEBServlet {
 			}
 			// ETAG相同则返回资源 RFC7232
 			code = request.getHeader(IF_MATCH);
-			if (Assist.noEmpty(code)) {
-				if (Assist.equals(code, etag, false)) {
+			if (Utility.noEmpty(code)) {
+				if (Utility.equals(code, etag, false)) {
 					response.setStatus(HTTPStatus.OK);
 					whole(request, response, file, content);
 				} else {
@@ -168,7 +168,7 @@ public abstract class FileServlet extends WEBServlet {
 
 			// 修改时间有更新返回文件内容
 			code = request.getHeader(IF_MODIFIED_SINCE);
-			if (Assist.noEmpty(code)) {
+			if (Utility.noEmpty(code)) {
 				final ZonedDateTime d = ZonedDateTime.parse(code, DateTimeFormatter.RFC_1123_DATE_TIME);
 				if (d.toEpochSecond() < last_modified) {
 					response.setStatus(HTTPStatus.OK);
@@ -180,7 +180,7 @@ public abstract class FileServlet extends WEBServlet {
 			}
 			// 修改时间未更新返回文件内容
 			code = request.getHeader(IF_UNMODIFIED_SINCE);
-			if (Assist.noEmpty(code)) {
+			if (Utility.noEmpty(code)) {
 				final ZonedDateTime d = ZonedDateTime.parse(code, DateTimeFormatter.RFC_1123_DATE_TIME);
 				if (d.toEpochSecond() == last_modified) {
 					response.setStatus(HTTPStatus.OK);
@@ -195,9 +195,9 @@ public abstract class FileServlet extends WEBServlet {
 			final Range range = Range.parse(request.getHeader(Range.NAME));
 			if (range != null) {
 				code = request.getHeader(IF_RANGE);
-				if (Assist.noEmpty(code)) {
+				if (Utility.noEmpty(code)) {
 					// Last-Modified/ETag相同时Range生效
-					if (Assist.equals(code, etag, false)) {
+					if (Utility.equals(code, etag, false)) {
 						response.setStatus(HTTPStatus.PARTIAL_CONTENT);
 						parts(range, response, file, content);
 					} else {
@@ -316,7 +316,7 @@ public abstract class FileServlet extends WEBServlet {
 
 	private boolean canCompress(File file) {
 		for (int index = 0; index < EXTENSIONS.length; index++) {
-			if (Assist.endsIgnoreCase(file.getPath(), EXTENSIONS[index])) {
+			if (Utility.ends(file.getPath(), EXTENSIONS[index], true)) {
 				return true;
 			}
 		}

@@ -5,7 +5,7 @@
  */
 package com.joyzl.network.web;
 
-import com.joyzl.common.Assist;
+import com.joyzl.network.Utility;
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.chain.ChainHandler;
@@ -67,7 +67,7 @@ public abstract class WEBClientHandler extends WEBCoder implements ChainHandler<
 					final String transfer_encoding = response.getHeader(TransferEncoding.NAME);
 					if (TransferEncoding.CHUNKED.equalsIgnoreCase(transfer_encoding)) {
 						if (WEBCoder.readChunked(reader, response)) {
-							response.state(Message.FINISH);
+							response.state(Message.COMPLETE);
 						} else {
 							return null;
 						}
@@ -75,23 +75,23 @@ public abstract class WEBClientHandler extends WEBCoder implements ChainHandler<
 						throw new UnsupportedOperationException("不支持的Transfer-Encoding值:" + transfer_encoding);
 					}
 				} else if (content_length.getLength() <= 0) {
-					response.state(Message.FINISH);
+					response.state(Message.COMPLETE);
 				} else if (content_length.getLength() <= buffer.readable()) {
 					final ContentType content_type = ContentType.parse(response.getHeader(ContentType.NAME));
 					if (content_type == null) {
 						WEBCoder.readRAW(buffer, response);
-						response.state(Message.FINISH);
+						response.state(Message.COMPLETE);
 					} else if (WEBCoder.MULTIPART_BYTERANGES.equalsIgnoreCase(content_type.getType())) {
 						WEBCoder.readMultipart(reader, response, content_type);
-						response.state(Message.FINISH);
+						response.state(Message.COMPLETE);
 					} else {
 						WEBCoder.readRAW(buffer, response);
-						response.state(Message.FINISH);
+						response.state(Message.COMPLETE);
 					}
 				} else {
 					return null;
 				}
-			case Message.FINISH:
+			case Message.COMPLETE:
 				client.setResponse(null);
 				return response;
 			default:
@@ -107,7 +107,7 @@ public abstract class WEBClientHandler extends WEBCoder implements ChainHandler<
 
 	@Override
 	public void received(ChainChannel<Message> chain, Message message) throws Exception {
-		if (Assist.equals(Connection.CLOSE, message.getHeader(Connection.NAME), false)) {
+		if (Utility.equals(Connection.CLOSE, message.getHeader(Connection.NAME), false)) {
 			chain.setType(HTTPStatus.CLOSE.code());
 			chain.close();
 		}
@@ -117,7 +117,7 @@ public abstract class WEBClientHandler extends WEBCoder implements ChainHandler<
 	public final DataBuffer encode(ChainChannel<Message> chain, Message message) throws Exception {
 		if (message instanceof WEBRequest) {
 			final WEBRequest request = (WEBRequest) message;
-			final DataBuffer buffer = DataBuffer.getB2048();
+			final DataBuffer buffer = DataBuffer.instance();
 			final HTTPWriter writer = new HTTPWriter(buffer);
 			// COMMAND:
 			HTTPCoder.writeCommand(writer, request);
@@ -128,11 +128,11 @@ public abstract class WEBClientHandler extends WEBCoder implements ChainHandler<
 			if (content_type == null) {
 				// RFC7231 缺省为"application/octet-stream"
 			} else if (WEBCoder.X_WWW_FORM_URLENCODED.equalsIgnoreCase(content_type.getType())) {
-				final HTTPWriter content = new HTTPWriter(DataBuffer.getB2048());
+				final HTTPWriter content = new HTTPWriter(DataBuffer.instance());
 				WEBCoder.writeWWWForm(writer, request);
 				request.setContent(content.getDataBuffer());
 			} else if (WEBCoder.MULTIPART_FORMDATA.equalsIgnoreCase(content_type.getType())) {
-				final HTTPWriter content = new HTTPWriter(DataBuffer.getB2048());
+				final HTTPWriter content = new HTTPWriter(DataBuffer.instance());
 				WEBCoder.writeMultipartFormData(writer, request, content_type);
 				request.setContent(content.getDataBuffer());
 			} else {

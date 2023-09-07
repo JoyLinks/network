@@ -18,8 +18,6 @@ public final class Parameters extends HashMap<String, String[]> {
 
 	private static final long serialVersionUID = 1L;
 
-	// 还没想到好方法
-
 	public final static String[] add(String value, String[] values) {
 		if (values == null) {
 			return new String[] { value };

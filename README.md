@@ -33,7 +33,7 @@ JOYZL.network 是NIO服务端和客户端框架，可以快速轻松的开发网
 
 1. 基本HTTP WEB服务端(WEBServer)和客户端(WEBClient)实现；
 2. 基本HTTP资源服务(FileServlet)可作为前端容器发布网站；
-3. 
+3. 支持WEBSocket实现自定义消息处理；
 4. 
 5. 
 6. 支持WEBServlet实现自定义业务和功能扩展。

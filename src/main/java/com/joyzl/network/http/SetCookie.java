@@ -8,6 +8,8 @@ package com.joyzl.network.http;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
+import com.joyzl.network.Utility;
+
 /**
  * HTTP Cookie
  * 
@@ -89,21 +91,21 @@ public final class SetCookie extends Header {
 			sb.append(HTTPCoder.EQUAL);
 			sb.append(getMaxAge());
 		}
-		if (noEmpty(getDomain())) {
+		if (Utility.noEmpty(getDomain())) {
 			sb.append(HTTPCoder.SEMI);
 			sb.append(HTTPCoder.SPACE);
 			sb.append(DOMAIN);
 			sb.append(HTTPCoder.EQUAL);
 			sb.append(getDomain());
 		}
-		if (noEmpty(getPath())) {
+		if (Utility.noEmpty(getPath())) {
 			sb.append(HTTPCoder.SEMI);
 			sb.append(HTTPCoder.SPACE);
 			sb.append(PATH);
 			sb.append(HTTPCoder.EQUAL);
 			sb.append(getPath());
 		}
-		if (noEmpty(getSameSite())) {
+		if (Utility.noEmpty(getSameSite())) {
 			sb.append(HTTPCoder.SEMI);
 			sb.append(HTTPCoder.SPACE);
 			sb.append(SAME_SITE);
@@ -172,7 +174,7 @@ public final class SetCookie extends Header {
 	}
 
 	public final static SetCookie parse(String value) {
-		if (noEmpty(value)) {
+		if (Utility.noEmpty(value)) {
 			SetCookie header = new SetCookie();
 			header.setHeaderValue(value);
 			return header;

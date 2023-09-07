@@ -5,6 +5,8 @@
  */
 package com.joyzl.network.http;
 
+import com.joyzl.network.Utility;
+
 /**
  * Accept-Encoding
  * 
@@ -27,7 +29,7 @@ public final class AcceptEncoding extends QualityValueHeader {
 	}
 
 	public final static AcceptEncoding parse(String value) {
-		if (noEmpty(value)) {
+		if (Utility.noEmpty(value)) {
 			AcceptEncoding header = new AcceptEncoding();
 			header.setHeaderValue(value);
 			return header;
