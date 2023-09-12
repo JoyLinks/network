@@ -236,7 +236,7 @@ public abstract class FileServlet extends WEBServlet {
 		long length = file.length();
 		if (range.getRanges().size() == 1) {
 			ByteRange byterange = range.getRanges().get(0);
-			if (byterange.valid(length, 4096, WEBCoder.FRAME_MAX)) {
+			if (byterange.valid(length, 4096, WEBContentCoder.MAX)) {
 				response.addHeader(new ContentType(MIMEType.getMIMEType(file)));
 				response.addHeader(new ContentRange(byterange.getStart(), byterange.getEnd(), length));
 				response.addHeader(ContentLength.NAME, Long.toString(byterange.getSize()));
@@ -251,7 +251,7 @@ public abstract class FileServlet extends WEBServlet {
 			final List<Part> parts = new ArrayList<>(range.getRanges().size());
 			for (int index = 0; index < range.getRanges().size(); index++) {
 				ByteRange byterange = range.getRanges().get(index);
-				if (byterange.valid(length, 4096, WEBCoder.FRAME_MAX)) {
+				if (byterange.valid(length, 4096, WEBContentCoder.MAX)) {
 					final Part part = new Part();
 					part.addHeader(ContentType.NAME, content_type);
 					part.addHeader(new ContentRange(byterange.getStart(), byterange.getEnd(), length));
@@ -265,7 +265,7 @@ public abstract class FileServlet extends WEBServlet {
 					return;
 				}
 			}
-			response.addHeader(new ContentType(WEBCoder.MULTIPART_BYTERANGES));
+			response.addHeader(new ContentType(MIMEType.MULTIPART_BYTERANGES));
 			response.setContent(parts);
 		} else {
 			response.setStatus(HTTPStatus.RANGE_NOT_SATISFIABLE);
@@ -302,7 +302,7 @@ public abstract class FileServlet extends WEBServlet {
 		}
 		// 是否发送响应内容
 		if (content) {
-			if (length < WEBCoder.FRAME_MAX) {
+			if (length < WEBContentCoder.MAX) {
 				response.addHeader(ContentLength.NAME, Long.toString(length));
 				response.setContent(file);
 			} else {

@@ -9,9 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.ByteArrayOutputStream;
 
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -32,14 +30,6 @@ class TestHTTPReader {
 	final HTTPWriter writer = new HTTPWriter(buffer);
 	final HTTPReader reader = new HTTPReader(buffer);
 
-	@BeforeAll
-	static void setUpBeforeClass() throws Exception {
-	}
-
-	@AfterAll
-	static void tearDownAfterClass() throws Exception {
-	}
-
 	@BeforeEach
 	void setUp() throws Exception {
 		buffer.clear();
@@ -50,40 +40,24 @@ class TestHTTPReader {
 	}
 
 	@Test
-	void testBase() throws Exception {
-		// 测试样本
-		writer.write("ABC");
-		writer.write("1234567890");
-		writer.flush();
-
-		assertEquals(reader.read(), 'A');
-		assertEquals(reader.read(), 'B');
-		assertEquals(reader.read(), 'C');
-
-		char[] chars = new char[10];
-		reader.read(chars, 0, chars.length);
-		assertEquals(new String(chars), "1234567890");
-	}
-
-	@Test
 	void testSkipWhitespace() throws Exception {
 		// 测试样本
 		writer.write(" \t \n A");
 		writer.write(" \t \r B");
-		writer.flush();
 
 		reader.skipWhitespace();
-		assertEquals(reader.read(), 'A');
+		reader.readTo(' ');
+		assertEquals(reader.previous(), 'A');
 
 		reader.skipWhitespace();
-		assertEquals(reader.read(), 'B');
+		reader.readTo(' ');
+		assertEquals(reader.last(), 'B');
 	}
 
 	@Test
 	void testReadTo1() throws Exception {
 		// 测试样本
 		writer.write("AAAA BBBB CCC");
-		writer.flush();
 
 		reader.readTo(HTTPCoder.SPACE);
 		assertEquals(reader.last(), HTTPCoder.SPACE);
@@ -108,7 +82,6 @@ class TestHTTPReader {
 		writer.write(HTTPCoder.CRLF);
 		writer.write("CCC");
 		writer.write(HTTPCoder.CRLF);
-		writer.flush();
 
 		reader.readTo(HTTPCoder.SPACE, HTTPCoder.CRLF);
 		assertEquals(reader.last(), HTTPCoder.SPACE);
@@ -131,7 +104,6 @@ class TestHTTPReader {
 		writer.write("XXXYYYZZZ");
 		writer.write("XYZ");
 		writer.write("DD");
-		writer.flush();
 
 		reader.readTo(HTTPCoder.SPACE, "BBBB");
 		assertEquals(reader.last(), HTTPCoder.SPACE);
@@ -163,7 +135,6 @@ class TestHTTPReader {
 		writer.write("BCDEF");
 		// 测试样本
 		writer.write("DD");
-		writer.flush();
 
 		reader.readAt('D', "DD");
 		assertEquals(reader.string(), "AAAABBBBCCC");
@@ -189,7 +160,6 @@ class TestHTTPReader {
 		// 测试样本
 		writer.write("XYZ");
 		writer.write("DD");
-		writer.flush();
 
 		reader.readAt("CCC", "XXXYYYZZZ");
 		assertEquals(reader.string(), "AAAABBBB");
@@ -212,7 +182,6 @@ class TestHTTPReader {
 		// 测试样本
 		writer.write("XYZ");
 		writer.write("DD");
-		writer.flush();
 
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		reader.readBy(output, "XXXYYYZZZ");
@@ -241,7 +210,6 @@ class TestHTTPReader {
 		writer.write("XYZ");
 		writer.write("DD");
 		writer.write("--");
-		writer.flush();
 
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		reader.readBy(output, "XXXYYYZZZ", "--");

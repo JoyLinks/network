@@ -6,6 +6,7 @@
 package com.joyzl.network.http;
 
 import com.joyzl.network.Utility;
+import com.joyzl.network.web.MIMEType;
 
 /**
  * Content-Type实体头部用于指示资源的MIME类型 media type。 在请求中(如POST或 PUT)，客户端告诉服务器实际发送的数据类型。
@@ -34,13 +35,13 @@ public final class ContentType extends Header {
 	public ContentType() {
 	}
 
-	public ContentType(String t) {
-		setType(t);
+	public ContentType(String type) {
+		setType(type);
 	}
 
-	public ContentType(String t, String c) {
-		setType(t);
-		setCharset(c);
+	public ContentType(String type, String charset) {
+		setType(type);
+		setCharset(charset);
 	}
 
 	@Override
@@ -50,10 +51,10 @@ public final class ContentType extends Header {
 
 	@Override
 	public String getHeaderValue() {
-		if (type.startsWith("multipart")) {
+		if (type.startsWith(MIMEType.MULTIPART)) {
 			if (Utility.isEmpty(boundary)) {
 				// "multipart"必须设置boundary
-				boundary = "JOYZL-HTTP-" + timestampKey();
+				boundary = boundary();
 			}
 			return type + HTTPCoder.SEMI + HTTPCoder.SPACE + BOUNDARY + HTTPCoder.EQUAL + boundary;
 		}
@@ -96,10 +97,10 @@ public final class ContentType extends Header {
 	}
 
 	/**
-	 * 获取当前时间戳生成的KEY
+	 * 获取当前时间戳生成的boundary
 	 */
-	static String timestampKey() {
-		return Long.toString(System.currentTimeMillis(), Character.MAX_RADIX);
+	public static String boundary() {
+		return "JOYZL-HTTP-" + Long.toString(System.currentTimeMillis(), Character.MAX_RADIX);
 	}
 
 	public String getType() {

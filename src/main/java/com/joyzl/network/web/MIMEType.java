@@ -30,7 +30,7 @@ public final class MIMEType {
 	public final static String AUDIO = "audio";
 	/** 视频 */
 	public final static String VIDEO = "video";
-	/** 二进制 */
+	/** 应用 */
 	public final static String APPLICATION = "application";
 
 	/** 细分 */
@@ -50,6 +50,7 @@ public final class MIMEType {
 	public final static String APPLICATION_ECMA_SCRIPT = "application/ecmascript";
 	/** JavaScript JSON */
 	public final static String APPLICATION_JSON = "application/json";
+
 	/** 文本文件 */
 	public final static String TEXT_PLAIN = "text/plain";
 	/** CSS文件 */

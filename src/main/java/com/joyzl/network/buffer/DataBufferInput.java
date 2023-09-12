@@ -17,14 +17,24 @@ import java.io.InputStream;
 public class DataBufferInput extends InputStream {
 
 	private final DataBuffer buffer;
+	private final boolean release;
 
 	public DataBufferInput(DataBuffer buffer) {
 		this.buffer = buffer;
+		release = false;
+	}
+
+	public DataBufferInput(DataBuffer buffer, boolean closeRelease) {
+		this.buffer = buffer;
+		release = closeRelease;
 	}
 
 	@Override
 	public int read() throws IOException {
-		return buffer.readUnsignedByte();
+		if (buffer.readable() > 0) {
+			return buffer.readUnsignedByte();
+		}
+		return -1;
 	}
 
 	@Override
@@ -34,16 +44,18 @@ public class DataBufferInput extends InputStream {
 
 	@Override
 	public void close() throws IOException {
-		buffer.release();
+		if (release) {
+			buffer.release();
+		}
 	}
 
 	@Override
-	public synchronized void mark(int readlimit) {
+	public void mark(int readlimit) {
 		buffer.mark();
 	}
 
 	@Override
-	public synchronized void reset() throws IOException {
+	public void reset() throws IOException {
 		buffer.reset();
 	}
 

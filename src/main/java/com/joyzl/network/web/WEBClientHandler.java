@@ -9,15 +9,13 @@ import com.joyzl.network.Utility;
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.chain.ChainHandler;
+import com.joyzl.network.chain.ChainType;
 import com.joyzl.network.http.Connection;
-import com.joyzl.network.http.ContentLength;
-import com.joyzl.network.http.ContentType;
 import com.joyzl.network.http.HTTPCoder;
 import com.joyzl.network.http.HTTPReader;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.HTTPWriter;
 import com.joyzl.network.http.Message;
-import com.joyzl.network.http.TransferEncoding;
 
 /**
  * HTTP CLIENT
@@ -25,7 +23,7 @@ import com.joyzl.network.http.TransferEncoding;
  * @author ZhangXi
  * @date 2020年6月26日
  */
-public abstract class WEBClientHandler extends WEBCoder implements ChainHandler<Message> {
+public abstract class WEBClientHandler extends WEBContentCoder implements ChainHandler<Message> {
 
 	@Override
 	public void connected(ChainChannel<Message> chain) throws Exception {
@@ -36,67 +34,54 @@ public abstract class WEBClientHandler extends WEBCoder implements ChainHandler<
 	@Override
 	public final Message decode(ChainChannel<Message> chain, DataBuffer buffer) throws Exception {
 		final WEBClient client = (WEBClient) chain;
-		WEBResponse response = client.getResponse();
-		if (response == null) {
-			client.setResponse(response = new WEBResponse());
-		}
-		// 阻止超过最大限制的数据帧
-		if (buffer.readable() > WEBCoder.FRAME_MAX) {
-			client.setResponse(null);
-			buffer.clear();
-			return null;
-		}
-		// 消息解码
-		final HTTPReader reader = new HTTPReader(buffer);
-		switch (response.state()) {
-			case Message.COMMAND:
+		if (chain.type() == ChainType.TCP_HTTP_SLAVE) {
+			// 阻止超过最大限制的数据帧
+			if (buffer.readable() > WEBContentCoder.MAX) {
+				client.setResponse(null);
+				buffer.clear();
+				return null;
+			}
+
+			WEBResponse response = client.getResponse();
+			if (response == null) {
+				client.setResponse(response = new WEBResponse());
+			}
+
+			// 消息逐段解码
+			final HTTPReader reader = new HTTPReader(buffer);
+			if (response.state() == Message.COMMAND) {
 				if (HTTPCoder.readCommand(reader, response)) {
 					response.state(Message.HEADERS);
 				} else {
 					return null;
 				}
-			case Message.HEADERS:
+			}
+			if (response.state() == Message.HEADERS) {
 				if (HTTPCoder.readHeaders(reader, response)) {
 					response.state(Message.CONTENT);
 				} else {
 					return null;
 				}
-			case Message.CONTENT:
-				final ContentLength content_length = ContentLength.parse(response.getHeader(ContentLength.NAME));
-				if (content_length == null) {
-					final String transfer_encoding = response.getHeader(TransferEncoding.NAME);
-					if (TransferEncoding.CHUNKED.equalsIgnoreCase(transfer_encoding)) {
-						if (WEBCoder.readChunked(reader, response)) {
-							response.state(Message.COMPLETE);
-						} else {
-							return null;
-						}
-					} else {
-						throw new UnsupportedOperationException("不支持的Transfer-Encoding值:" + transfer_encoding);
-					}
-				} else if (content_length.getLength() <= 0) {
+			}
+			if (response.state() == Message.CONTENT) {
+				if (WEBContentCoder.read(reader, response)) {
 					response.state(Message.COMPLETE);
-				} else if (content_length.getLength() <= buffer.readable()) {
-					final ContentType content_type = ContentType.parse(response.getHeader(ContentType.NAME));
-					if (content_type == null) {
-						WEBCoder.readRAW(buffer, response);
-						response.state(Message.COMPLETE);
-					} else if (WEBCoder.MULTIPART_BYTERANGES.equalsIgnoreCase(content_type.getType())) {
-						WEBCoder.readMultipart(reader, response, content_type);
-						response.state(Message.COMPLETE);
-					} else {
-						WEBCoder.readRAW(buffer, response);
-						response.state(Message.COMPLETE);
-					}
 				} else {
 					return null;
 				}
-			case Message.COMPLETE:
+			}
+			if (response.state() == Message.COMPLETE) {
 				client.setResponse(null);
 				return response;
-			default:
-				reader.close();
-				return null;
+			}
+
+			throw new IllegalStateException("消息状态无效:" + response.state());
+		} else //
+		if (chain.type() == ChainType.TCP_HTTP_SLAVE_WEB_SOCKET) {
+
+			return null;
+		} else {
+			throw new IllegalStateException("链路状态异常:" + chain.type());
 		}
 	}
 
@@ -115,38 +100,46 @@ public abstract class WEBClientHandler extends WEBCoder implements ChainHandler<
 
 	@Override
 	public final DataBuffer encode(ChainChannel<Message> chain, Message message) throws Exception {
-		if (message instanceof WEBRequest) {
+		if (chain.type() == ChainType.TCP_HTTP_SLAVE) {
 			final WEBRequest request = (WEBRequest) message;
 			final DataBuffer buffer = DataBuffer.instance();
 			final HTTPWriter writer = new HTTPWriter(buffer);
-			// COMMAND:
-			HTTPCoder.writeCommand(writer, request);
 
-			// HEADERS:
-			// 输出头部之前检查消息实体内容并设置消息长度"Content-Length"
-			ContentType content_type = ContentType.parse(request.getHeader(ContentType.NAME));
-			if (content_type == null) {
-				// RFC7231 缺省为"application/octet-stream"
-			} else if (WEBCoder.X_WWW_FORM_URLENCODED.equalsIgnoreCase(content_type.getType())) {
-				final HTTPWriter content = new HTTPWriter(DataBuffer.instance());
-				WEBCoder.writeWWWForm(writer, request);
-				request.setContent(content.getDataBuffer());
-			} else if (WEBCoder.MULTIPART_FORMDATA.equalsIgnoreCase(content_type.getType())) {
-				final HTTPWriter content = new HTTPWriter(DataBuffer.instance());
-				WEBCoder.writeMultipartFormData(writer, request, content_type);
-				request.setContent(content.getDataBuffer());
-			} else {
-				// WEBCoder.writeRAW(buffer, request);
+			// 消息逐段编码
+			if (request.state() == Message.COMMAND) {
+				WEBContentCoder.prepare(request);
+				if (HTTPCoder.writeCommand(writer, request)) {
+					request.state(Message.HEADERS);
+				} else {
+					return buffer;
+				}
 			}
-			request.addHeader(ContentLength.NAME, Integer.toString(WEBCoder.checkContent(request.getContent())));
-			HTTPCoder.writeHeaders(writer, request);
+			if (request.state() == Message.HEADERS) {
+				if (HTTPCoder.writeHeaders(writer, request)) {
+					request.state(Message.CONTENT);
+				} else {
+					return buffer;
+				}
+			}
+			if (request.state() == Message.CONTENT) {
+				if (WEBContentCoder.write(writer, request)) {
+					request.state(Message.COMPLETE);
+				} else {
+					return buffer;
+				}
+			}
+			if (request.state() == Message.COMPLETE) {
+				request.setContent(null);
+				return buffer;
+			}
 
-			// CONTENT:
-			WEBCoder.writeRAW(buffer, request);
-			writer.close();
-			return buffer;
+			throw new IllegalStateException("消息状态无效:" + message.state());
+		} else //
+		if (chain.type() == ChainType.TCP_HTTP_SLAVE_WEB_SOCKET) {
+
+			return null;
 		} else {
-			throw new IllegalArgumentException("不支持的消息类型:" + message);
+			throw new IllegalStateException("链路状态异常:" + chain.type());
 		}
 	}
 

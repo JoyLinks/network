@@ -7,17 +7,16 @@ package com.joyzl.network.http;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.Reader;
 
 import com.joyzl.network.buffer.DataBuffer;
 
 /**
- * 超文本读取
+ * 超文本读取(ASCII)
  * 
  * @author ZhangXi
  * @date 2021年10月5日
  */
-public class HTTPReader extends Reader {
+public class HTTPReader {
 
 	int c;
 	private final DataBuffer buffer;
@@ -28,43 +27,16 @@ public class HTTPReader extends Reader {
 		buffer = b;
 	}
 
-	@Override
-	public int read() throws IOException {
-		return buffer.readUnsignedByte();
-	}
-
-	@Override
-	public int read(char[] cbuf, int off, int len) throws IOException {
-		int e = 0;
-		while (len > 0 && (c = read()) >= 0) {
-			cbuf[off + e] = (char) c;
-			len--;
-			e++;
-		}
-		return e;
-	}
-
-	@Override
-	public boolean markSupported() {
-		return true;
-	}
-
-	@Override
-	public void mark(int readAheadLimit) throws IOException {
-		buffer.mark();
+	public DataBuffer buffer() {
+		return buffer;
 	}
 
 	public void mark() throws IOException {
-		mark(0);
+		buffer.mark();
 	}
 
-	@Override
 	public void reset() throws IOException {
 		buffer.reset();
-	}
-
-	@Override
-	public void close() throws IOException {
 	}
 
 	/**
@@ -95,10 +67,6 @@ public class HTTPReader extends Reader {
 		return builder;
 	}
 
-	public DataBuffer buffer() {
-		return buffer;
-	}
-
 	/**
 	 * 跳过空白字符
 	 */
@@ -122,7 +90,7 @@ public class HTTPReader extends Reader {
 	public boolean readTo(final char end) throws IOException {
 		builder.setLength(0);
 		while (buffer.readable() > 0) {
-			c = read();
+			c = buffer.readUnsignedByte();
 			if (c == end) {
 				return true;
 			}
@@ -142,7 +110,7 @@ public class HTTPReader extends Reader {
 	public boolean readTo(final char end1, final char end2) throws IOException {
 		builder.setLength(0);
 		while (buffer.readable() > 0) {
-			c = read();
+			c = buffer.readUnsignedByte();
 			if (c == end1 || c == end2) {
 				return true;
 			}
@@ -163,7 +131,7 @@ public class HTTPReader extends Reader {
 		int e = 0;
 		builder.setLength(0);
 		while (buffer.readable() > 0) {
-			c = read();
+			c = buffer.readUnsignedByte();
 			if (c == end1) {
 				return true;
 			} else if (c == end2.charAt(e)) {
@@ -193,7 +161,7 @@ public class HTTPReader extends Reader {
 		int e = 0;
 		builder.setLength(0);
 		while (buffer.readable() > 0) {
-			c = read();
+			c = buffer.readUnsignedByte();
 			if (c == end.charAt(e)) {
 				e++;
 				if (e >= end.length()) {
@@ -222,7 +190,7 @@ public class HTTPReader extends Reader {
 		int e = 0;
 		builder.setLength(0);
 		while (buffer.readable() > 0) {
-			c = read();
+			c = buffer.readUnsignedByte();
 			if (e >= 1) {
 				if (c == end2.charAt(e - 1)) {
 					e++;
@@ -258,7 +226,7 @@ public class HTTPReader extends Reader {
 		int e = 0;
 		builder.setLength(0);
 		while (buffer.readable() > 0) {
-			c = read();
+			c = buffer.readUnsignedByte();
 			if (e >= end1.length()) {
 				if (c == end2.charAt(e - end1.length())) {
 					e++;
@@ -296,7 +264,7 @@ public class HTTPReader extends Reader {
 	public boolean readBy(final OutputStream output, final CharSequence end) throws IOException {
 		int value, e = 0;
 		while (buffer.readable() > 0) {
-			value = read();
+			value = buffer.readUnsignedByte();
 			if (value == end.charAt(e)) {
 				e++;
 				if (e >= end.length()) {
@@ -328,7 +296,7 @@ public class HTTPReader extends Reader {
 		int value, e = 0;
 		builder.setLength(0);
 		while (buffer.readable() >= 0) {
-			value = read();
+			value = buffer.readUnsignedByte();
 			if (e >= end1.length()) {
 				if (value == end2.charAt(e - end1.length())) {
 					e++;

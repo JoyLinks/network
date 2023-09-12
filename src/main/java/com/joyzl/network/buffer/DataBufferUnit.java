@@ -103,9 +103,9 @@ public final class DataBufferUnit {
 	}
 
 	/**
-	 * 从缓存指定位置读取值,读取位置不变
+	 * 从缓存指定位置获取值,读取位置不变
 	 */
-	public final byte readByte(int index) {
+	public final byte get(int index) {
 		return buffer.get(index);
 	}
 

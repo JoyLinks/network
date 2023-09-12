@@ -189,13 +189,14 @@ public class HTTPCoder {
 	 * @param request
 	 * @throws IOException
 	 */
-	public final static void writeCommand(HTTPWriter writer, Request request) throws IOException {
+	public final static boolean writeCommand(HTTPWriter writer, Request request) throws IOException {
 		writer.write(request.getMethod());
 		writer.write(SPACE);
 		writer.write(request.getURI());
 		writer.write(SPACE);
 		writer.write(request.getVersion());
 		writer.write(CRLF);
+		return true;
 	}
 
 	/**
@@ -205,13 +206,14 @@ public class HTTPCoder {
 	 * @param response
 	 * @throws IOException
 	 */
-	public final static void writeCommand(HTTPWriter writer, Response response) throws IOException {
+	public final static boolean writeCommand(HTTPWriter writer, Response response) throws IOException {
 		writer.write(response.getVersion());
 		writer.write(SPACE);
 		writer.write(Integer.toUnsignedString(response.getStatus()));
 		writer.write(SPACE);
 		writer.write(response.getText());
 		writer.write(CRLF);
+		return true;
 	}
 
 	/**
@@ -221,7 +223,7 @@ public class HTTPCoder {
 	 * @param message
 	 * @throws IOException
 	 */
-	public final static void writeHeaders(HTTPWriter writer, Message message) throws IOException {
+	public final static boolean writeHeaders(HTTPWriter writer, Message message) throws IOException {
 		for (Entry<String, String> header : message.getHeaders().entrySet()) {
 			writer.write(header.getKey());
 			writer.write(COLON);
@@ -230,6 +232,7 @@ public class HTTPCoder {
 			writer.write(CRLF);
 		}
 		writer.write(CRLF);
+		return true;
 	}
 
 	/**

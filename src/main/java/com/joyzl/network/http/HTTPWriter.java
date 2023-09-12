@@ -11,18 +11,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.Writer;
+import java.nio.charset.Charset;
 
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.buffer.DataBufferInput;
 
 /**
- * HTTPWriter
+ * 超文本写入(ASCII)
  * 
  * @author ZhangXi
  * @date 2021年10月11日
  */
-public final class HTTPWriter extends Writer {
+public final class HTTPWriter {
 
 	private final DataBuffer buffer;
 
@@ -30,23 +30,20 @@ public final class HTTPWriter extends Writer {
 		buffer = b;
 	}
 
-	public DataBuffer getDataBuffer() {
+	public DataBuffer buffer() {
 		return buffer;
 	}
 
-	@Override
-	public void write(char[] cbuf, int off, int len) throws IOException {
-		while (len-- > 0) {
-			buffer.write(cbuf[off++]);
-		}
+	public void write(char c) throws IOException {
+		buffer.write(c);
 	}
 
-	@Override
-	public void flush() throws IOException {
+	public void write(CharSequence chars) throws IOException {
+		buffer.writeASCIIs(chars);
 	}
 
-	@Override
-	public void close() throws IOException {
+	public void write(CharSequence chars, Charset charset) throws IOException {
+		buffer.write(chars.toString().getBytes(charset));
 	}
 
 	public void writeContent(Object content) throws IOException {
@@ -83,7 +80,7 @@ public final class HTTPWriter extends Writer {
 	@Override
 	public final String toString() {
 		StringBuilder writer = new StringBuilder();
-		try (Reader reader = new InputStreamReader(new DataBufferInput(buffer), HTTPCoder.URL_CHARSET)) {
+		try (Reader reader = new InputStreamReader(new DataBufferInput(buffer, false), HTTPCoder.URL_CHARSET)) {
 			int value;
 			buffer.mark();
 			while ((value = reader.read()) >= 0) {

@@ -19,6 +19,8 @@ import com.joyzl.network.Utility;
  * multipart消息体的子部分中，用来给出其对应字段的相关信息。 各个子部分由在Content-Type中定义的分隔符分隔。用在消息体自身则无实际意义。
  * 
  * <pre>
+ * RESPONSE:
+ * 
  * Content-Disposition: inline
  * Content-Disposition: attachment
  * Content-Disposition: attachment; filename="filename.jpg"
@@ -26,6 +28,8 @@ import com.joyzl.network.Utility;
  * </pre>
  * 
  * <pre>
+ * REQUEST:
+ * 
  * Content-Disposition: form-data
  * Content-Disposition: form-data; name="fieldName"
  * Content-Disposition: form-data; name="fieldName"; filename="filename.jpg"
@@ -35,6 +39,10 @@ import com.joyzl.network.Utility;
  * --boundary
  * Content-Disposition: form-data; name="field2"; filename="example.txt"
  * </pre>
+ * 
+ * RFC6266 Use of the Content-Disposition Header Field in the Hypertext Transfer
+ * Protocol (HTTP)<br>
+ * RFC7578 Returning Values from Forms: multipart/form-data<br>
  * 
  * @author ZhangXi
  * @date 2021年1月10日
@@ -50,21 +58,38 @@ public final class ContentDisposition extends Header {
 	/** 内容为表单数据 */
 	public final static String FORM_DATA = "form-data";
 
+	// 常量
 	final static String NAME_ = "name";
 	final static String FILENAME = "filename";
+	/**
+	 * RFC5987 Character Set and Language Encoding for Hypertext Transfer
+	 * Protocol (HTTP) Header Field Parameters
+	 */
 	final static String FILENAME_ = "filename*";
 	final static String SEPARATER = "''";
 
+	/** inline attachment form-data */
 	private String disposition;
+	/** name= */
 	private String field;
 	private String filename;
 
 	public ContentDisposition() {
 	}
 
-	public ContentDisposition(String d, String f) {
-		disposition = d;
-		filename = f;
+	public ContentDisposition(String type) {
+		disposition = type;
+	}
+
+	public ContentDisposition(String type, String name) {
+		disposition = type;
+		field = name;
+	}
+
+	public ContentDisposition(String type, String name, String file) {
+		disposition = type;
+		filename = file;
+		field = name;
 	}
 
 	@Override

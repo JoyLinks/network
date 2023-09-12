@@ -180,7 +180,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 				index -= item.readable();
 				item = item.next();
 			}
-			return item.readByte(item.readIndex() + index);
+			return item.get(item.readIndex() + index);
 		} else {
 			throw new IndexOutOfBoundsException(index);
 		}
@@ -308,7 +308,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 				int index = unit.readIndex() + size;
 				// 处理正好位于限制界限的单元
 				while (index < unit.writeIndex()) {
-					target.writeByte(unit.readByte(index));
+					target.writeByte(unit.get(index));
 					index++;
 				}
 				unit.writeIndex(size);
@@ -352,7 +352,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 			DataBufferUnit unit = source.read;
 			while (unit != null) {
 				for (index = unit.readIndex(); index < unit.writeIndex(); index++) {
-					writeByte(unit.readByte(index));
+					writeByte(unit.get(index));
 				}
 				unit = unit.next();
 			}
@@ -393,7 +393,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 			} else {
 				for (start = temp.readIndex() + start; start < temp.writeIndex(); start++) {
 					if (end > 0) {
-						writeByte(temp.readByte(start));
+						writeByte(temp.get(start));
 						end--;
 					} else {
 						return;
@@ -407,7 +407,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 		while (temp != null) {
 			for (start = temp.readIndex(); start < temp.writeIndex(); start++) {
 				if (end > 0) {
-					writeByte(temp.readByte(start));
+					writeByte(temp.get(start));
 					end--;
 				} else {
 					return;
@@ -636,7 +636,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 					if (index > unit.readIndex()) {
 						builder.append(' ');
 					}
-					int value = unit.readByte(index) & 0xFF;
+					int value = unit.get(index) & 0xFF;
 					builder.append(HEX_UPPERCASE.charAt(value >>> 4));
 					builder.append(HEX_UPPERCASE.charAt(value & 0x0F));
 				}

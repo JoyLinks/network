@@ -11,7 +11,6 @@ module com.joyzl.network {
 	exports com.joyzl.network.verifies;
 
 	exports com.joyzl.network.session;
-	exports com.joyzl.network.daemon;
 	exports com.joyzl.network.chain;
 	exports com.joyzl.network.odbs;
 	exports com.joyzl.network.http;

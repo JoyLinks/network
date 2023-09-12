@@ -93,4 +93,8 @@ public final class WEBRequest extends Request {
 	public Map<String, String[]> getParametersMap() {
 		return parameters;
 	}
+
+	public void clearParameters() {
+		parameters.clear();
+	}
 }
