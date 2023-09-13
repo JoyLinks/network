@@ -2,21 +2,28 @@ package com.joyzl.network.web.test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.joyzl.network.SegmentInputStream;
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.http.ContentType;
 import com.joyzl.network.http.HTTPReader;
 import com.joyzl.network.http.HTTPWriter;
 import com.joyzl.network.web.MIMEType;
+import com.joyzl.network.web.MultipartByteranges;
 import com.joyzl.network.web.MultipartFormData;
 import com.joyzl.network.web.Part;
 import com.joyzl.network.web.WEBRequest;
@@ -28,7 +35,7 @@ import com.joyzl.network.web.XWWWFormUrlencoded;
  * 
  * @author ZhangXi 2023年9月8日
  */
-class TestWEBCoder {
+class TestWEBContentCoder {
 
 	final DataBuffer buffer = DataBuffer.instance();
 	final HTTPWriter writer = new HTTPWriter(buffer);
@@ -41,6 +48,8 @@ class TestWEBCoder {
 	void setUp() throws Exception {
 		request.clearParameters();
 		request.setContent(null);
+
+		response.setContent(null);
 	}
 
 	@AfterEach
@@ -78,16 +87,17 @@ class TestWEBCoder {
 
 	@Test
 	void testMultipartFormData() throws Exception {
+		final ContentType contentType = new ContentType(MIMEType.MULTIPART_FORMDATA);
+		contentType.setBoundary(ContentType.boundary());
+
 		// 测试样本
+		final File file = new File("src/test/java/com/joyzl/network/web/test/TestWEBContentCoder.java");
 		request.setParameter("argment1", "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 		request.setParameter("argment2", "壹贰叁肆伍陆柒捌玖拾");
 		final List<Part> parts = new ArrayList<>();
 		parts.add(new Part("argment3", "POST VALUE"));
-		parts.add(new Part("argment4", new File("src/test/java/com/joyzl/network/web/test/TestWEBCoder.java")));
+		parts.add(new Part("argment4", file));
 		request.setContent(parts);
-
-		final ContentType contentType = new ContentType(MIMEType.MULTIPART_FORMDATA);
-		contentType.setBoundary(ContentType.boundary());
 
 		MultipartFormData.write(writer, request, contentType);
 		// System.out.println(writer);
@@ -103,4 +113,44 @@ class TestWEBCoder {
 		assertEquals(request.getParameter("argment2"), "壹贰叁肆伍陆柒捌玖拾");
 		assertEquals(request.getParameter("argment3"), "POST VALUE");
 	}
+
+	@Test
+	void testMultipartByteranges() throws IOException {
+		final ContentType contentType = new ContentType(MIMEType.MULTIPART_FORMDATA);
+		contentType.setBoundary(ContentType.boundary());
+
+		// 测试样本
+		final File file = new File("src/test/java/com/joyzl/network/web/test/TestWEBContentCoder.java");
+		final List<Part> parts = new ArrayList<>();
+		long offset = 0, length = file.length();
+		while (length > 0) {
+			if (length > 2048) {
+				parts.add(new Part(new SegmentInputStream(file, offset, 2048)));
+				length -= 2048;
+				offset += 2048;
+			} else {
+				parts.add(new Part(new SegmentInputStream(file, offset, length)));
+				length = 0;
+			}
+		}
+		response.setContent(parts);
+
+		MultipartByteranges.write(writer, response, contentType);
+		response.setContent(null);
+		MultipartByteranges.read(reader, response, contentType);
+
+		assertNotNull(response.getContent());
+		final InputStream source = new FileInputStream(file);
+		Collection<?> items = (Collection<?>) response.getContent();
+		for (Object item : items) {
+			Part part = (Part) item;
+			InputStream input = (InputStream) part.getContent();
+			while (input.available() > 0) {
+				assertEquals(source.read(), input.read());
+			}
+		}
+		source.close();
+	}
+	
+	
 }

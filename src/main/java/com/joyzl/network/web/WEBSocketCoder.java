@@ -5,8 +5,6 @@
  */
 package com.joyzl.network.web;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -34,11 +32,8 @@ public class WEBSocketCoder {
 
 	/**
 	 * 读取WebSocket消息
-	 * 
-	 * @return true /false
-	 * @throws IOException
 	 */
-	protected final boolean readHead(WebSocketMessage message, DataBuffer reader) throws IOException {
+	static boolean read(WebSocketMessage message, DataBuffer reader) throws IOException {
 		reader.mark();
 
 		// FIRST Byte
@@ -81,6 +76,7 @@ public class WEBSocketCoder {
 		} else {
 			throw new IOException("WebSocket数据包长度异常" + value);
 		}
+		message.setLength(length);
 
 		if (message.isMask()) {
 			if (reader.readable() >= 4) {
@@ -91,53 +87,33 @@ public class WEBSocketCoder {
 				return false;
 			}
 		}
-		message.setLength(length);
-		return true;
-	}
 
-	/**
-	 * 读取WebSocket消息
-	 * 
-	 * @throws IOException
-	 */
-	protected final boolean readContent(WebSocketMessage message, DataBuffer reader) throws IOException {
-		if (message.getLength() > 0) {
-			if (message.isMask()) {
-				// 有掩码
-				// 客户端发给服务器 mask 必须设置为1。
-				// 服务器发送给客户端 mask 必须设置为0。
-				// 此情形数据必须进行一次遍历还原
+		// DATA
+		if (length > 0) {
+			if (reader.readable() >= message.getLength()) {
+				if (message.isMask()) {
+					// 有掩码
+					// 客户端发给服务器 mask 必须设置为1。
+					// 服务器发送给客户端 mask 必须设置为0。
+					// 此情形数据必须进行一次遍历还原
 
-				DataBuffer writer;
-				if (message.getContent() instanceof DataBuffer) {
-					writer = (DataBuffer) message.getContent();
-				} else {
-					message.setContent(writer = DataBuffer.instance());
+					// MASK DATA
+					// j = i MOD 4
+					// transformed-octet-i=original-octet-i XOR
+					// masking-key-octet-j
+
+					final byte[] keys = message.getMaskKeys();
+					for (int index = 0; index < length; index++) {
+						reader.set(index, (byte) (reader.get(index) ^ keys[index % 4]));
+					}
 				}
-
-				// MASK DATA
-				// j = i MOD 4
-				// transformed-octet-i=original-octet-i XOR masking-key-octet-j
-
-				final byte[] keys = message.getMaskKeys();
-				int i = writer.readable();
-				int length = message.getLength() - i;
-				length = length > reader.readable() ? length : reader.readable();
-				while (length-- > 0) {
-					writer.write(reader.readByte() ^ keys[i % 4]);
-					i++;
-				}
+				// 等待链路的DataBuffer接收到足够的字节后直接绑定给消息对象
+				reader.bounds(message.getLength());
+				message.setContent(reader);
 			} else {
-				// 无掩码
-				if (reader.readable() >= message.getLength()) {
-					// 等待链路的DataBuffer接收到足够的字节后直接绑定给消息对象
-					reader.bounds(message.getLength());
-					message.setContent(reader);
-				} else {
-					// 长度不足,继续接收
-					reader.reset();
-					return false;
-				}
+				// 长度不足,继续接收
+				reader.reset();
+				return false;
 			}
 		}
 		return true;
@@ -149,7 +125,7 @@ public class WEBSocketCoder {
 	 * @throws IOException
 	 * @throws HTTPException
 	 */
-	protected boolean write(WebSocketMessage message, DataBuffer writer) throws IOException {
+	static boolean write(WebSocketMessage message, DataBuffer writer) throws IOException {
 		// WebSocket帧不具备消息标识，因此必须将一个消息发送完成后才能发送另外的消息
 		// 特别是当单个消息字节数太大时需要分批发送的时候，需要仔细考虑消息排队
 
@@ -166,7 +142,7 @@ public class WEBSocketCoder {
 		// 消息分片结束帧FIN=1并且opcode==0(CONTINUATION)
 
 		// 获取消息长度
-		int length = message.contentSize();
+		long length = WEBContentCoder.size(message);
 
 		// FIRST Byte [ FIN | RSV 1~3 默认0 | OPCODE]
 		if (message.getLength() > BLOCK) {
@@ -182,11 +158,11 @@ public class WEBSocketCoder {
 		if (message.isMask()) {
 			// 0x80=[10000000]=128
 			if (length <= 125) {
-				writer.write(0x80 | length);
+				writer.write(0x80 | (int) length);
 			} else if (length <= 65536) {
 				// 2字节长度
 				writer.write(0x80 | 126);
-				writer.writeShort(length);
+				writer.writeShort((int) length);
 			} else {
 				// 8字节长度
 				writer.write(0x80 | 127);
@@ -196,11 +172,11 @@ public class WEBSocketCoder {
 			writer.write(message.getMaskKeys());
 		} else {
 			if (length <= 125) {
-				writer.write(length);
+				writer.write((int) length);
 			} else if (length <= 65536) {
 				// 2字节长度
 				writer.write(126);
-				writer.writeShort(length);
+				writer.writeShort((int) length);
 			} else {
 				// 8字节长度
 				writer.write(127);
@@ -210,47 +186,17 @@ public class WEBSocketCoder {
 
 		// DATA
 		if (length > 0) {
-			if (message.getContent() instanceof DataBuffer) {
-				final DataBuffer buffer = (DataBuffer) message.getContent();
-				if (message.isMask()) {
-					for (int i = 0; i < length; i++) {
-						writer.write(buffer.readByte() ^ message.getMaskKeys()[i % 4]);
-					}
-				} else {
-					while (length-- > 0) {
-						writer.writeByte(buffer.readByte());
-					}
+			final InputStream input = WEBContentCoder.input(message);
+			if (message.isMask()) {
+				for (int i = 0; i < length; i++) {
+					writer.write(input.read() ^ message.getMaskKeys()[i % 4]);
 				}
-				return buffer.readable() <= 0;
-			} else if (message.getContent() instanceof File) {
-				final File file = (File) message.getContent();
-				final InputStream input = new FileInputStream(file);
-				message.setContent(input);
-				if (message.isMask()) {
-					for (int i = 0; i < length; i++) {
-						writer.write(input.read() ^ message.getMaskKeys()[i % 4]);
-					}
-				} else {
-					while (length-- > 0) {
-						writer.write(input.read());
-					}
-				}
-				return input.available() <= 0;
-			} else if (message.getContent() instanceof InputStream) {
-				final InputStream input = (InputStream) message.getContent();
-				if (message.isMask()) {
-					for (int i = 0; i < length; i++) {
-						writer.write(input.read() ^ message.getMaskKeys()[i % 4]);
-					}
-				} else {
-					while (length-- > 0) {
-						writer.write(input.read());
-					}
-				}
-				return input.available() <= 0;
 			} else {
-				throw new IOException("不支持的消息消息内容");
+				while (length-- > 0) {
+					writer.writeByte(input.read());
+				}
 			}
+			return input.available() <= 0;
 		} else {
 			return true;
 		}

@@ -176,7 +176,7 @@ public class WEBCoder extends HTTPCoder {
 					// HEADERS
 					HTTPCoder.writeHeaders(writer, part);
 					// CONTENT
-					writer.writeContent(part.getContent());
+					// writer.writeContent(part.getContent());
 					writer.write(HTTPCoder.CRLF);
 				}
 			} else {
@@ -310,7 +310,7 @@ public class WEBCoder extends HTTPCoder {
 					// HEADERS
 					HTTPCoder.writeHeaders(writer, part);
 					// CONTENT
-					writer.writeContent(part.getContent());
+					// writer.writeContent(part.getContent());
 					writer.write(HTTPCoder.CRLF);
 				}
 			} else {

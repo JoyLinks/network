@@ -41,7 +41,7 @@ public class MultipartByteranges extends WEBContentCoder {
 					// HEADERS
 					HTTPCoder.writeHeaders(writer, part);
 					// CONTENT
-					writer.writeContent(part.getContent());
+					writer.buffer().write(input(part));
 					writer.write(HTTPCoder.CRLF);
 				}
 			} else {
@@ -65,18 +65,17 @@ public class MultipartByteranges extends WEBContentCoder {
 	 */
 	public static void read(HTTPReader reader, WEBResponse response, ContentType type) throws IOException {
 		// 首先查找第一个分隔标记
-		if (reader.readAt(BOUNDARY_TAG, type.getBoundary())) {
+		final String boundary = BOUNDARY_TAG + type.getBoundary();
+		if (reader.readTo(boundary)) {
 			if (reader.readTo(HTTPCoder.CRLF)) {
 				if (BOUNDARY_TAG.contentEquals(reader.sequence())) {
-					// 全部结束
-					return;
+					return; // 全部结束
 				}
-				final String boundary = BOUNDARY_TAG + type.getBoundary();
+
 				final List<Part> parts = new ArrayList<>();
 				while (true) {
 					final Part part = new Part();
 					if (HTTPCoder.readHeaders(reader, part)) {
-						// TODO 存在多次数据复制，需优化
 						try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
 							if (reader.readBy(output, HTTPCoder.CRLF, boundary)) {
 								part.setContent(new ByteArrayInputStream(output.toByteArray()));
@@ -85,18 +84,13 @@ public class MultipartByteranges extends WEBContentCoder {
 								throw new IOException("PART内容意外结束");
 							}
 						}
-						if (reader.readTo(HTTPCoder.CRLF)) {
-							if (reader.sequence().length() == 0) {
-								continue;
-							} else if (BOUNDARY_TAG.contentEquals(reader.sequence())) {
-								// 结束标记
-								break;
-							} else {
-								throw new IOException("PART意外的结束字符:" + reader.string());
-							}
-						}
 					} else {
 						throw new IOException("PART消息头解析失败");
+					}
+					if (reader.readTo(HTTPCoder.CRLF)) {
+						if (BOUNDARY_TAG.contentEquals(reader.sequence())) {
+							break;// 结束标记
+						}
 					}
 				}
 				response.setContent(parts);

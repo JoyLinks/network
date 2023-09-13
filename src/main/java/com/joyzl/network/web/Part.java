@@ -6,6 +6,7 @@
 package com.joyzl.network.web;
 
 import java.io.File;
+import java.io.FileInputStream;
 
 import com.joyzl.network.http.ContentDisposition;
 import com.joyzl.network.http.ContentType;
@@ -25,6 +26,10 @@ public final class Part extends Message {
 	public final static ContentType CONTENT_TYPE = new ContentType(MIMEType.TEXT_PLAIN, HTTPCoder.URL_CHARSET_NAME);
 
 	public Part() {
+	}
+
+	public Part(FileInputStream input) {
+		setContent(input);
 	}
 
 	public Part(String name, File file) {

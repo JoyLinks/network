@@ -5,6 +5,7 @@
  */
 package com.joyzl.network.web;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -50,17 +51,56 @@ public class WEBContentCoder extends HTTPCoder {
 	// 协议编码级切分，例如 Transfer-Encoding: chunked
 	// 数据发送级切分，例如 writeRaw()
 
+	/**
+	 * 获取消息内容字节数<br>
+	 * InputStream 无法保证准确的字节数量
+	 * 
+	 * @return 0~n / -1 无法判断
+	 */
+	public static long size(Message message) throws IOException {
+		if (message.getContent() instanceof File) {
+			return ((File) message.getContent()).length();
+		} else//
+		if (message.getContent() instanceof DataBuffer) {
+			return ((DataBuffer) message.getContent()).readable();
+		} else //
+		if (message.getContent() instanceof InputStream) {
+			return ((InputStream) message.getContent()).available();
+		} else //
+		if (message.getContent() instanceof String) {
+			return -1;
+		} else //
+		if (message.getContent() instanceof byte[]) {
+			return ((byte[]) message.getContent()).length;
+		} else {
+			return -1;
+		}
+	}
+
 	public static InputStream input(final Message message) throws IOException {
+		if (message.getContent() instanceof InputStream) {
+			return (InputStream) message.getContent();
+		} else //
 		if (message.getContent() instanceof File) {
 			final InputStream input = new FileInputStream((File) message.getContent());
 			message.setContent(input);
 			return input;
-		} else if (message.getContent() instanceof DataBuffer) {
+		} else //
+		if (message.getContent() instanceof DataBuffer) {
 			final InputStream input = new DataBufferInput((DataBuffer) message.getContent());
 			message.setContent(input);
 			return input;
-		} else if (message.getContent() instanceof InputStream) {
-			return (InputStream) message.getContent();
+		} else //
+		if (message.getContent() instanceof String) {
+			final String text = (String) message.getContent();
+			final ByteArrayInputStream input = new ByteArrayInputStream(text.getBytes(URL_CHARSET));
+			message.setContent(input);
+			return input;
+		} else //
+		if (message.getContent() instanceof byte[]) {
+			final ByteArrayInputStream input = new ByteArrayInputStream((byte[]) message.getContent());
+			message.setContent(input);
+			return input;
 		} else {
 			throw new IOException("内容实体类型无效:" + message.getContent().getClass());
 		}
@@ -149,24 +189,14 @@ public class WEBContentCoder extends HTTPCoder {
 			return;
 		}
 
-		long length;
-		if (message.getContent() instanceof File) {
-			length = ((File) message.getContent()).length();
-		} else//
-		if (message.getContent() instanceof DataBuffer) {
-			length = ((DataBuffer) message.getContent()).readable();
-		} else //
-		if (message.getContent() instanceof InputStream) {
-			// 无法保证准确的字节数量
-			length = ((InputStream) message.getContent()).available();
-		} else {
-			throw new IOException("无效的消息内容:" + message.getContent().getClass());
-		}
+		long length = size(message);
 
-		if (length > BLOCK) {
+		// 未经验证，大多数浏览器不建议同时出现 Transfer-Encoding 和 Content-Length
+		if (length < 0 || length > BLOCK) {
 			message.addHeader(TransferEncoding.NAME, TransferEncoding.CHUNKED);
+		} else {
+			message.addHeader(ContentLength.NAME, Long.toString(length));
 		}
-		message.addHeader(ContentLength.NAME, Long.toString(length));
 	}
 
 	/**

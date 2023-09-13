@@ -35,6 +35,8 @@ public final class MIMEType {
 
 	/** 细分 */
 	public final static String MULTIPART = "multipart";
+	/** 浏览器发送信息给服务器,作为多部分文档格式,混合 */
+	public final static String MULTIPART_MIXED = "multipart/mixed";
 	/** 浏览器发送信息给服务器,作为多部分文档格式 */
 	public final static String MULTIPART_FORMDATA = "multipart/form-data";
 	/** 部分的响应报文发送回浏览器 */

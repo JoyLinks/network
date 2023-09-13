@@ -54,7 +54,7 @@ public abstract class WEBServerHandler implements ChainHandler<Message> {
 
 			// 消息逐段解码
 			final HTTPReader reader = new HTTPReader(buffer);
-			if (request.state() == Message.COMMAND) {
+			if (request.state() <= Message.COMMAND) {
 				if (HTTPCoder.readCommand(reader, request)) {
 					request.state(Message.HEADERS);
 				} else {
@@ -82,8 +82,12 @@ public abstract class WEBServerHandler implements ChainHandler<Message> {
 			throw new IllegalStateException("消息状态无效:" + request.state());
 		} else //
 		if (chain.type() == ChainType.TCP_HTTP_SLAVE_WEB_SOCKET) {
-
-			return null;
+			WebSocketMessage message = null;
+			if (WEBSocketCoder.read(message, buffer)) {
+				return message;
+			} else {
+				return null;
+			}
 		} else {
 			throw new IllegalStateException("链路状态异常:" + chain.type());
 		}
@@ -109,7 +113,7 @@ public abstract class WEBServerHandler implements ChainHandler<Message> {
 			final HTTPWriter writer = new HTTPWriter(buffer);
 
 			// 消息逐段编码
-			if (response.state() == Message.COMMAND) {
+			if (response.state() <= Message.COMMAND) {
 				WEBContentCoder.prepare(response);
 				if (HTTPCoder.writeCommand(writer, response)) {
 					response.state(Message.HEADERS);
@@ -139,8 +143,12 @@ public abstract class WEBServerHandler implements ChainHandler<Message> {
 			throw new IllegalStateException("消息状态无效:" + message.state());
 		} else //
 		if (chain.type() == ChainType.TCP_HTTP_SLAVE_WEB_SOCKET) {
-
-			return null;
+			final WebSocketMessage websocket = (WebSocketMessage) message;
+			final DataBuffer buffer = DataBuffer.instance();
+			if (WEBSocketCoder.write(websocket, buffer)) {
+				websocket.state(Message.COMPLETE);
+			}
+			return buffer;
 		} else {
 			throw new IllegalStateException("链路状态异常:" + chain.type());
 		}

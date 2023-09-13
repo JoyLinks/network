@@ -6,9 +6,6 @@
 package com.joyzl.network.http;
 
 import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Collection;
 import java.util.Map;
 
@@ -87,37 +84,15 @@ public abstract class Message {
 	}
 
 	/**
-	 * 计算消息内容长度(字节数量)
-	 * 
-	 * @return null返回0,-1表示无法识别的内容类型
-	 * @throws IOException
-	 */
-	public int contentSize() throws IOException {
-		if (content == null) {
-			return 0;
-		} else if (content instanceof DataBuffer) {
-			return ((DataBuffer) content).readable();
-		} else if (content instanceof InputStream) {
-			return ((InputStream) content).available();
-		} else if (content instanceof File) {
-			return (int) ((File) content).length();
-		} else if (content instanceof byte[]) {
-			return ((byte[]) content).length;
-		} else {
-			return -1;
-		}
-	}
-
-	/**
 	 * 关闭消息携带的实体内容
 	 */
 	public static void close(Object value) {
 		if (value == null) {
 			return;
-		} else if (value instanceof DataBuffer) {
-			((DataBuffer) value).release();
 		} else if (value instanceof Message) {
 			close(((Message) value).getContent());
+		} else if (value instanceof DataBuffer) {
+			((DataBuffer) value).release();
 		} else if (value instanceof Closeable) {
 			try {
 				((AutoCloseable) value).close();

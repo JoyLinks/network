@@ -5,10 +5,7 @@
  */
 package com.joyzl.network.http;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.Charset;
@@ -44,37 +41,6 @@ public final class HTTPWriter {
 
 	public void write(CharSequence chars, Charset charset) throws IOException {
 		buffer.write(chars.toString().getBytes(charset));
-	}
-
-	public void writeContent(Object content) throws IOException {
-		if (content instanceof File) {
-			write((File) content);
-		} else if (content instanceof InputStream) {
-			write((InputStream) content);
-		} else if (content instanceof DataBuffer) {
-			write((DataBuffer) content);
-		}
-	}
-
-	public void write(File file) throws IOException {
-		// 后续可考虑优化为FileChannel读取
-		try (FileInputStream input = new FileInputStream(file)) {
-			int value;
-			while ((value = input.read()) >= 0) {
-				buffer.write(value);
-			}
-		}
-	}
-
-	public void write(InputStream input) throws IOException {
-		int value;
-		while ((value = input.read()) >= 0) {
-			buffer.write(value);
-		}
-	}
-
-	public void write(DataBuffer data) throws IOException {
-		buffer.replicate(data);
 	}
 
 	@Override
