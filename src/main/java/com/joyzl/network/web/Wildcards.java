@@ -10,17 +10,22 @@ import java.util.Arrays;
 import java.util.Comparator;
 
 /**
- * 缓存仓库,仅有一个实例的缓存对象,支持通配符*匹配
+ * 缓存仓库,仅有一个实例的缓存对象,支持通配符*匹配,仅能单个通配符
  * 
  * <p>
- * 匹配有效降：全字符匹配>前缀匹配>后缀匹配>前缀和后缀匹配
+ * 匹配有效降：全字符匹配 > 前缀匹配 > 后缀匹配 > 前缀和后缀匹配<br>
+ * 全字符匹配："/abcd.html"<br>
+ * 前缀匹配： "/abcd.*"<br>
+ * 后缀匹配： "/*.html"<br>
+ * 前缀和后缀匹配："/test/*.html"<br>
  * 
  * @author ZhangXi
  * @date 2020年10月29日
  */
 public final class Wildcards<T> {
 
-	static final char ANY = '*';
+	/** 通配符 */
+	public static final char ANY = '*';
 
 	private Item<T>[] ITEMS;
 
@@ -72,7 +77,7 @@ public final class Wildcards<T> {
 				// *.do
 				wildcard = true;
 				prefix = null;
-				suffix = text.substring(index);
+				suffix = text.substring(index + 1);
 			} else {
 				// /action.html
 				wildcard = false;
