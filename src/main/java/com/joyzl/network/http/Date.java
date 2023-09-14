@@ -17,7 +17,7 @@ import java.time.format.DateTimeFormatter;
  */
 public final class Date extends Header {
 
-	final static ZoneId GMT = ZoneId.of("GMT");
+	public final static ZoneId GMT = ZoneId.of("GMT");
 	public final static String NAME = "Date";
 
 	private ZonedDateTime value;

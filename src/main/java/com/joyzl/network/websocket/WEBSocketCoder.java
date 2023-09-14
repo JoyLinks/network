@@ -29,70 +29,60 @@ import com.joyzl.network.web.WEBContentCoder;
 public class WEBSocketCoder {
 
 	/** 数据分块 */
-	final static int BLOCK = 1024 * 1024;
+	final static int BLOCK = 1024 * 8;
 
 	/**
 	 * 读取WebSocket消息
 	 */
-	static boolean read(WebSocketMessage message, DataBuffer reader) throws IOException {
+	static WebSocketMessage read(DataBuffer reader) throws IOException {
 		reader.mark();
 
 		// FIRST Byte
-		byte value = reader.readByte();
+		final byte first = reader.readByte();
 		// 左边第一位表示数据是否最后帧
-		message.setFinish(Binary.getBit(value, 7));
+		// message.setFinish(Binary.getBit(first, 7));
 		// OPCODE 表示数据帧类型
-		message.setType(Binary.get4BL(value));
+		// message.setType(Binary.get4BL(first));
 
 		// SECOND Byte
-		value = reader.readByte();
+		final byte second = reader.readByte();
 		// 左边第一位表示是否有掩码
-		message.setMask(Binary.getBit(value, 7));
-		// 剩余位数表示长度标识
-		value = Binary.setBit(value, false, 7);
+		final boolean mark = Binary.getBit(second, 7);
 
+		// 剩余位数表示长度标识
+		int length = Binary.setBit(second, false, 7);
 		// 根据长度标识计算最终长度
-		int length = 0;
-		if (value <= 125) {
+		if (length <= 125) {
 			// 1字节表示长度
-			length = value;
-		} else if (value == 126) {
+			// length = length;
+		} else if (length == 126) {
 			// 2字节表示长度
 			if (reader.readable() > 2) {
 				length = reader.readUnsignedShort();
 			} else {
 				// 长度不足,继续接收
 				reader.reset();
-				return false;
+				return null;
 			}
-		} else if (value == 127) {
+		} else if (length == 127) {
 			// 8字节表示长度
 			if (reader.readable() > 8) {
 				length = (int) reader.readLong();
 			} else {
 				// 长度不足,继续接收
 				reader.reset();
-				return false;
+				return null;
 			}
 		} else {
-			throw new IOException("WebSocket数据包长度异常" + value);
-		}
-		message.setLength(length);
-
-		if (message.isMask()) {
-			if (reader.readable() >= 4) {
-				reader.readFully(message.getMaskKeys());
-			} else {
-				// 长度不足,继续接收
-				reader.reset();
-				return false;
-			}
+			throw new IOException("WebSocket数据包长度异常" + second);
 		}
 
+		WebSocketMessage message;
 		// DATA
 		if (length > 0) {
-			if (reader.readable() >= message.getLength()) {
-				if (message.isMask()) {
+			if (mark) {
+				if (length + 4 <= reader.readable()) {
+					message = new WebSocketMessage();
 					// 有掩码
 					// 客户端发给服务器 mask 必须设置为1。
 					// 服务器发送给客户端 mask 必须设置为0。
@@ -103,21 +93,39 @@ public class WEBSocketCoder {
 					// transformed-octet-i=original-octet-i XOR
 					// masking-key-octet-j
 
-					final byte[] keys = message.getMaskKeys();
+					final byte[] keys = new byte[4];
+					keys[0] = reader.readByte();
+					keys[1] = reader.readByte();
+					keys[2] = reader.readByte();
+					keys[3] = reader.readByte();
 					for (int index = 0; index < length; index++) {
 						reader.set(index, (byte) (reader.get(index) ^ keys[index % 4]));
 					}
+				} else {
+					// 长度不足,继续接收
+					reader.reset();
+					return null;
 				}
-				// 等待链路的DataBuffer接收到足够的字节后直接绑定给消息对象
-				reader.bounds(message.getLength());
-				message.setContent(reader);
 			} else {
-				// 长度不足,继续接收
-				reader.reset();
-				return false;
+				if (length <= reader.readable()) {
+					message = new WebSocketMessage();
+				} else {
+					// 长度不足,继续接收
+					reader.reset();
+					return null;
+				}
 			}
+			// 接收到足够的字节后直接绑定给消息对象
+			reader.bounds(length);
+			message.setContent(reader);
+		} else {
+			message = new WebSocketMessage();
 		}
-		return true;
+		// 左边第一位表示数据是否最后帧
+		message.setFinish(Binary.getBit(first, 7));
+		// OPCODE 表示数据帧类型
+		message.setType(Binary.get4BL(first));
+		return message;
 	}
 
 	/**
@@ -126,7 +134,7 @@ public class WEBSocketCoder {
 	 * @throws IOException
 	 * @throws HTTPException
 	 */
-	static boolean write(WebSocketMessage message, DataBuffer writer) throws IOException {
+	static boolean write(WebSocketMessage message, DataBuffer writer, boolean mark) throws IOException {
 		// WebSocket帧不具备消息标识，因此必须将一个消息发送完成后才能发送另外的消息
 		// 特别是当单个消息字节数太大时需要分批发送的时候，需要仔细考虑消息排队
 
@@ -146,60 +154,75 @@ public class WEBSocketCoder {
 		long length = WEBContentCoder.size(message);
 
 		// FIRST Byte [ FIN | RSV 1~3 默认0 | OPCODE]
-		if (message.getLength() > BLOCK) {
+		if (length > BLOCK) {
+			// 消息分片发送
 			writer.writeByte(Binary.setBit((byte) message.getType(), false, 7));
 			// 第一帧发送消息类型，后续帧标记为续帧
 			message.setType(WebSocketMessage.CONTINUATION);
 			length = BLOCK;
 		} else {
+			// 消息整体发送
 			writer.writeByte(Binary.setBit((byte) message.getType(), true, 7));
 		}
 
 		// SECOND Byte [MASK | LENGTH]
-		if (message.isMask()) {
-			// 0x80=[10000000]=128
-			if (length <= 125) {
-				writer.write(0x80 | (int) length);
-			} else if (length <= 65536) {
-				// 2字节长度
-				writer.write(0x80 | 126);
-				writer.writeShort((int) length);
-			} else {
-				// 8字节长度
-				writer.write(0x80 | 127);
-				writer.writeLong(length);
-			}
-			// [MASKING-KEY]
-			writer.write(message.getMaskKeys());
-		} else {
-			if (length <= 125) {
-				writer.write((int) length);
-			} else if (length <= 65536) {
-				// 2字节长度
-				writer.write(126);
-				writer.writeShort((int) length);
-			} else {
-				// 8字节长度
-				writer.write(127);
-				writer.writeLong(length);
-			}
-		}
-
-		// DATA
 		if (length > 0) {
-			final InputStream input = WEBContentCoder.input(message);
-			if (message.isMask()) {
-				for (int i = 0; i < length; i++) {
-					writer.write(input.read() ^ message.getMaskKeys()[i % 4]);
+			if (mark) {
+				// 0x80=[10000000]=128
+				if (length <= 125) {
+					writer.write(0x80 | (int) length);
+				} else if (length <= 65536) {
+					// 2字节长度
+					writer.write(0x80 | 126);
+					writer.writeShort((int) length);
+				} else {
+					// 8字节长度
+					writer.write(0x80 | 127);
+					writer.writeLong(length);
+				}
+				// [MASKING-KEY]
+				final byte[] masks = marks();
+				writer.write(masks);
+				// [DATA]
+				try (final InputStream input = WEBContentCoder.input(message)) {
+					for (int i = 0; i < length; i++) {
+						writer.write(input.read() ^ masks[i % 4]);
+					}
+					return input.available() <= 0;
 				}
 			} else {
-				while (length-- > 0) {
-					writer.writeByte(input.read());
+				if (length <= 125) {
+					writer.write((int) length);
+				} else if (length <= 65536) {
+					// 2字节长度
+					writer.write(126);
+					writer.writeShort((int) length);
+				} else {
+					// 8字节长度
+					writer.write(127);
+					writer.writeLong(length);
+				}
+				// [DATA]
+				try (final InputStream input = WEBContentCoder.input(message)) {
+					while (length-- > 0) {
+						writer.writeByte(input.read());
+					}
+					return input.available() <= 0;
 				}
 			}
-			return input.available() <= 0;
 		} else {
-			return true;
+			writer.write(0);
 		}
+		return true;
+	}
+
+	static byte[] marks() {
+		final byte[] masks = new byte[4];
+		long nano = System.nanoTime();
+		masks[0] = (byte) (nano >> 8);
+		masks[1] = (byte) (nano >> 16);
+		masks[2] = (byte) (nano >> 24);
+		masks[3] = (byte) (nano >> 32);
+		return masks;
 	}
 }

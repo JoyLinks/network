@@ -5,12 +5,8 @@
  */
 package com.joyzl.network.web;
 
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-
 import com.joyzl.network.chain.ChainChannel;
-import com.joyzl.network.http.HTTPServlet;
+import com.joyzl.network.http.Date;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.Message;
 import com.joyzl.network.http.Request;
@@ -22,13 +18,12 @@ import com.joyzl.network.http.Response;
  * @author ZhangXi
  * @date 2021年10月15日
  */
-public abstract class WEBServlet extends HTTPServlet {
+public abstract class WEBServlet extends Servlet {
 
 	// HEADERS
-	public final static String DATE = "Date";
+	public final static Date DATE = new Date();
 	public final static String SERVER = "Server";
 	public final static String CONTENT_LANGUAGE = "Content-Language";
-	final static ZoneId GMT = ZoneId.of("GMT");
 
 	@Override
 	public void service(ChainChannel<Message> chain, Request request, Response response) throws Exception {
@@ -73,7 +68,7 @@ public abstract class WEBServlet extends HTTPServlet {
 				// 以下默认处理回复发送消息头
 				response.addHeader(SERVER, "JOYZL-HTTP");
 				response.addHeader(CONTENT_LANGUAGE, "zh-CN");
-				response.addHeader(DATE, DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now(GMT)));
+				response.addHeader(DATE);
 				chain.send(response);
 			}
 		}

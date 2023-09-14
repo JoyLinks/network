@@ -25,12 +25,7 @@ public abstract class WEBSocketClientHandler extends WEBClientHandler {
 			return super.decode(chain, buffer);
 		} else //
 		if (chain.type() == ChainType.TCP_HTTP_SLAVE_WEB_SOCKET) {
-			WebSocketMessage message = null;
-			if (WEBSocketCoder.read(message, buffer)) {
-				return message;
-			} else {
-				return null;
-			}
+			return WEBSocketCoder.read(buffer);
 		} else {
 			throw new IllegalStateException("链路状态异常:" + chain.type());
 		}
@@ -62,7 +57,7 @@ public abstract class WEBSocketClientHandler extends WEBClientHandler {
 		if (chain.type() == ChainType.TCP_HTTP_SLAVE_WEB_SOCKET) {
 			final WebSocketMessage websocket = (WebSocketMessage) message;
 			final DataBuffer buffer = DataBuffer.instance();
-			if (WEBSocketCoder.write(websocket, buffer)) {
+			if (WEBSocketCoder.write(websocket, buffer, true)) {
 				websocket.state(Message.COMPLETE);
 			}
 			return buffer;

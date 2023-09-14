@@ -26,12 +26,7 @@ public abstract class WEBSocketServerHandler extends WEBServerHandler {
 			return super.decode(chain, buffer);
 		} else //
 		if (chain.type() == ChainType.TCP_HTTP_SLAVE_WEB_SOCKET) {
-			WebSocketMessage message = null;
-			if (WEBSocketCoder.read(message, buffer)) {
-				return message;
-			} else {
-				return null;
-			}
+			return WEBSocketCoder.read(buffer);
 		} else {
 			throw new IllegalStateException("链路状态异常:" + chain.type());
 		}
@@ -43,10 +38,17 @@ public abstract class WEBSocketServerHandler extends WEBServerHandler {
 			super.received(chain, message);
 		} else //
 		if (chain.type() == ChainType.TCP_HTTP_SLAVE_WEB_SOCKET) {
+			final WEBSocketSlave slave = (WEBSocketSlave) chain;
 			final WebSocketMessage webSocketMessage = (WebSocketMessage) message;
 			if (webSocketMessage.getType() == WebSocketMessage.CLOSE) {
 				chain.close();
+				if (slave.getServlet() != null) {
+					slave.getServlet().received(slave, webSocketMessage);
+				}
 			} else {
+				if (slave.getServlet() != null) {
+					slave.getServlet().received(slave, webSocketMessage);
+				}
 				chain.receive();
 			}
 		}
@@ -60,7 +62,7 @@ public abstract class WEBSocketServerHandler extends WEBServerHandler {
 		if (chain.type() == ChainType.TCP_HTTP_SLAVE_WEB_SOCKET) {
 			final WebSocketMessage websocket = (WebSocketMessage) message;
 			final DataBuffer buffer = DataBuffer.instance();
-			if (WEBSocketCoder.write(websocket, buffer)) {
+			if (WEBSocketCoder.write(websocket, buffer, false)) {
 				websocket.state(Message.COMPLETE);
 			}
 			return buffer;
@@ -89,14 +91,5 @@ public abstract class WEBSocketServerHandler extends WEBServerHandler {
 			// 再次发送当前消息直至完成
 			chain.send(message);
 		}
-	}
-
-	@Override
-	public void disconnected(ChainChannel<Message> chain) throws Exception {
-	}
-
-	@Override
-	public void error(ChainChannel<Message> chain, Throwable e) {
-		chain.close();
 	}
 }

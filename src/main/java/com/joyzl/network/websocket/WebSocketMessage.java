@@ -18,10 +18,7 @@ public class WebSocketMessage extends Message {
 	final public static int PONG = 0x0A;
 
 	private int opcode;
-	private int length;
 	private boolean finish;
-	private boolean mask;
-	private final byte[] mask_keys = new byte[4];
 
 	/**
 	 * 获取消息类型
@@ -65,30 +62,8 @@ public class WebSocketMessage extends Message {
 		finish = value;
 	}
 
-	protected int getLength() {
-		return length;
-	}
-
-	protected void setLength(int value) {
-		length = value;
-	}
-
-	protected boolean isMask() {
-		return mask;
-	}
-
-	protected void setMask(boolean mask) {
-		this.mask = mask;
-	}
-
-	protected byte[] getMaskKeys() {
-		return mask_keys;
-	}
-
 	public void clear() {
 		opcode = 0;
-		length = 0;
 		finish = false;
-		mask = false;
 	}
 }

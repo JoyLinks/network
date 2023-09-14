@@ -11,7 +11,6 @@ import java.util.ArrayDeque;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.joyzl.network.chain.ChainType;
-import com.joyzl.network.http.HTTPServlet;
 import com.joyzl.network.http.Message;
 import com.joyzl.network.web.WEBSlave;
 
@@ -24,7 +23,7 @@ import com.joyzl.network.web.WEBSlave;
 public class WEBSocketSlave extends WEBSlave {
 
 	private ReentrantLock k;
-	private HTTPServlet servlet;
+	private WEBSocket servlet;
 	private ArrayDeque<Message> messages;
 	private boolean websocket = false;
 
@@ -89,11 +88,11 @@ public class WEBSocketSlave extends WEBSlave {
 		}
 	}
 
-	public HTTPServlet getServlet() {
+	public WEBSocket getServlet() {
 		return servlet;
 	}
 
-	public void setServlet(HTTPServlet value) {
+	public void setServlet(WEBSocket value) {
 		servlet = value;
 	}
 }

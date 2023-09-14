@@ -59,52 +59,53 @@ public class WEBContentCoder extends HTTPCoder {
 	 * @return 0~n / -1 无法判断
 	 */
 	public static long size(Message message) throws IOException {
+		if (message.getContent() == null) {
+			return 0;
+		}
 		if (message.getContent() instanceof File) {
 			return ((File) message.getContent()).length();
-		} else//
+		}
 		if (message.getContent() instanceof DataBuffer) {
 			return ((DataBuffer) message.getContent()).readable();
-		} else //
+		}
 		if (message.getContent() instanceof InputStream) {
 			return ((InputStream) message.getContent()).available();
-		} else //
+		}
 		if (message.getContent() instanceof String) {
 			return -1;
-		} else //
+		}
 		if (message.getContent() instanceof byte[]) {
 			return ((byte[]) message.getContent()).length;
-		} else {
-			return -1;
 		}
+		return -1;
 	}
 
 	public static InputStream input(final Message message) throws IOException {
-		if (message.getContent() instanceof InputStream) {
-			return (InputStream) message.getContent();
-		} else //
 		if (message.getContent() instanceof File) {
 			final InputStream input = new FileInputStream((File) message.getContent());
 			message.setContent(input);
 			return input;
-		} else //
+		}
 		if (message.getContent() instanceof DataBuffer) {
 			final InputStream input = new DataBufferInput((DataBuffer) message.getContent());
 			message.setContent(input);
 			return input;
-		} else //
+		}
+		if (message.getContent() instanceof InputStream) {
+			return (InputStream) message.getContent();
+		}
 		if (message.getContent() instanceof String) {
 			final String text = (String) message.getContent();
 			final ByteArrayInputStream input = new ByteArrayInputStream(text.getBytes(URL_CHARSET));
 			message.setContent(input);
 			return input;
-		} else //
+		}
 		if (message.getContent() instanceof byte[]) {
 			final ByteArrayInputStream input = new ByteArrayInputStream((byte[]) message.getContent());
 			message.setContent(input);
 			return input;
-		} else {
-			throw new IOException("内容实体类型无效:" + message.getContent().getClass());
 		}
+		throw new IOException("内容实体类型无效:" + message.getContent().getClass());
 	}
 
 	public static OutputStream output(final Message message) throws IOException {
@@ -112,15 +113,16 @@ public class WEBContentCoder extends HTTPCoder {
 			final OutputStream output = new FileOutputStream((File) message.getContent());
 			message.setContent(output);
 			return output;
-		} else if (message.getContent() instanceof DataBuffer) {
+		}
+		if (message.getContent() instanceof DataBuffer) {
 			final OutputStream output = new DataBufferOutput((DataBuffer) message.getContent());
 			message.setContent(output);
 			return output;
-		} else if (message.getContent() instanceof OutputStream) {
-			return (OutputStream) message.getContent();
-		} else {
-			throw new IOException("内容实体类型无效:" + message.getContent().getClass());
 		}
+		if (message.getContent() instanceof OutputStream) {
+			return (OutputStream) message.getContent();
+		}
+		throw new IOException("内容实体类型无效:" + message.getContent().getClass());
 	}
 
 	/**

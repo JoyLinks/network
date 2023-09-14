@@ -26,6 +26,7 @@ import com.joyzl.network.http.ContentEncoding;
 import com.joyzl.network.http.ContentLength;
 import com.joyzl.network.http.ContentRange;
 import com.joyzl.network.http.ContentType;
+import com.joyzl.network.http.Date;
 import com.joyzl.network.http.ETag;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.Message;
@@ -139,7 +140,7 @@ public abstract class FileServlet extends WEBServlet {
 			// Cache-Control、Content-Location、Date、ETag、Expires 和 Vary
 			response.addHeader(CONTENT_LOCATION, request.getURI());
 			response.addHeader(CacheControl.NAME, CacheControl.NO_CACHE);
-			response.addHeader(LAST_MODIFIED, DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(LocalDateTime.ofEpochSecond(last_modified, 0, ZoneOffset.UTC), GMT)));
+			response.addHeader(LAST_MODIFIED, DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(LocalDateTime.ofEpochSecond(last_modified, 0, ZoneOffset.UTC), Date.GMT)));
 			response.addHeader(ACCEPT_RANGES, Range.UNIT);
 			response.addHeader(ETag.NAME, etag);
 

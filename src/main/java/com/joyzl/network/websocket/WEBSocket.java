@@ -9,7 +9,6 @@ import com.joyzl.network.Utility;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.http.Connection;
 import com.joyzl.network.http.Date;
-import com.joyzl.network.http.HTTPServlet;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.Message;
 import com.joyzl.network.http.Origin;
@@ -19,6 +18,7 @@ import com.joyzl.network.http.SecWebSocketAccept;
 import com.joyzl.network.http.SecWebSocketKey;
 import com.joyzl.network.http.SecWebSocketVersion;
 import com.joyzl.network.http.Upgrade;
+import com.joyzl.network.web.Servlet;
 import com.joyzl.network.web.WEBServlet;
 import com.joyzl.network.web.WEBSlave;
 
@@ -28,7 +28,7 @@ import com.joyzl.network.web.WEBSlave;
  * @author ZhangXi
  * @date 2023年9月4日
  */
-public abstract class WEBSocket extends HTTPServlet {
+public abstract class WEBSocket extends Servlet {
 
 	// WebSocket协议握手
 	// RFC6455
@@ -121,7 +121,29 @@ public abstract class WEBSocket extends HTTPServlet {
 		}
 	}
 
-	/** WebSocket */
 	protected void received(WEBSlave chain, WebSocketMessage message) throws Exception {
+		// 控制帧可能被插入到分片消息的中间，控制帧不能被分片
+		// 消息片段必须在发送端按照顺序发送给接收端
+		// 一条消息分的片不能与另一条消息分的片嵌套传输
+
+		if (message.getType() == WebSocketMessage.TEXT) {
+
+		} else//
+		if (message.getType() == WebSocketMessage.BINARY) {
+
+		} else//
+		if (message.getType() == WebSocketMessage.PING) {
+			message.setType(WebSocketMessage.PONG);
+			// 如果有数据将原样回复
+			chain.send(message);
+		} else//
+		if (message.getType() == WebSocketMessage.PONG) {
+
+		} else//
+		if (message.getType() == WebSocketMessage.CLOSE) {
+			chain.send(message);
+		} else {
+
+		}
 	}
 }

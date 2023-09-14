@@ -3,17 +3,20 @@
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
  */
-package com.joyzl.network.http;
+package com.joyzl.network.web;
 
 import com.joyzl.network.chain.ChainChannel;
+import com.joyzl.network.http.Message;
+import com.joyzl.network.http.Request;
+import com.joyzl.network.http.Response;
 
 /**
- * HTTP Servlet
+ * Servlet
  * 
  * @author ZhangXi
  * @date 2021年10月9日
  */
-public abstract class HTTPServlet {
+public abstract class Servlet {
 
 	// METHODS
 	public final static String GET = "GET";

@@ -20,11 +20,11 @@ import com.joyzl.network.http.CacheControl;
 import com.joyzl.network.http.Connection;
 import com.joyzl.network.http.HTTPCoder;
 import com.joyzl.network.http.HTTPReader;
-import com.joyzl.network.http.HTTPServlet;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.HTTPWriter;
 import com.joyzl.network.http.Request;
 import com.joyzl.network.http.Response;
+import com.joyzl.network.web.Servlet;
 
 /**
  * HTTP Coder 相关测试
@@ -58,14 +58,14 @@ class TestHTTPCoder {
 	@Test
 	void testResponseCommand() throws IOException {
 		// 测试样本
-		request.setMethod(HTTPServlet.GET);
+		request.setMethod(Servlet.GET);
 		request.setURI("/test");
 		request.setVersion("HTTP/1.1");
 
 		HTTPCoder.writeCommand(writer, request);
 		HTTPCoder.readCommand(reader, request);
 
-		assertEquals(request.getMethod(), HTTPServlet.GET);
+		assertEquals(request.getMethod(), Servlet.GET);
 		assertEquals(request.getURI(), "/test");
 		assertEquals(request.getVersion(), "HTTP/1.1");
 	}
