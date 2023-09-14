@@ -157,7 +157,7 @@ public class HTTPCoder {
 	 * @return true 成功完成 / false 流提前结束
 	 * @throws IOException
 	 */
-	public final static boolean readHeaders(HTTPReader reader, Message request) throws IOException {
+	public final static boolean readHeaders(HTTPReader reader, HTTPMessage request) throws IOException {
 		// Connection: keep-alive
 		// Content-Length: 2
 		String name;
@@ -223,7 +223,7 @@ public class HTTPCoder {
 	 * @param message
 	 * @throws IOException
 	 */
-	public final static boolean writeHeaders(HTTPWriter writer, Message message) throws IOException {
+	public final static boolean writeHeaders(HTTPWriter writer, HTTPMessage message) throws IOException {
 		for (Entry<String, String> header : message.getHeaders().entrySet()) {
 			writer.write(header.getKey());
 			writer.write(COLON);

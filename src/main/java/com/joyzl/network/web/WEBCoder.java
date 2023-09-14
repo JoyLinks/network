@@ -32,6 +32,7 @@ import com.joyzl.network.http.Message;
 /**
  * WEB HTTP 相关编解码
  * 
+ * @deprecated HTTP WEB 实体内容编解码由{@link WEBContentCoder}替代
  * @author ZhangXi
  * @date 2021年10月13日
  */

@@ -7,13 +7,11 @@ package com.joyzl.network.http;
 
 import java.io.Closeable;
 import java.util.Collection;
-import java.util.Map;
 
-import com.joyzl.network.CaseInsensitiveMap;
 import com.joyzl.network.buffer.DataBuffer;
 
 /**
- * Request和Response的父类
+ * 消息
  * 
  * @author ZhangXi
  * @date 2021年10月8日
@@ -33,30 +31,6 @@ public abstract class Message {
 
 	public void state(int value) {
 		state = value;
-	}
-
-	////////////////////////////////////////////////////////////////////////////////
-
-	private final Map<String, String> headers = new CaseInsensitiveMap<>();
-
-	public void addHeader(String name, String value) {
-		headers.put(name, value);
-	}
-
-	public void addHeader(Header value) {
-		headers.put(value.getHeaderName(), value.getHeaderValue());
-	}
-
-	public boolean hasHeader(String name) {
-		return headers.containsKey(name);
-	}
-
-	public String getHeader(String name) {
-		return headers.get(name);
-	}
-
-	public Map<String, String> getHeaders() {
-		return headers;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////

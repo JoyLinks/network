@@ -3,7 +3,7 @@
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
  */
-package com.joyzl.network.web;
+package com.joyzl.network.websocket;
 
 import com.joyzl.network.http.Message;
 

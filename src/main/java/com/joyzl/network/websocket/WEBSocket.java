@@ -3,7 +3,7 @@
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
  */
-package com.joyzl.network.web;
+package com.joyzl.network.websocket;
 
 import com.joyzl.network.Utility;
 import com.joyzl.network.chain.ChainChannel;
@@ -19,6 +19,8 @@ import com.joyzl.network.http.SecWebSocketAccept;
 import com.joyzl.network.http.SecWebSocketKey;
 import com.joyzl.network.http.SecWebSocketVersion;
 import com.joyzl.network.http.Upgrade;
+import com.joyzl.network.web.WEBServlet;
+import com.joyzl.network.web.WEBSlave;
 
 /**
  * WEB Socket
@@ -103,7 +105,7 @@ public abstract class WEBSocket extends HTTPServlet {
 				response.setStatus(HTTPStatus.BAD_REQUEST);
 			}
 
-			final WEBSlave slave = (WEBSlave) chain;
+			final WEBSocketSlave slave = (WEBSocketSlave) chain;
 			response.setStatus(HTTPStatus.SWITCHING_PROTOCOL);
 			response.addHeader(new SecWebSocketAccept(key));
 			// response.setHeader(HTTPHeader.SEC_WEBSOCKET_ORIGIN,"WebSocket");
@@ -114,7 +116,7 @@ public abstract class WEBSocket extends HTTPServlet {
 			slave.upgrade();
 			// WebSocket必须绑定Servlet实例
 			// 因为握手之后的收发不在具有URI无法通过URI获取Servlet
-			slave.bind(this);
+			slave.setServlet(this);
 			chain.send(response);
 		}
 	}

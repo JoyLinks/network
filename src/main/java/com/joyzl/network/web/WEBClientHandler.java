@@ -5,15 +5,11 @@
  */
 package com.joyzl.network.web;
 
-import com.joyzl.network.Utility;
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.chain.ChainHandler;
-import com.joyzl.network.chain.ChainType;
-import com.joyzl.network.http.Connection;
 import com.joyzl.network.http.HTTPCoder;
 import com.joyzl.network.http.HTTPReader;
-import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.HTTPWriter;
 import com.joyzl.network.http.Message;
 
@@ -32,128 +28,106 @@ public abstract class WEBClientHandler extends WEBContentCoder implements ChainH
 	}
 
 	@Override
-	public final Message decode(ChainChannel<Message> chain, DataBuffer buffer) throws Exception {
+	public Message decode(ChainChannel<Message> chain, DataBuffer buffer) throws Exception {
 		final WEBClient client = (WEBClient) chain;
-		if (chain.type() == ChainType.TCP_HTTP_SLAVE) {
-			// 阻止超过最大限制的数据帧
-			if (buffer.readable() > WEBContentCoder.MAX) {
-				client.setResponse(null);
-				buffer.clear();
-				return null;
-			}
 
-			WEBResponse response = client.getResponse();
-			if (response == null) {
-				client.setResponse(response = new WEBResponse());
-			}
+		// 阻止超过最大限制的数据帧
+		if (buffer.readable() > WEBContentCoder.MAX) {
+			client.setResponse(null);
+			buffer.clear();
+			return null;
+		}
 
-			// 消息逐段解码
-			final HTTPReader reader = new HTTPReader(buffer);
-			if (response.state() == Message.COMMAND) {
-				if (HTTPCoder.readCommand(reader, response)) {
-					response.state(Message.HEADERS);
-				} else {
-					return null;
-				}
-			}
-			if (response.state() == Message.HEADERS) {
-				if (HTTPCoder.readHeaders(reader, response)) {
-					response.state(Message.CONTENT);
-				} else {
-					return null;
-				}
-			}
-			if (response.state() == Message.CONTENT) {
-				if (WEBContentCoder.read(reader, response)) {
-					response.state(Message.COMPLETE);
-				} else {
-					return null;
-				}
-			}
-			if (response.state() == Message.COMPLETE) {
-				client.setResponse(null);
-				return response;
-			}
+		final WEBResponse response = client.getResponse();
 
-			throw new IllegalStateException("消息状态无效:" + response.state());
-		} else //
-		if (chain.type() == ChainType.TCP_HTTP_SLAVE_WEB_SOCKET) {
-			WebSocketMessage message = null;
-			if (WEBSocketCoder.read(message, buffer)) {
-				return message;
+		// 消息逐段解码
+		final HTTPReader reader = new HTTPReader(buffer);
+		if (response.state() == Message.COMMAND) {
+			if (HTTPCoder.readCommand(reader, response)) {
+				response.state(Message.HEADERS);
 			} else {
 				return null;
 			}
-		} else {
-			throw new IllegalStateException("链路状态异常:" + chain.type());
 		}
+		if (response.state() == Message.HEADERS) {
+			if (HTTPCoder.readHeaders(reader, response)) {
+				response.state(Message.CONTENT);
+			} else {
+				return null;
+			}
+		}
+		if (response.state() == Message.CONTENT) {
+			if (WEBContentCoder.read(reader, response)) {
+				response.state(Message.COMPLETE);
+			} else {
+				return null;
+			}
+		}
+		if (response.state() == Message.COMPLETE) {
+			client.setResponse(null);
+			return response;
+		}
+
+		throw new IllegalStateException("消息状态无效:" + response.state());
 	}
 
 	@Override
-	public final void beat(ChainChannel<Message> chain) throws Exception {
+	public void beat(ChainChannel<Message> chain) throws Exception {
 		// HTTP 无心跳
 	}
 
 	@Override
 	public void received(ChainChannel<Message> chain, Message message) throws Exception {
-		if (Utility.equals(Connection.CLOSE, message.getHeader(Connection.NAME), false)) {
-			chain.setType(HTTPStatus.CLOSE.code());
-			chain.close();
-		}
+
 	}
 
 	@Override
-	public final DataBuffer encode(ChainChannel<Message> chain, Message message) throws Exception {
-		if (chain.type() == ChainType.TCP_HTTP_SLAVE) {
-			final WEBRequest request = (WEBRequest) message;
-			final DataBuffer buffer = DataBuffer.instance();
-			final HTTPWriter writer = new HTTPWriter(buffer);
+	public DataBuffer encode(ChainChannel<Message> chain, Message message) throws Exception {
+		final WEBRequest request = (WEBRequest) message;
+		final DataBuffer buffer = DataBuffer.instance();
+		final HTTPWriter writer = new HTTPWriter(buffer);
 
-			// 消息逐段编码
-			if (request.state() == Message.COMMAND) {
-				WEBContentCoder.prepare(request);
-				if (HTTPCoder.writeCommand(writer, request)) {
-					request.state(Message.HEADERS);
-				} else {
-					return buffer;
-				}
-			}
-			if (request.state() == Message.HEADERS) {
-				if (HTTPCoder.writeHeaders(writer, request)) {
-					request.state(Message.CONTENT);
-				} else {
-					return buffer;
-				}
-			}
-			if (request.state() == Message.CONTENT) {
-				if (WEBContentCoder.write(writer, request)) {
-					request.state(Message.COMPLETE);
-				} else {
-					return buffer;
-				}
-			}
-			if (request.state() == Message.COMPLETE) {
-				request.setContent(null);
+		// 消息逐段编码
+		if (request.state() == Message.COMMAND) {
+			WEBContentCoder.prepare(request);
+			if (HTTPCoder.writeCommand(writer, request)) {
+				request.state(Message.HEADERS);
+			} else {
 				return buffer;
 			}
-
-			throw new IllegalStateException("消息状态无效:" + message.state());
-		} else //
-		if (chain.type() == ChainType.TCP_HTTP_SLAVE_WEB_SOCKET) {
-			final WebSocketMessage websocket = (WebSocketMessage) message;
-			final DataBuffer buffer = DataBuffer.instance();
-			if (WEBSocketCoder.write(websocket, buffer)) {
-				websocket.state(Message.COMPLETE);
-			}
-			return buffer;
-		} else {
-			throw new IllegalStateException("链路状态异常:" + chain.type());
 		}
+		if (request.state() == Message.HEADERS) {
+			if (HTTPCoder.writeHeaders(writer, request)) {
+				request.state(Message.CONTENT);
+			} else {
+				return buffer;
+			}
+		}
+		if (request.state() == Message.CONTENT) {
+			if (WEBContentCoder.write(writer, request)) {
+				request.state(Message.COMPLETE);
+			} else {
+				return buffer;
+			}
+		}
+		if (request.state() == Message.COMPLETE) {
+			request.setContent(null);
+			return buffer;
+		}
+
+		throw new IllegalStateException("消息状态无效:" + message.state());
 	}
 
 	@Override
-	public final void sent(ChainChannel<Message> chain, Message message) throws Exception {
-		chain.receive();
+	public void sent(ChainChannel<Message> chain, Message message) throws Exception {
+		if (message.state() == Message.COMPLETE) {
+			// 消息发送完成
+			// 接收响应消息
+			chain.receive();
+		} else {
+			// 再次发送当前消息直至完成
+			chain.send(message);
+		}
 	}
 
 	@Override

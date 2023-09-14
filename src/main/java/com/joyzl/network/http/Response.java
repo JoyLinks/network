@@ -11,7 +11,7 @@ package com.joyzl.network.http;
  * @author ZhangXi
  * @date 2021年9月30日
  */
-public class Response extends Message {
+public class Response extends HTTPMessage {
 
 	private int status;
 	private String text;

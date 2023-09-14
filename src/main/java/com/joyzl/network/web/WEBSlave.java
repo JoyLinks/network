@@ -10,7 +10,6 @@ import java.nio.channels.AsynchronousSocketChannel;
 
 import com.joyzl.network.chain.ChainType;
 import com.joyzl.network.chain.TCPSlave;
-import com.joyzl.network.http.HTTPServlet;
 import com.joyzl.network.http.Message;
 
 /**
@@ -21,42 +20,27 @@ import com.joyzl.network.http.Message;
  */
 public class WEBSlave extends TCPSlave<Message> {
 
-	private boolean websocket = false;
-	private HTTPServlet servlet;
-
 	public WEBSlave(WEBServer server, AsynchronousSocketChannel channel) throws IOException {
 		super(server, channel);
 	}
 
 	@Override
 	public ChainType type() {
-		if (websocket) {
-			return ChainType.TCP_HTTP_SLAVE_WEB_SOCKET;
-		}
 		return ChainType.TCP_HTTP_SLAVE;
 	}
 
-	public void upgrade() {
-		// 当前仅WEBSocket情形
-		websocket = true;
-	}
-
-	public HTTPServlet servlet() {
-		return servlet;
-	}
-
-	public void bind(HTTPServlet value) {
-		servlet = value;
-	}
-
+	// 服务端提供请求消息暂存以支持消息解码
+	// 在网络传输中可能需要多次接收数据才能完成解码
 	private WEBRequest request;
 
 	protected WEBRequest getRequest() {
+		if (request == null) {
+			return request = new WEBRequest();
+		}
 		return request;
 	}
 
 	protected void setRequest(WEBRequest value) {
 		request = value;
 	}
-
 }

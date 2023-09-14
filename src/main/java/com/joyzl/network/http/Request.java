@@ -11,7 +11,7 @@ package com.joyzl.network.http;
  * @author ZhangXi
  * @date 2021年9月30日
  */
-public class Request extends Message {
+public class Request extends HTTPMessage {
 
 	public final static String VERSION = "HTTP/1.1";
 

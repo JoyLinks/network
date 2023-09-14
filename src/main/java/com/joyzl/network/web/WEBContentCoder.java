@@ -19,6 +19,7 @@ import com.joyzl.network.buffer.DataBufferOutput;
 import com.joyzl.network.http.ContentLength;
 import com.joyzl.network.http.ContentType;
 import com.joyzl.network.http.HTTPCoder;
+import com.joyzl.network.http.HTTPMessage;
 import com.joyzl.network.http.HTTPReader;
 import com.joyzl.network.http.HTTPWriter;
 import com.joyzl.network.http.Message;
@@ -175,7 +176,7 @@ public class WEBContentCoder extends HTTPCoder {
 	 * Transfer-Encoding: chunked<br>
 	 * Content-Length: *<br>
 	 */
-	static void check(Message message) throws IOException {
+	static void check(HTTPMessage message) throws IOException {
 		if (message.getContent() == null) {
 			// 未设置消息内容不做任何处理
 			return;

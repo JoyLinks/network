@@ -3,13 +3,14 @@
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
  */
-package com.joyzl.network.web;
+package com.joyzl.network.websocket;
 
 import java.io.IOException;
 import java.io.InputStream;
 
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.codec.Binary;
+import com.joyzl.network.web.WEBContentCoder;
 
 /**
  * WEB Socket 消息编解码 RFC6455 The WebSocket Protocol
