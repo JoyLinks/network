@@ -7,19 +7,22 @@ package com.joyzl.network.verifies;
 
 /**
  * CRC-5/USB
+ * <ul>
+ * <li>名称(Name): CRC-5/USB</li>
+ * <li>公式(Formula): x5+x2+1</li>
+ * <li>多项式(Poly): 0x05</li>
+ * <li>初始值(Init): 0x1F</li>
+ * <li>输入反转(Refin): True</li>
+ * <li>输出反转(Refout): True</li>
+ * <li>结果异或(Xorout): 0x1F</li>
+ * <li>别名(Alias):</li>
+ * <li>备注(Note):</li>
+ * </ul>
  * 
  * @author ZhangXi
  *
  */
 public final class CRC5_USB extends Verifier {
-
-	// Name: CRC-5/USB x5+x2+1
-	// Poly: 0x05
-	// Init: 0x1F
-	// Refin: True
-	// Refout: True
-	// Xorout: 0x1F
-	// Note:
 
 	byte crc = 0x1F;
 

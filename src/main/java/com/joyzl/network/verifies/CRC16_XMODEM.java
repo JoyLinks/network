@@ -7,19 +7,22 @@ package com.joyzl.network.verifies;
 
 /**
  * CRC-16/XMODEM
+ * <ul>
+ * <li>名称(Name): CRC-16/XMODEM</li>
+ * <li>公式(Formula): x16+x12+x5+1</li>
+ * <li>多项式(Poly): 0x1021</li>
+ * <li>初始值(Init): 0x0000</li>
+ * <li>输入反转(Refin): False</li>
+ * <li>输出反转(Refout): False</li>
+ * <li>结果异或(Xorout): 0x0000</li>
+ * <li>别名(Alias): CRC-16/ZMODEM,CRC-16/ACORN</li>
+ * <li>备注(Note):</li>
+ * </ul>
  * 
  * @author ZhangXi
  *
  */
 public final class CRC16_XMODEM extends Verifier {
-
-	// Name: CRC-16/XMODEM x16+x12+x5+1
-	// Poly: 0x1021
-	// Init: 0x0000
-	// Refin: False
-	// Refout: False
-	// Xorout: 0x0000
-	// Alias: CRC-16/ZMODEM,CRC-16/ACORN
 
 	short crc = 0;
 

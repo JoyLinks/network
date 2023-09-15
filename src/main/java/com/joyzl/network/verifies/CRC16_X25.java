@@ -7,19 +7,22 @@ package com.joyzl.network.verifies;
 
 /**
  * CRC-16/X25
+ * <ul>
+ * <li>名称(Name): CRC-16/X25</li>
+ * <li>公式(Formula): x16+x12+x5+1</li>
+ * <li>多项式(Poly): 0x1021</li>
+ * <li>初始值(Init): 0xFFFF</li>
+ * <li>输入反转(Refin): True</li>
+ * <li>输出反转(Refout): True</li>
+ * <li>结果异或(Xorout): 0XFFFF</li>
+ * <li>别名(Alias):</li>
+ * <li>备注(Note):</li>
+ * </ul>
  * 
  * @author ZhangXi
  *
  */
 public final class CRC16_X25 extends Verifier {
-
-	// Name: CRC-16/X25 x16+x12+x5+1
-	// Poly: 0x1021
-	// Init: 0xFFFF
-	// Refin: True
-	// Refout: True
-	// Xorout: 0XFFFF
-	// Note:
 
 	short crc = (short) 0xFFFF;
 

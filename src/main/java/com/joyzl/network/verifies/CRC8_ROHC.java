@@ -7,19 +7,22 @@ package com.joyzl.network.verifies;
 
 /**
  * CRC-8/ROHC
+ * <ul>
+ * <li>名称(Name): CRC-8/ROHC</li>
+ * <li>公式(Formula): x8+x2+x+1</li>
+ * <li>多项式(Poly): 0x07</li>
+ * <li>初始值(Init): 0xFF</li>
+ * <li>输入反转(Refin): True</li>
+ * <li>输出反转(Refout): True</li>
+ * <li>结果异或(Xorout): 0x00</li>
+ * <li>别名(Alias):</li>
+ * <li>备注(Note):</li>
+ * </ul>
  * 
  * @author ZhangXi
  *
  */
 public final class CRC8_ROHC extends Verifier {
-
-	// Name: CRC-8/ROHC x8+x2+x+1
-	// Poly: 0x07
-	// Init: 0xFF
-	// Refin: True
-	// Refout: True
-	// Xorout: 0x00
-	// Note:
 
 	byte crc = 0;
 

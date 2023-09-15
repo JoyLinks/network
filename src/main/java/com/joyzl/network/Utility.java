@@ -12,6 +12,7 @@ package com.joyzl.network;
  * @date 2023年9月4日
  */
 public final class Utility {
+
 	public final static String EMPTY_STRIN = "";
 
 	public static boolean isEmpty(CharSequence value) {

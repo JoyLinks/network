@@ -7,19 +7,22 @@ package com.joyzl.network.verifies;
 
 /**
  * CRC-8/ITU
+ * <ul>
+ * <li>名称(Name): CRC-8/ITU</li>
+ * <li>公式(Formula): x8+x2+x+1</li>
+ * <li>多项式(Poly): 0x07</li>
+ * <li>初始值(Init): 0x00</li>
+ * <li>输入反转(Refin): False</li>
+ * <li>输出反转(Refout): False</li>
+ * <li>结果异或(Xorout): 0x55</li>
+ * <li>别名(Alias): CRC-8/ATM</li>
+ * <li>备注(Note):</li>
+ * </ul>
  * 
  * @author ZhangXi
  *
  */
 public final class CRC8_ITU extends Verifier {
-
-	// Name: CRC-8/ITU x8+x2+x+1
-	// Poly: 0x07
-	// Init: 0x00
-	// Refin: False
-	// Refout: False
-	// Xorout: 0x55
-	// Alias: CRC-8/ATM
 
 	byte crc = 0;
 

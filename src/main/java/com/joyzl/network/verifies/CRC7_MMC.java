@@ -7,19 +7,22 @@ package com.joyzl.network.verifies;
 
 /**
  * CRC-7/MMC
+ * <ul>
+ * <li>名称(Name): CRC-7/MMC</li>
+ * <li>公式(Formula): x7+x3+1</li>
+ * <li>多项式(Poly): 0x09</li>
+ * <li>初始值(Init): 0x00</li>
+ * <li>输入反转(Refin): False</li>
+ * <li>输出反转(Refout): False</li>
+ * <li>结果异或(Xorout): 0x00</li>
+ * <li>别名(Alias):</li>
+ * <li>备注(Note): MultiMediaCard,SD</li>
+ * </ul>
  * 
  * @author ZhangXi
  *
  */
 public final class CRC7_MMC extends Verifier {
-
-	// Name: CRC-7/MMC x7+x3+1
-	// Poly: 0x09
-	// Init: 0x00
-	// Refin: False
-	// Refout: False
-	// Xorout: 0x00
-	// Use: MultiMediaCard,SD,ect.
 
 	byte crc = 0;
 

@@ -7,19 +7,22 @@ package com.joyzl.network.verifies;
 
 /**
  * CRC-6/ITU
+ * <ul>
+ * <li>名称(Name): CRC-6/ITU</li>
+ * <li>公式(Formula): x6+x+1</li>
+ * <li>多项式(Poly): 0x03</li>
+ * <li>初始值(Init): 0x00</li>
+ * <li>输入反转(Refin): True</li>
+ * <li>输出反转(Refout): True</li>
+ * <li>结果异或(Xorout): 0x00</li>
+ * <li>别名(Alias):</li>
+ * <li>备注(Note):</li>
+ * </ul>
  * 
  * @author ZhangXi
  *
  */
 public final class CRC6_ITU extends Verifier {
-
-	// Name: CRC-6/ITU x6+x+1
-	// Poly: 0x03
-	// Init: 0x00
-	// Refin: True
-	// Refout: True
-	// Xorout: 0x00
-	// Note:
 
 	byte crc = 0;
 

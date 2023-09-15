@@ -6,25 +6,23 @@
 package com.joyzl.network.verifies;
 
 /**
- * CRC32 校验(长度4字节)
- * <p>
- * CRC即循环冗余校验码(Cyclic Redundancy Check)<br>
- * 是数据通信领域中最常用的一种查错校验码，其特征是信息字段和校验字段的长度可以任意选定。循环冗余检查(CRC)是一种数据传输检错功能，对数据进行多项式计算，并将得到的结果附在帧的后面，接收设备也执行类似的算法，以保证数据传输的正确性和完整性。
- * </p>
+ * CRC32
+ * <ul>
+ * <li>名称(Name): CRC-32</li>
+ * <li>公式(Formula): x32+x26+x23+x22+x16+x12+x11+x10+x8+x7+x5+x4+x2+x+1</li>
+ * <li>多项式(Poly): 0x4C11DB7</li>
+ * <li>初始值(Init): 0xFFFFFFF</li>
+ * <li>输入反转(Refin): True</li>
+ * <li>输出反转(Refout): True</li>
+ * <li>结果异或(Xorout): 0xFFFFFFF</li>
+ * <li>别名(Alias): CRC_32/ADCCP</li>
+ * <li>备注(Note): WinRAR</li>
+ * </ul>
  * 
  * @author simon(ZhangXi)
  *
  */
 public class CRC32 extends Verifier {
-
-	// Name: CRC-32 x32+x26+x23+x22+x16+x12+x11+x10+x8+x7+x5+x4+x2+x+1
-	// Poly: 0x4C11DB7
-	// Init: 0xFFFFFFF
-	// Refin: True
-	// Refout: True
-	// Xorout: 0xFFFFFFF
-	// Alias: CRC_32/ADCCP
-	// Use: WinRAR,ect.
 
 	private int crc = 0xFFFFFFFF;
 
