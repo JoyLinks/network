@@ -74,6 +74,7 @@ public abstract class WEBServerHandler implements ChainHandler<Message> {
 		}
 		if (request.state() == Message.COMPLETE) {
 			// slave.setRequest(null);
+			request.state(Message.COMMAND);
 			return request;
 		}
 

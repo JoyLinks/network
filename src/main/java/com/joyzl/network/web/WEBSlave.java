@@ -32,6 +32,7 @@ public class WEBSlave extends TCPSlave<Message> {
 	// 服务端提供请求消息暂存以支持消息解码
 	// 在网络传输中可能需要多次接收数据才能完成解码
 	private WEBRequest request;
+	private WEBResponse response;
 
 	protected WEBRequest getRequest() {
 		if (request == null) {
@@ -42,5 +43,16 @@ public class WEBSlave extends TCPSlave<Message> {
 
 	protected void setRequest(WEBRequest value) {
 		request = value;
+	}
+
+	protected WEBResponse getResponse() {
+		if (response == null) {
+			return response = new WEBResponse();
+		}
+		return response;
+	}
+
+	protected void setResponse(WEBResponse value) {
+		response = value;
 	}
 }

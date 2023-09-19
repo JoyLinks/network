@@ -58,6 +58,7 @@ class TestVerifies {
 			buffer.write(index);
 		}
 		// System.out.println(buffer);
+		// http://www.ip33.com/crc.html
 		// 使命：用信息技术助力中国制造腾飞
 		// 愿景：成为最具竞争力的国产工业软件公司
 		// 价值观：深入，细致，突破

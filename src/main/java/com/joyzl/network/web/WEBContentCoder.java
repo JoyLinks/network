@@ -226,7 +226,9 @@ public class WEBContentCoder extends HTTPCoder {
 		// } else {
 		// // 其它类型按原始输出
 		// }
-
+		if (request.getContent() == null) {
+			return true;
+		}
 		return writeRaw(writer, request);
 	}
 
@@ -247,7 +249,9 @@ public class WEBContentCoder extends HTTPCoder {
 		// } else {
 		// // 其它类型按原始输出
 		// }
-
+		if (response.getContent() == null) {
+			return true;
+		}
 		final String transferEncoding = response.getHeader(TransferEncoding.NAME);
 		if (transferEncoding == null) {
 			return writeRaw(writer, response);

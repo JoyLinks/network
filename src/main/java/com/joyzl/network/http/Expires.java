@@ -1,25 +1,16 @@
-/*-
- * www.joyzl.net
- * 中翌智联（重庆）科技有限公司
- * Copyright © JOY-Links Company. All rights reserved.
- */
 package com.joyzl.network.http;
 
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Date<br>
- * 通用首部，其中包含了报文创建的日期和时间
+ * Expires: Wed, 21 Oct 2023 07:28:00 GMT
  * 
- * @author ZhangXi
- * @date 2021年10月18日
+ * @author ZhangXi 2023年9月15日
  */
-public final class Date extends Header {
+public class Expires extends Header {
 
-	public final static ZoneId GMT = ZoneId.of("GMT");
-	public final static String NAME = "Date";
+	public final static String NAME = "Expires";
 
 	private ZonedDateTime value;
 
@@ -31,7 +22,7 @@ public final class Date extends Header {
 	@Override
 	public String getHeaderValue() {
 		if (value == null) {
-			return DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now(GMT));
+			return DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now(Date.GMT));
 		} else {
 			return DateTimeFormatter.RFC_1123_DATE_TIME.format(value);
 		}

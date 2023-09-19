@@ -6,8 +6,6 @@
 package com.joyzl.network.web;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -15,8 +13,6 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.zip.DeflaterOutputStream;
-import java.util.zip.GZIPOutputStream;
 
 import com.joyzl.network.SegmentInputStream;
 import com.joyzl.network.Utility;
@@ -102,7 +98,6 @@ public abstract class FileServlet extends WEBServlet {
 	// Accept-Encoding: deflate, gzip;q=1.0, *;q=0.5
 	// Content-Encoding
 
-	final static String EXPIRES = "Expires";
 	final static String LAST_MODIFIED = "Last-Modified";
 	final static String ACCEPT_RANGES = "Accept-Ranges";
 	final static String CONTENT_LOCATION = "Content-Location";
@@ -112,9 +107,6 @@ public abstract class FileServlet extends WEBServlet {
 	final static String IF_MODIFIED_SINCE = "If-Modified-Since";
 	final static String IF_UNMODIFIED_SINCE = "If-Unmodified-Since";
 	final static String IF_RANGE = "If-Range";
-
-	/** 建议压缩的文件扩展名 */
-	final static String[] EXTENSIONS = new String[] { ".html", ".htm", ".css", ".js", ".json", ".xml", ".svg" };
 
 	@Override
 	protected void head(WEBRequest request, WEBResponse response) throws Exception {
@@ -129,6 +121,7 @@ public abstract class FileServlet extends WEBServlet {
 	private final void todo(WEBRequest request, WEBResponse response, boolean content) throws IOException {
 		final File file = find(request.getURI());
 		if (file == null) {
+			// 文件未找到
 			response.setStatus(HTTPStatus.NOT_FOUND);
 			return;
 		}
@@ -136,6 +129,7 @@ public abstract class FileServlet extends WEBServlet {
 		if (file.exists() && file.isFile()) {
 			final long last_modified = file.lastModified() / 1000;
 			final String etag = ETag.makeWTag(file);
+
 			// 公共头部分
 			// Cache-Control、Content-Location、Date、ETag、Expires 和 Vary
 			response.addHeader(CONTENT_LOCATION, request.getURI());
@@ -231,13 +225,62 @@ public abstract class FileServlet extends WEBServlet {
 	}
 
 	/**
+	 * 响应全部内容
+	 */
+	private final void whole(WEBRequest request, WEBResponse response, File file, boolean content) throws IOException {
+		// Content-Type: text/html
+		response.addHeader(new ContentType(MIMEType.getMIMEType(file)));
+
+		long length = file.length();
+		final AcceptEncoding acceptEncoding = AcceptEncoding.parse(request.getHeader(AcceptEncoding.NAME));
+		if (acceptEncoding != null) {
+			if (canCompress(file)) {
+				if (AcceptEncoding.BR.equalsIgnoreCase(acceptEncoding.getValue())) {
+					final File f = br(file);
+					if (f != null) {
+						// Content-Encoding: br
+						response.addHeader(ContentEncoding.NAME, ContentEncoding.BR);
+						length = f.length();
+						file = f;
+					}
+				} else if (AcceptEncoding.GZIP.equalsIgnoreCase(acceptEncoding.getValue())) {
+					final File f = gzip(file);
+					if (f != null) {
+						// Content-Encoding: gzip
+						response.addHeader(ContentEncoding.NAME, ContentEncoding.GZIP);
+						length = f.length();
+						file = f;
+					}
+				} else if (AcceptEncoding.DEFLATE.equalsIgnoreCase(acceptEncoding.getValue())) {
+					final File f = deflate(file);
+					if (f != null) {
+						// Content-Encoding: deflate
+						response.addHeader(ContentEncoding.NAME, ContentEncoding.DEFLATE);
+						length = f.length();
+						file = f;
+					}
+				}
+			}
+		}
+		if (length < WEBContentCoder.BLOCK) {
+			response.addHeader(ContentLength.NAME, Long.toString(length));
+		} else {
+			response.addHeader(TransferEncoding.NAME, TransferEncoding.CHUNKED);
+		}
+		if (content) {
+			response.setContent(file);
+		}
+	}
+
+	/**
 	 * 响应部分内容
 	 */
 	private final void parts(Range range, WEBResponse response, File file, boolean content) throws IOException {
 		long length = file.length();
+		// 单块请求
 		if (range.getRanges().size() == 1) {
 			ByteRange byterange = range.getRanges().get(0);
-			if (byterange.valid(length, 4096, WEBContentCoder.MAX)) {
+			if (byterange.valid(length, WEBContentCoder.BLOCK, WEBContentCoder.MAX)) {
 				response.addHeader(new ContentType(MIMEType.getMIMEType(file)));
 				response.addHeader(new ContentRange(byterange.getStart(), byterange.getEnd(), length));
 				response.addHeader(ContentLength.NAME, Long.toString(byterange.getSize()));
@@ -247,14 +290,15 @@ public abstract class FileServlet extends WEBServlet {
 			} else {
 				response.setStatus(HTTPStatus.RANGE_NOT_SATISFIABLE);
 			}
-		} else if (range.getRanges().size() > 1) {
-			final String content_type = MIMEType.getMIMEType(file);
+		} else // 多块请求
+		if (range.getRanges().size() > 1) {
+			final String contentType = MIMEType.getMIMEType(file);
 			final List<Part> parts = new ArrayList<>(range.getRanges().size());
 			for (int index = 0; index < range.getRanges().size(); index++) {
 				ByteRange byterange = range.getRanges().get(index);
-				if (byterange.valid(length, 4096, WEBContentCoder.MAX)) {
+				if (byterange.valid(length, WEBContentCoder.BLOCK, WEBContentCoder.MAX)) {
 					final Part part = new Part();
-					part.addHeader(ContentType.NAME, content_type);
+					part.addHeader(ContentType.NAME, contentType);
 					part.addHeader(new ContentRange(byterange.getStart(), byterange.getEnd(), length));
 					if (content) {
 						part.setContent(new SegmentInputStream(file, byterange.getStart(), byterange.getSize()));
@@ -273,106 +317,14 @@ public abstract class FileServlet extends WEBServlet {
 		}
 	}
 
-	/**
-	 * 响应全部内容
-	 */
-	private final void whole(WEBRequest request, WEBResponse response, File file, boolean content) throws IOException {
-		response.addHeader(new ContentType(MIMEType.getMIMEType(file)));
-		long length = file.length();
-		if (length > 1024) {
-			final AcceptEncoding accept_encoding = AcceptEncoding.parse(request.getHeader(AcceptEncoding.NAME));
-			if (accept_encoding != null) {
-				if (canCompress(file)) {
-					if (AcceptEncoding.GZIP.equalsIgnoreCase(accept_encoding.getValue())) {
-						final File f = gzip(file);
-						if (f != null) {
-							response.addHeader(ContentEncoding.NAME, ContentEncoding.GZIP);
-							length = f.length();
-							file = f;
-						}
-					} else if (AcceptEncoding.DEFLATE.equalsIgnoreCase(accept_encoding.getValue())) {
-						final File f = deflate(file);
-						if (f != null) {
-							response.addHeader(ContentEncoding.NAME, ContentEncoding.DEFLATE);
-							length = f.length();
-							file = f;
-						}
-					}
-				}
-			}
-		}
-		// 是否发送响应内容
-		if (content) {
-			if (length < WEBContentCoder.MAX) {
-				response.addHeader(ContentLength.NAME, Long.toString(length));
-				response.setContent(file);
-			} else {
-				response.addHeader(TransferEncoding.NAME, TransferEncoding.CHUNKED);
-				response.setContent(file);
-			}
-		} else {
-			response.addHeader(ContentLength.NAME, Long.toString(length));
-		}
-	}
-
-	private boolean canCompress(File file) {
-		for (int index = 0; index < EXTENSIONS.length; index++) {
-			if (Utility.ends(file.getPath(), EXTENSIONS[index], true)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	private File gzip(File source) throws IOException {
-		final File target = findGzip(source);
-		if (target == null) {
-			return null;
-		}
-		if (target.exists()) {
-			if (source.lastModified() < target.lastModified()) {
-				return target;
-			}
-		}
-		try (FileInputStream input = new FileInputStream(source);
-			GZIPOutputStream output = new GZIPOutputStream(new FileOutputStream(target, false))) {
-			while (input.available() > 0) {
-				output.write(input.read());
-			}
-			output.flush();
-			output.finish();
-		}
-		return target;
-	}
-
-	private File deflate(File source) throws IOException {
-		final File target = findDeflate(source);
-		if (target == null) {
-			return null;
-		}
-		if (target.exists()) {
-			if (source.lastModified() < target.lastModified()) {
-				return target;
-			}
-		}
-		try (FileInputStream input = new FileInputStream(source);
-			DeflaterOutputStream output = new DeflaterOutputStream(new FileOutputStream(target, false))) {
-			while (input.available() > 0) {
-				output.write(input.read());
-			}
-			output.flush();
-			output.finish();
-		}
-		return target;
-	}
+	protected abstract boolean canCompress(File file);
 
 	protected abstract File find(String uri);
 
-	protected File findGzip(File file) {
-		return null;
-	}
+	protected abstract File br(File source) throws IOException;
 
-	protected File findDeflate(File file) {
-		return null;
-	}
+	protected abstract File gzip(File source) throws IOException;
+
+	protected abstract File deflate(File source) throws IOException;
+
 }

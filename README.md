@@ -33,14 +33,12 @@ JOYZL.network 是NIO服务端和客户端框架，可以快速轻松的开发网
 
 1. 基本HTTP WEB服务端(WEBServer)和客户端(WEBClient)实现；
 2. 基本HTTP资源服务(FileServlet)可作为前端容器发布网站；
-3. 支持WEBSocket实现自定义消息处理；
-4. 
-5. 
-6. 支持WEBServlet实现自定义业务和功能扩展。
+3. 支持常规静态资源文件的自动压缩(Gzip和Deflate)；
+4. 支持WEBSocket实现自定义消息处理；
+5. 支持WEBServlet实现自定义业务和功能扩展。
+6. 支持Servlet通配符匹配URI;
 
 注意：与Tomcat等容器不同，不支持JSP和WAR的发布运行。
-
-基于当前框架实现的企业级WEB容器，支持集群部署和负载均衡，请转到[JOYZL HTTP WEB](www.hoyzl.com)获取更多信息。
 
 #### 使用说明
 
@@ -50,10 +48,258 @@ JOYZL.network 是NIO服务端和客户端框架，可以快速轻松的开发网
 <dependency>
 	<groupId>com.joyzl</groupId>
 	<artifactId>network</artifactId>
-	<version>2.0.1</version>
+	<version>2.1.1</version>
 </dependency>
 ```
 
+##### 创建BS静态网站
+
+```java
+// 初始化线程池
+Executor.initialize(0);
+// 创建WEB服务端实例
+// "\web"为网站资源目录
+WEBServerBase server = new WEBServerBase("\web");
+server.start(null, 80);
+...
+// 关闭停止服务
+server.close();
+Executor.shutdown();
+```
+
+通过浏览器请求http://192.168.0.1地址，即可呈现网页；其中IP地址应为服务运行所在服务器地址。
+
+##### 创建具有Servlet功能扩展的BS网站
+
+首先在Java项目中创建用于实现Servlet类的package，并在其中继承Servlet类实现扩展功能；
+
+```java
+package com.joyzl.network.web.test;
+
+public class TestServlet extends WEBServlet {
+
+	protected void get(WEBRequest request, WEBResponse response) throws Exception {
+		response.setContent("TEST Servlet");
+		...
+		response.setStatus(HTTPStatus.OK);
+	}
+}
+```
+
+```java
+// 初始化线程池
+Executor.initialize(0);
+// 创建WEB服务端实例
+// "\web"为网站资源目录
+WEBServerBase server = new WEBServerBase("\web");
+server.getServlets().bind("/test", new TestServlet());
+server.start(null, 80);
+...
+```
+
+通过浏览器请求http://192.168.0.1/test地址，即可转由TestServlet实例处理请求；其中IP地址应为服务运行所在服务器地址。
+
+##### 创建只有Servlet扩展的BS服务
+
+```java
+// 初始化线程池
+Executor.initialize(0);
+// 创建WEB服务端实例
+WEBServerBase server = new WEBServerBase();
+server.getServlets().bind("/test/*", new TestServlet());
+server.start(null, 80);
+...
+```
+
+可通过扫描功能添加包中的多个Servlet，每个Servlet须通过ServletURI注解设定URI；
+
+```java
+package com.joyzl.network.web.test;
+@ServletURI(uri = "/test/*")
+public class TestServlet extends WEBServlet {
+
+	protected void get(WEBRequest request, WEBResponse response) throws Exception {
+		...
+	}
+}
+```
+
+```java
+// 初始化线程池
+Executor.initialize(0);
+// 创建WEB服务端实例
+WEBServerBase server = new WEBServerBase();
+server.scan("com.joyzl.network.web.test");
+server.start(null, 80);
+...
+```
+
+以下类提供基本的Servlet结构：
+
+WEBServlet 提供基本的请求方法，继承此类重写对应的请求方法实现业务逻辑；
+
+CROSServlet 提供基本的跨越逻辑，继承此类重新对应的请求方法实现可跨域请求的业务逻辑；
+
+WEBFileServlet 提供基本的文件资源请求响应逻辑实现。
+
+##### 创建CS服务端
+
+
+首先应有单独的工程定义实体对象，服务端和客户端均需要引用相同的定义。
+
+```java
+package com.joyzl.network.odbs.test;
+
+import com.joyzl.network.odbs.ODBSMessage;
+
+public class Action extends ODBSMessage {
+
+	private int state;
+	private String error;
+
+	public int getState() {
+		return state;
+	}
+
+	public void setState(int value) {
+		state = value;
+	}
+
+	public String getError() {
+		return error;
+	}
+
+	public void setError(String value) {
+		error = value;
+	}
+
+	@Override
+	public String toString() {
+		return state + ":" + error;
+	}
+}
+```
+
+
+创建服务端
+
+```java
+Executor.initialize(0);
+ODBS odbs = ODBS.initialize("com.joyzl.network.test");
+ODBSServer<Action> server = new ODBSServer<Action>(
+	new ODBSServerHandler<Action>(odbs){
+		
+		public ServerHandler(ODBS o) {
+			super(o);
+		}
+	
+		@Override
+		public void connected(ChainChannel<Action> chain) throws Exception {
+			super.connected(chain);
+			...
+		}
+	
+		@Override
+		public void received(ChainChannel<Action> chain, Action message) throws Exception {
+			super.received(chain, message);
+	
+			if (message == null) {
+			} else {
+				...
+				chain.send(message);
+			}
+		}
+	
+		@Override
+		public void sent(ChainChannel<Action> chain, Action message) throws Exception {
+			super.sent(chain, message);
+		}
+	
+		@Override
+		public void disconnected(ChainChannel<Action> chain) throws Exception {
+			...
+		}
+	
+		@Override
+		public void error(ChainChannel<Action> chain, Throwable e) {
+			e.printStackTrace();
+		}
+	}
+	, null, 1200);
+
+...
+
+// 关闭服务
+Executor.shutdown();
+```
+
+其中1230为监听端口
+
+##### 创建CS客户端
+
+
+```java
+Executor.initialize(0);
+ODBS odbs = ODBS.initialize("com.joyzl.network.test");
+ODBSClient<Action> client = new ODBSClient<>(
+	new ODBSClientHandler<Action>(){
+
+		public TestODBSClient() {
+			super(odbs);
+		}
+	
+		@Override
+		public void beat(ChainChannel<Action> chain) throws Exception {	
+			chain.send(new Action());
+		}
+	
+		@Override
+		public void connected(ChainChannel<Action> chain) throws Exception {
+			super.connected(chain);
+
+			...
+
+		}
+	
+		@Override
+		public void received(ChainChannel<Action> chain, Action message) throws Exception {
+			if (message == null) {
+				super.received(chain, message);
+			} else {
+
+				...
+
+				super.received(chain, message);
+			}
+		}
+	
+		@Override
+		public void sent(ChainChannel<Action> chain, Action message) throws Exception {
+			super.sent(chain, message);
+
+			...
+
+		}
+	
+		@Override
+		public void disconnected(ChainChannel<Action> chain) throws Exception {
+			...
+		}
+	
+		@Override
+		public void error(ChainChannel<Action> chain, Throwable e) {
+			e.printStackTrace();
+		}
+	}
+	, "192.168.0.1", 1200);
+
+...
+
+// 关闭服务
+Executor.shutdown();
+```
+
+其中"192.168.0.1"和1200为服务端所在地址和端口。
 
 #### 参与贡献
 
@@ -63,6 +309,17 @@ JOYZL.network 是NIO服务端和客户端框架，可以快速轻松的开发网
 
 张希 ZhangXi
 
+
+感谢以下网站贡献的资源
+
+[MDN Web Docs](https://developer.mozilla.org/zh-CN/docs/Web)
+
+[www.ip33.com](http://www.ip33.com)
+的在线工具
+[CRC](http://www.ip33.com/crc.html)
+[LRC](http://www.ip33.com/lrc.html)
+[BCC](http://www.ip33.com/bcc.html)
+为我们提供了有力的帮助。
 
 ---
 
