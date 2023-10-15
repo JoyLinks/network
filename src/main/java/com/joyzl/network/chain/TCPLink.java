@@ -237,9 +237,9 @@ public class TCPLink<M> extends Client<M> {
 			// 没有数据并且没有达到流的末端时返回0
 			// 如果用于接收的ByteBuffer缓存满则会出现读零情况
 			// DataBuffer代码存在问题才会导致提供了一个已满的ByteBuffer
+			handler().error(this, new IllegalStateException("零读:当前缓存单元已满"));
 			read.release();
 			read = null;
-			handler().error(this, new IllegalStateException("零读:当前缓存单元已满"));
 		} else {
 			// 链路被关闭
 			// 缓存对象未投递给处理对象，须释放
@@ -265,7 +265,6 @@ public class TCPLink<M> extends Client<M> {
 			} catch (Exception e1) {
 				handler().error(this, e1);
 			}
-			return;
 		} else {
 			handler().error(this, e);
 		}
@@ -304,11 +303,11 @@ public class TCPLink<M> extends Client<M> {
 				}
 			} catch (Exception e) {
 				send_message = null;
+				handler().error(this, e);
 				if (write != null) {
 					write.release();
 					write = null;
 				}
-				handler().error(this, e);
 			}
 		}
 	}
@@ -343,10 +342,9 @@ public class TCPLink<M> extends Client<M> {
 			// 客户端缓存满会导致零发送
 			// 恶意程序，可能会导致无限尝试
 			send_message = null;
+			handler().error(this, new IllegalStateException("零写:客户端未能接收数据"));
 			write.release();
 			write = null;
-
-			handler().error(this, new IllegalStateException("零写:客户端未能接收数据"));
 		} else {
 			// 连接被客户端断开
 			send_message = null;

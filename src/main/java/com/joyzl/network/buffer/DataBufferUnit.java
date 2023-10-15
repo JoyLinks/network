@@ -109,29 +109,76 @@ public final class DataBufferUnit {
 		return buffer.get(index);
 	}
 
+	/**
+	 * 获取缓存可写字节数
+	 */
 	public final int writeable() {
 		return buffer.capacity() - buffer.limit();
 	}
 
+	/**
+	 * 获取缓存当前写入位置索引
+	 */
 	public final int writeIndex() {
 		return buffer.limit();
 	}
 
+	/**
+	 * 设置缓存当前写入位置索引
+	 */
 	public final void writeIndex(int index) {
 		buffer.limit(index);
 	}
 
+	/**
+	 * 写入值到缓存当前位置,写入位置自动推进
+	 */
 	public final void writeByte(byte value) {
 		buffer.limit(buffer.limit() + 1);
 		buffer.put(buffer.limit() - 1, value);
 	}
 
-	public final void writeByte(int index, byte value) {
+	/**
+	 * 设置缓存指定位置值,写入位置不变
+	 */
+	public final void set(int index, byte value) {
 		buffer.put(index, value);
 	}
 
+	/**
+	 * 获取ByteBuffer实例
+	 */
 	public final ByteBuffer buffer() {
 		return buffer;
+	}
+
+	/**
+	 * 获取用于接收数据的ByteBuffer实例
+	 */
+	public final ByteBuffer receive() {
+		// 调整ByteBuffer用于Channel接收数据
+		// 记录当前位置mark=position
+		buffer.mark();
+		// 恢复写入位置position=limit
+		buffer.position(buffer.limit());
+		// 恢复写入限制
+		buffer.limit(buffer.capacity());
+		return buffer;
+	}
+
+	/**
+	 * 数据接收完成恢复ByteBuffer状态，返回写入数据量
+	 */
+	public final int received() {
+		// 不能用flip()会将mark设置为-1
+		// 设置limit时如果mark>limit则ByteBuffer内部重置mark=-1
+		// mark=-1时执行ByteBuffer.reset()将抛出InvalidMarkException
+		// Channel只要写入过数据ByteBuffer.position>0
+
+		int current = buffer.position();
+		buffer.limit(buffer.position());
+		buffer.reset();
+		return current - buffer.position();
 	}
 
 	/**

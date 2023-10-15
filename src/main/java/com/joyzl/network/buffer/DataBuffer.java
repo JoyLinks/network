@@ -35,6 +35,9 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 		DataBuffer buffer = BYTE_BUFFERS.poll();
 		if (buffer == null) {
 			buffer = new DataBuffer();
+		} else {
+			// bounds的特殊值标记缓存状态
+			buffer.bounds = -1;
 		}
 		return buffer;
 	}
@@ -124,7 +127,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 				index -= item.readable();
 				item = item.next();
 			}
-			item.writeByte(item.readIndex() + index, value);
+			item.set(item.readIndex() + index, value);
 		} else {
 			throw new IndexOutOfBoundsException(index);
 		}
@@ -437,8 +440,15 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	}
 
 	public void release() {
-		clear();
-		BYTE_BUFFERS.offer(this);
+		// 利用bounds的特殊值标记是否已释放
+		if (bounds != Integer.MIN_VALUE) {
+			clear();
+			bounds = Integer.MIN_VALUE;
+			BYTE_BUFFERS.offer(this);
+		} else {
+			// 重复释放
+			System.out.println("DataBuffer重复释放");
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
@@ -455,11 +465,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 			// 防止用已满的ByteBuffer接收数据,将导致读零
 			write = write.link(DataBufferUnit.get());
 		}
-		// 调整ByteBuffer用于Channel接收数据
-		write.buffer().mark();
-		write.buffer().position(write.buffer().limit());
-		write.buffer().limit(write.buffer().capacity());
-		return write.buffer();
+		return write.receive();
 	}
 
 	/**
@@ -470,7 +476,30 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 * @return ByteBuffer[]
 	 */
 	public ByteBuffer[] writes(int size) {
-		return null;
+		if (write.isFull()) {
+			// 防止用已满的ByteBuffer接收数据,将导致读零
+			write = write.link(DataBufferUnit.get());
+		}
+		// 计算所需的ByteBuffer数量
+		if (size <= write.writeable()) {
+			size = 1;
+		} else {
+			size -= write.writeable();
+			if (size % DataBufferUnit.UNIT_SIZE > 0) {
+				size = size / DataBufferUnit.UNIT_SIZE + 2;
+			} else {
+				size = size / DataBufferUnit.UNIT_SIZE + 1;
+			}
+		}
+		// 构建ByteBuffer数组
+		final ByteBuffer[] buffers = new ByteBuffer[size];
+		DataBufferUnit unit = write;
+		buffers[size = 0] = unit.receive();
+		while (++size < buffers.length) {
+			unit = unit.link(DataBufferUnit.get());
+			buffers[size] = unit.receive();
+		}
+		return buffers;
 	}
 
 	/**
@@ -484,18 +513,9 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 		if (size > 0) {
 			length += size;
 		}
-		// 调整ByteBuffer用于DataBuffer读写数据
-		if (write.buffer().position() > 0) {
-			write.buffer().limit(write.buffer().position());
-			write.buffer().reset();
-
-			// 不能用flip()会将mark设置为-1
-			// 设置limit时如果mark>limit则ByteBuffer内部重置mark=-1
-			// mark=-1时执行ByteBuffer.reset()将抛出InvalidMarkException
-			// Channel只要写入过数据ByteBuffer.position>0
-		} else {
-			write.clear();
-		}
+		do {
+			size -= write.received();
+		} while (size > 0);
 	}
 
 	/**

@@ -202,7 +202,6 @@ public class TCPSlave<M> extends Slave<M> {
 			} catch (Exception e1) {
 				handler().error(this, e1);
 			}
-			return;
 		} else {
 			handler().error(this, e);
 		}
