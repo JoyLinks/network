@@ -29,62 +29,12 @@ class TestBCDBigEndian {
 		public void writeByte(int b) {
 			out.write(b);
 		}
-
-		@Override
-		public void writeShort(short value) throws IOException {
-		}
-
-		@Override
-		public void writeInt(int value) throws IOException {
-		}
-
-		@Override
-		public void writeLong(long value) throws IOException {
-		}
-
-		@Override
-		public void writeFloat(float value) throws IOException {
-		}
-
-		@Override
-		public void writeDouble(double value) throws IOException {
-		}
 	};
 	ByteArrayInputStream in;
 	final BigEndianBCDInput input = new BigEndianBCDInput() {
 		@Override
 		public byte readByte() {
 			return (byte) in.read();
-		}
-
-		@Override
-		public short readShort() throws IOException {
-			return 0;
-		}
-
-		@Override
-		public int readUnsignedShort() throws IOException {
-			return 0;
-		}
-
-		@Override
-		public int readInt() throws IOException {
-			return 0;
-		}
-
-		@Override
-		public long readLong() throws IOException {
-			return 0;
-		}
-
-		@Override
-		public float readFloat() throws IOException {
-			return 0;
-		}
-
-		@Override
-		public double readDouble() throws IOException {
-			return 0;
 		}
 	};
 

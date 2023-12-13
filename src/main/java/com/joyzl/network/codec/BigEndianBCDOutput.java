@@ -7,13 +7,15 @@ package com.joyzl.network.codec;
 
 import java.io.IOException;
 
+import com.joyzl.codec.BigEndianDataOutput;
+
 /**
  * BCD(Binary Coded Decimal)，大端序(BIG_ENDIAN)
  * 
  * @author ZhangXi
  * @date 2023年7月29日
  */
-public interface BigEndianBCDOutput extends BCDOutput {
+public interface BigEndianBCDOutput extends BCDOutput, BigEndianDataOutput {
 
 	/** @see #writeBCD8421s(int) */
 	default void writeBCDs(int value) throws IOException {
