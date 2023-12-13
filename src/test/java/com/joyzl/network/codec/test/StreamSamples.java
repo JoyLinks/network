@@ -16,7 +16,7 @@ import com.joyzl.network.codec.LittleEndianBCDInput;
 import com.joyzl.network.codec.LittleEndianBCDOutput;
 
 /**
- * 示例各种DataInput实现方式
+ * 示例各种DataInput/DataOutput实现方式
  * 
  * @author ZhangXi 2023年12月12日
  */
@@ -50,28 +50,28 @@ public class StreamSamples {
 		}
 	};
 
-	final BigEndianBCDOutput beBCDOutput = new BigEndianBCDOutput() {
-		@Override
-		public void writeByte(int b) throws IOException {
-			output.write(b);
-		}
-	};
 	final BigEndianBCDInput beBCDInput = new BigEndianBCDInput() {
 		@Override
 		public byte readByte() throws IOException {
 			return (byte) input.read();
 		}
 	};
-	final LittleEndianBCDOutput leBCDOutput = new LittleEndianBCDOutput() {
+	final LittleEndianBCDInput leBCDInput = new LittleEndianBCDInput() {
+		@Override
+		public byte readByte() throws IOException {
+			return (byte) input.read();
+		}
+	};
+	final BigEndianBCDOutput beBCDOutput = new BigEndianBCDOutput() {
 		@Override
 		public void writeByte(int b) throws IOException {
 			output.write(b);
 		}
 	};
-	final LittleEndianBCDInput leBCDInput = new LittleEndianBCDInput() {
+	final LittleEndianBCDOutput leBCDOutput = new LittleEndianBCDOutput() {
 		@Override
-		public byte readByte() throws IOException {
-			return (byte) input.read();
+		public void writeByte(int b) throws IOException {
+			output.write(b);
 		}
 	};
 }
