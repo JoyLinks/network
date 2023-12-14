@@ -11,7 +11,7 @@ package com.joyzl.network;
  * @author ZhangXi
  * @date 2023年9月4日
  */
-public final class Utility {
+public class Utility {
 
 	public final static String EMPTY_STRIN = "";
 
