@@ -39,8 +39,10 @@ public class WEBServerBase extends WEBServerHandler {
 	}
 
 	public void close() {
-		server.close();
-		server = null;
+		if (server != null) {
+			server.close();
+			server = null;
+		}
 	}
 
 	@Override

@@ -57,6 +57,7 @@ public class ODBSClient<M extends ODBSMessage> extends TCPClient<M> {
 	protected void sent(M message) {
 		k.lock();
 		try {
+			// 消息发送排队，发送完成移除队列（不必等待消息回复）
 			message = messages.removeFirst();
 			if (message == null) {
 				return;

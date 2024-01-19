@@ -27,6 +27,11 @@ public interface LittleEndianBCDOutput extends BCDOutput, LittleEndianDataOutput
 		writeBCD8421s(value);
 	}
 
+	/** @see #writeBCD8421s(CharSequence, int, int) */
+	default void writeBCDs(CharSequence value, int offset, int length) throws IOException {
+		writeBCD8421s(value, 0, value.length());
+	}
+
 	/**
 	 * 数值编码为BCD8421字节，不足偶数位自动左补零
 	 * 
@@ -46,8 +51,13 @@ public interface LittleEndianBCDOutput extends BCDOutput, LittleEndianDataOutput
 		}
 	}
 
+	/** @see #writeBCD8421s(CharSequence, int, int) */
+	default void writeBCD8421s(CharSequence value) throws IOException {
+		writeBCD8421s(value, 0, value.length());
+	}
+
 	/**
-	 * 字符串编码为BCD8421字节，字符串数量不足偶数自动左补零
+	 * 字符串编码为BCD8421字节，字符串数量不足偶数自动补零
 	 * 
 	 * <pre>
 	 * VALUE:"987654321"
@@ -58,11 +68,11 @@ public interface LittleEndianBCDOutput extends BCDOutput, LittleEndianDataOutput
 	 * +--+--+--+--+--+
 	 * </pre>
 	 */
-	default void writeBCD8421s(CharSequence value) throws IOException {
-		int b, index = value.length() - 1;
-		while (index >= 0) {
+	default void writeBCD8421s(CharSequence value, int offset, int length) throws IOException {
+		int b, index = offset + length - 1;
+		while (index >= offset) {
 			b = Character.digit(value.charAt(index--), 10);
-			if (index >= 0) {
+			if (index >= offset) {
 				b += Character.digit(value.charAt(index--), 10) * 10;
 			}
 			writeBCD8421(b);
@@ -88,6 +98,11 @@ public interface LittleEndianBCDOutput extends BCDOutput, LittleEndianDataOutput
 		}
 	}
 
+	/** @see #writeBCD3s(CharSequence, int, int) */
+	default void writeBCD3s(CharSequence value) throws IOException {
+		writeBCD3s(value, 0, value.length());
+	}
+
 	/**
 	 * 字符串编码为BCD余3码字节，字符串数量不足偶数自动左补零
 	 * 
@@ -100,11 +115,11 @@ public interface LittleEndianBCDOutput extends BCDOutput, LittleEndianDataOutput
 	 * +--+--+--+--+--+
 	 * </pre>
 	 */
-	default void writeBCD3s(CharSequence value) throws IOException {
-		int b, index = value.length() - 1;
-		while (index >= 0) {
+	default void writeBCD3s(CharSequence value, int offset, int length) throws IOException {
+		int b, index = offset + length - 1;
+		while (index >= offset) {
 			b = Character.digit(value.charAt(index--), 10);
-			if (index >= 0) {
+			if (index >= offset) {
 				b += Character.digit(value.charAt(index--), 10) * 10;
 			}
 			writeBCD3(b);
@@ -130,6 +145,11 @@ public interface LittleEndianBCDOutput extends BCDOutput, LittleEndianDataOutput
 		}
 	}
 
+	/** @see #writeBCD2421s(CharSequence, int, int) */
+	default void writeBCD2421s(CharSequence value) throws IOException {
+		writeBCD2421s(value, 0, value.length());
+	}
+
 	/**
 	 * 字符串编码为BCD2421字节，字符串数量不足偶数自动左补零
 	 * 
@@ -142,11 +162,11 @@ public interface LittleEndianBCDOutput extends BCDOutput, LittleEndianDataOutput
 	 * +--+--+--+--+--+
 	 * </pre>
 	 */
-	default void writeBCD2421s(CharSequence value) throws IOException {
-		int b, index = value.length() - 1;
-		while (index >= 0) {
+	default void writeBCD2421s(CharSequence value, int offset, int length) throws IOException {
+		int b, index = offset + length - 1;
+		while (index >= offset) {
 			b = Character.digit(value.charAt(index--), 10);
-			if (index >= 0) {
+			if (index >= offset) {
 				b += Character.digit(value.charAt(index--), 10) * 10;
 			}
 			writeBCD2421(b);
@@ -172,6 +192,11 @@ public interface LittleEndianBCDOutput extends BCDOutput, LittleEndianDataOutput
 		}
 	}
 
+	/** @see #writeBCD5421s(CharSequence, int, int) */
+	default void writeBCD5421s(CharSequence value) throws IOException {
+		writeBCD5421s(value, 0, value.length());
+	}
+
 	/**
 	 * 字符串编码为BCD5421字节，字符串数量不足偶数自动左补零
 	 * 
@@ -184,11 +209,11 @@ public interface LittleEndianBCDOutput extends BCDOutput, LittleEndianDataOutput
 	 * +--+--+--+--+--+
 	 * </pre>
 	 */
-	default void writeBCD5421s(CharSequence value) throws IOException {
-		int b, index = value.length() - 1;
-		while (index >= 0) {
+	default void writeBCD5421s(CharSequence value, int offset, int length) throws IOException {
+		int b, index = offset + length - 1;
+		while (index >= offset) {
 			b = Character.digit(value.charAt(index--), 10);
-			if (index >= 0) {
+			if (index >= offset) {
 				b += Character.digit(value.charAt(index--), 10) * 10;
 			}
 			writeBCD5421(b);

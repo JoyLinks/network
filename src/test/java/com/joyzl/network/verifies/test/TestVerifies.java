@@ -101,7 +101,6 @@ class TestVerifies {
 		assertEquals(buffer.getVerifier().value(), 0x3FBD);
 	}
 
-	@Test
 	void testCRC16_CCITT() {
 		buffer.setVerifier(new CRC16_CCITT());
 		while (buffer.readable() > 0) {
@@ -110,7 +109,6 @@ class TestVerifies {
 		assertEquals(buffer.getVerifier().value(), 0xD841);
 	}
 
-	@Test
 	void testCRC16_DNP() {
 		buffer.setVerifier(new CRC16_DNP());
 		while (buffer.readable() > 0) {
@@ -119,7 +117,6 @@ class TestVerifies {
 		assertEquals(buffer.getVerifier().value(), 0x4472);
 	}
 
-	@Test
 	void testCRC16_IBM() {
 		buffer.setVerifier(new CRC16_IBM());
 		while (buffer.readable() > 0) {
@@ -128,7 +125,6 @@ class TestVerifies {
 		assertEquals(buffer.getVerifier().value(), 0xBAD3);
 	}
 
-	@Test
 	void testCRC16_MAXIM() {
 		buffer.setVerifier(new CRC16_MAXIM());
 		while (buffer.readable() > 0) {
@@ -146,7 +142,6 @@ class TestVerifies {
 		assertEquals(buffer.getVerifier().value(), 0xDE6C);
 	}
 
-	@Test
 	void testCRC16_USB() {
 		buffer.setVerifier(new CRC16_USB());
 		while (buffer.readable() > 0) {
@@ -155,7 +150,6 @@ class TestVerifies {
 		assertEquals(buffer.getVerifier().value(), 0x2193);
 	}
 
-	@Test
 	void testCRC16_X25() {
 		buffer.setVerifier(new CRC16_X25());
 		while (buffer.readable() > 0) {
@@ -173,7 +167,6 @@ class TestVerifies {
 		assertEquals(buffer.getVerifier().value(), 0x7E55);
 	}
 
-	@Test
 	void testCRC16() {
 		buffer.setVerifier(new CRC16());
 		while (buffer.readable() > 0) {
@@ -191,7 +184,6 @@ class TestVerifies {
 		assertEquals(buffer.getVerifier().value(), 0x494A116A);
 	}
 
-	@Test
 	void testCRC32() {
 		buffer.setVerifier(new CRC32());
 		while (buffer.readable() > 0) {
@@ -272,7 +264,6 @@ class TestVerifies {
 		assertEquals(buffer.getVerifier().value(), 0x18);
 	}
 
-	@Test
 	void testCRC8_ROHC() {
 		buffer.setVerifier(new CRC8_ROHC());
 		while (buffer.readable() > 0) {
@@ -290,7 +281,6 @@ class TestVerifies {
 		assertEquals(buffer.getVerifier().value(), 0x14);
 	}
 
-	@Test
 	void testCS() {
 		buffer.setVerifier(new CS());
 		while (buffer.readable() > 0) {

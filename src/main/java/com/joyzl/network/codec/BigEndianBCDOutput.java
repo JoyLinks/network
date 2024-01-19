@@ -27,8 +27,13 @@ public interface BigEndianBCDOutput extends BCDOutput, BigEndianDataOutput {
 		writeBCD8421s(value);
 	}
 
+	/** @see #writeBCD8421s(CharSequence, int, int) */
+	default void writeBCDs(CharSequence value, int offset, int length) throws IOException {
+		writeBCD8421s(value, offset, length);
+	}
+
 	/**
-	 * 数值编码为BCD8421字节，不足偶数位自动左补零
+	 * 数值编码为BCD8421字节，不足偶数位自动补零
 	 * 
 	 * <pre>
 	 * VALUE:987654321
@@ -52,8 +57,13 @@ public interface BigEndianBCDOutput extends BCDOutput, BigEndianDataOutput {
 		}
 	}
 
+	/** @see #writeBCD8421s(CharSequence, int, int) */
+	default void writeBCD8421s(CharSequence value) throws IOException {
+		writeBCD8421s(value, 0, value.length());
+	}
+
 	/**
-	 * 字符串编码为BCD8421字节，字符串数量不足偶数自动左补零
+	 * 字符串编码为BCD8421字节，字符串数量不足偶数自动补零
 	 * 
 	 * <pre>
 	 * VALUE:"987654321"
@@ -64,19 +74,21 @@ public interface BigEndianBCDOutput extends BCDOutput, BigEndianDataOutput {
 	 * +--+--+--+--+--+
 	 * </pre>
 	 */
-	default void writeBCD8421s(CharSequence value) throws IOException {
-		int index = value.length() % 2;
-		if (index != 0) {
-			writeBCD8421(Character.digit(value.charAt(index++), 10));
-			index = 1;
+	default void writeBCD8421s(CharSequence value, int offset, int length) throws IOException {
+		if (length % 2 != 0) {
+			writeBCD8421(Character.digit(value.charAt(offset), 10));
+			length += offset;
+			offset++;
+		} else {
+			length += offset;
 		}
-		while (index < value.length()) {
-			writeBCD8421(Character.digit(value.charAt(index++), 10) * 10 + Character.digit(value.charAt(index++), 10));
+		while (offset < length) {
+			writeBCD8421(Character.digit(value.charAt(offset++), 10) * 10 + Character.digit(value.charAt(offset++), 10));
 		}
 	}
 
 	/**
-	 * 数值编码为BCD余3码字节，不足偶数位自动左补零
+	 * 数值编码为BCD余3码字节，不足偶数位自动补零
 	 * 
 	 * <pre>
 	 * VALUE:987654321
@@ -100,8 +112,13 @@ public interface BigEndianBCDOutput extends BCDOutput, BigEndianDataOutput {
 		}
 	}
 
+	/** @see #writeBCD3s(CharSequence, int, int) */
+	default void writeBCD3s(CharSequence value) throws IOException {
+		writeBCD3s(value, 0, value.length());
+	}
+
 	/**
-	 * 字符串编码为BCD余3码字节，字符串数量不足偶数自动左补零
+	 * 字符串编码为BCD余3码字节，字符串数量不足偶数自动补零
 	 * 
 	 * <pre>
 	 * VALUE:"987654321"
@@ -112,19 +129,21 @@ public interface BigEndianBCDOutput extends BCDOutput, BigEndianDataOutput {
 	 * +--+--+--+--+--+
 	 * </pre>
 	 */
-	default void writeBCD3s(CharSequence value) throws IOException {
-		int index = value.length() % 2;
-		if (index != 0) {
-			writeBCD3(Character.digit(value.charAt(index++), 10));
-			index = 1;
+	default void writeBCD3s(CharSequence value, int offset, int length) throws IOException {
+		if (length % 2 != 0) {
+			writeBCD3(Character.digit(value.charAt(offset), 10));
+			length += offset;
+			offset++;
+		} else {
+			length += offset;
 		}
-		while (index < value.length()) {
-			writeBCD3(Character.digit(value.charAt(index++), 10) * 10 + Character.digit(value.charAt(index++), 10));
+		while (offset < length) {
+			writeBCD3(Character.digit(value.charAt(offset++), 10) * 10 + Character.digit(value.charAt(offset++), 10));
 		}
 	}
 
 	/**
-	 * 数值编码为BCD2421字节，不足偶数位自动左补零
+	 * 数值编码为BCD2421字节，不足偶数位自动补零
 	 * 
 	 * <pre>
 	 * VALUE:987654321
@@ -148,8 +167,13 @@ public interface BigEndianBCDOutput extends BCDOutput, BigEndianDataOutput {
 		}
 	}
 
+	/** @see #writeBCD2421s(CharSequence, int, int) */
+	default void writeBCD2421s(CharSequence value) throws IOException {
+		writeBCD2421s(value, 0, value.length());
+	}
+
 	/**
-	 * 字符串编码为BCD2421字节，字符串数量不足偶数自动左补零
+	 * 字符串编码为BCD2421字节，字符串数量不足偶数自动补零
 	 * 
 	 * <pre>
 	 * VALUE:"987654321"
@@ -160,19 +184,21 @@ public interface BigEndianBCDOutput extends BCDOutput, BigEndianDataOutput {
 	 * +--+--+--+--+--+
 	 * </pre>
 	 */
-	default void writeBCD2421s(CharSequence value) throws IOException {
-		int index = value.length() % 2;
-		if (index != 0) {
-			writeBCD2421(Character.digit(value.charAt(index++), 10));
-			index = 1;
+	default void writeBCD2421s(CharSequence value, int offset, int length) throws IOException {
+		if (length % 2 != 0) {
+			writeBCD2421(Character.digit(value.charAt(offset), 10));
+			length += offset;
+			offset++;
+		} else {
+			length += offset;
 		}
-		while (index < value.length()) {
-			writeBCD2421(Character.digit(value.charAt(index++), 10) * 10 + Character.digit(value.charAt(index++), 10));
+		while (offset < length) {
+			writeBCD2421(Character.digit(value.charAt(offset++), 10) * 10 + Character.digit(value.charAt(offset++), 10));
 		}
 	}
 
 	/**
-	 * 数值编码为BCD5421字节，不足偶数位自动左补零
+	 * 数值编码为BCD5421字节，不足偶数位自动补零
 	 * 
 	 * <pre>
 	 * VALUE:987654321
@@ -196,8 +222,13 @@ public interface BigEndianBCDOutput extends BCDOutput, BigEndianDataOutput {
 		}
 	}
 
+	/** @see #writeBCD5421s(CharSequence, int, int) */
+	default void writeBCD5421s(CharSequence value) throws IOException {
+		writeBCD5421s(value, 0, value.length());
+	}
+
 	/**
-	 * 字符串编码为BCD5421字节，字符串数量不足偶数自动左补零
+	 * 字符串编码为BCD5421字节，字符串数量不足偶数自动补零
 	 * 
 	 * <pre>
 	 * VALUE:"987654321"
@@ -208,14 +239,16 @@ public interface BigEndianBCDOutput extends BCDOutput, BigEndianDataOutput {
 	 * +--+--+--+--+--+
 	 * </pre>
 	 */
-	default void writeBCD5421s(CharSequence value) throws IOException {
-		int index = value.length() % 2;
-		if (index != 0) {
-			writeBCD5421(Character.digit(value.charAt(index++), 10));
-			index = 1;
+	default void writeBCD5421s(CharSequence value, int offset, int length) throws IOException {
+		if (length % 2 != 0) {
+			writeBCD5421(Character.digit(value.charAt(offset), 10));
+			length += offset;
+			offset++;
+		} else {
+			length += offset;
 		}
-		while (index < value.length()) {
-			writeBCD5421(Character.digit(value.charAt(index++), 10) * 10 + Character.digit(value.charAt(index++), 10));
+		while (offset < length) {
+			writeBCD5421(Character.digit(value.charAt(offset++), 10) * 10 + Character.digit(value.charAt(offset++), 10));
 		}
 	}
 }

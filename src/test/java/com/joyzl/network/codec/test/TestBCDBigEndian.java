@@ -60,11 +60,13 @@ class TestBCDBigEndian {
 		output.writeBCD(99);
 		output.writeBCDs(987654321);
 		output.writeBCDs("00000000");
+		output.writeBCDs("123456789");
 
 		output.writeBCD8421(11);
 		output.writeBCD8421(88);
 		output.writeBCD8421s(123456789);
 		output.writeBCD8421s("111111111111");
+		output.writeBCD8421s("1234567890123");
 
 		in = new ByteArrayInputStream(out.toByteArray());
 
@@ -72,11 +74,13 @@ class TestBCDBigEndian {
 		assertEquals(input.readBCD(), 99);
 		assertEquals(input.readBCDs(9), 987654321);
 		assertEquals(input.readBCDString(8), "00000000");
+		assertEquals(input.readBCDString(10), "0123456789");
 
 		assertEquals(input.readBCD8421(), 11);
 		assertEquals(input.readBCD8421(), 88);
 		assertEquals(input.readBCD8421s(9), 123456789);
 		assertEquals(input.readBCD8421String(12), "111111111111");
+		assertEquals(input.readBCD8421String(14), "01234567890123");
 
 		assertEquals(in.available(), 0);
 	}
