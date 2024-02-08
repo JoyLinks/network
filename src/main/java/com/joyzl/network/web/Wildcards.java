@@ -6,8 +6,10 @@
 package com.joyzl.network.web;
 
 import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 
 /**
  * 缓存仓库,仅有一个实例的缓存对象,支持通配符*匹配,仅能单个通配符
@@ -49,6 +51,17 @@ public final class Wildcards<T> {
 		ITEMS = Arrays.copyOf(ITEMS, ITEMS.length + 1);
 		ITEMS[ITEMS.length - 1] = new Item<T>(target, text);
 		Arrays.sort(ITEMS, Item.COMPARATOR);
+	}
+
+	/**
+	 * 获取所有绑定项,修改返回的集合不会影响此对象实例内部绑定关系
+	 */
+	public final List<T> elements() {
+		final List<T> items = new ArrayList<>(ITEMS.length);
+		for (int index = 0; index < ITEMS.length; index++) {
+			items.add(ITEMS[index].t);
+		}
+		return items;
 	}
 
 	static class Item<T> {

@@ -6,14 +6,11 @@
 package com.joyzl.network.web;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.util.List;
 
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.http.HTTPCoder;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.Message;
-import com.joyzl.odbs.ODBSReflect;
 
 /**
  * WEB SERVER
@@ -24,14 +21,9 @@ import com.joyzl.odbs.ODBSReflect;
 public class WEBServerBase extends WEBServerHandler {
 
 	private final Wildcards<Servlet> SERVLETS = new Wildcards<>();
-	private WEBFileServlet fileServlet;
 	private WEBServer server;
 
 	public WEBServerBase() {
-	}
-
-	public WEBServerBase(String path) {
-		SERVLETS.bind("*", fileServlet = new WEBFileServlet(path));
 	}
 
 	public void start(String host, int port) throws IOException {
@@ -73,31 +65,7 @@ public class WEBServerBase extends WEBServerHandler {
 		e.printStackTrace();
 	}
 
-	/**
-	 * 扫描指定包中的Servlet并绑定ServletURI注解指定的URI
-	 */
-	public void scan(String pkg) throws Exception {
-		final List<Class<?>> classes = ODBSReflect.scanClass(pkg);
-		for (Class<?> clazz : classes) {
-			if (Servlet.class.isAssignableFrom(clazz)) {
-				ServletURI annotation = ODBSReflect.findAnnotation(clazz, ServletURI.class);
-				if (annotation != null) {
-					try {
-						Servlet servlet = (Servlet) clazz.getConstructor().newInstance();
-						getServlets().bind(annotation.uri(), servlet);
-					} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
-						throw e;
-					}
-				}
-			}
-		}
-	}
-
 	public Wildcards<Servlet> getServlets() {
 		return SERVLETS;
-	}
-
-	public WEBFileServlet getFileServlet() {
-		return fileServlet;
 	}
 }
