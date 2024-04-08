@@ -290,8 +290,9 @@ public class WEBContentCoder extends HTTPCoder {
 				// 默认二进制数据
 			}
 			// 默认二进制数据
-			reader.buffer().bounds(contentLength.getLength());
-			request.setContent(reader.buffer());
+			final DataBuffer buffer = DataBuffer.instance();
+			reader.buffer().transfer(buffer, contentLength.getLength());
+			request.setContent(buffer);
 			return true;
 		} else {
 			// 仅接收到部分数据
@@ -327,8 +328,9 @@ public class WEBContentCoder extends HTTPCoder {
 					// 默认二进制数据
 				}
 				// 默认二进制数据
-				reader.buffer().bounds(contentLength.getLength());
-				response.setContent(reader.buffer());
+				final DataBuffer buffer = DataBuffer.instance();
+				reader.buffer().transfer(buffer, contentLength.getLength());
+				response.setContent(buffer);
 				return true;
 			} else {
 				// 仅接收到部分数据

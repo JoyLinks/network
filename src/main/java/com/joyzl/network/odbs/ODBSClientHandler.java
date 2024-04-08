@@ -32,12 +32,16 @@ public abstract class ODBSClientHandler<M extends ODBSMessage> extends ODBSClien
 
 	@Override
 	public void received(ChainChannel<M> chain, M message) throws Exception {
-		chain.receive();
+		if (message != null) {
+			chain.receive();
+		}
 	}
 
 	@Override
 	public void sent(ChainChannel<M> chain, M message) throws Exception {
-		((ODBSClient<M>) chain).sent(message);
+		if (message != null) {
+			((ODBSClient<M>) chain).sent(message);
+		}
 	}
 
 	public abstract void beat(ChainChannel<M> chain) throws Exception;

@@ -156,85 +156,27 @@ class TestDataBuffer {
 	}
 
 	@Test
-	void testBoundsDiscard() throws IOException {
-		final DataBuffer buffer = DataBuffer.instance();
-		for (int index = 0; index < 65536; index++) {
-			buffer.writeByte((byte) index);
-		}
-		assertEquals(buffer.units(), 65536 / DataBufferUnit.UNIT_SIZE);
-		assertEquals(buffer.discard(), 0);
-		assertEquals(buffer.readable(), 65536);
-
-		// 读取部分限制内数据
-		buffer.bounds(2048);
-		for (int index = 0; index < 1024; index++) {
-			assertEquals(buffer.readByte(), (byte) index);
-		}
-		assertEquals(buffer.discard(), 1024);
-		assertEquals(buffer.readable(), 65536 - 2048);
-		assertEquals(buffer.units(), 62);
-
-		// 读取全部限制内数据
-		buffer.bounds(2048);
-		for (int index = 0; index < 2048; index++) {
-			assertEquals(buffer.readByte(), (byte) index);
-		}
-		assertEquals(buffer.discard(), 0);
-		assertEquals(buffer.readable(), 65536 - 2048 - 2048);
-		assertEquals(buffer.units(), 61);
-
-		// 继续读取后续数据
-		for (int index = 0; index < 65536 - 2048 - 2048; index++) {
-			assertEquals(buffer.readByte(), (byte) index);
-		}
-
-		assertEquals(buffer.units(), 1);
-		assertEquals(buffer.capacity(), DataBufferUnit.UNIT_SIZE);
-		assertEquals(buffer.readable(), 0);
-		assertEquals(buffer.writeable(), 0);
-		buffer.release();
-		assertEquals(buffer.units(), 1);
-	}
-
-	@Test
-	void testBoundsResidue() throws IOException {
+	void testMarkErase() throws IOException {
 		final DataBuffer buffer = DataBuffer.instance();
 		for (int index = 0; index < 65536; index++) {
 			buffer.writeByte((byte) index);
 		}
 
-		assertEquals(buffer.units(), 65536 / DataBufferUnit.UNIT_SIZE);
-		assertEquals(buffer.residue(), 0);
-
-		buffer.bounds(2048);
-		assertEquals(buffer.residue(), 65536 - 2048);
-
-		// 转移限制外数据
-		final DataBuffer target = DataBuffer.instance();
-		buffer.residue(target);
-		assertEquals(buffer.residue(), 0);
-
-		// 验证转移的数据
-		for (int index = 0; index < 65536 - 2048; index++) {
-			assertEquals(target.readByte(), (byte) index);
-		}
-
-		assertEquals(target.units(), 1);
-		assertEquals(target.capacity(), DataBufferUnit.UNIT_SIZE);
-		assertEquals(target.readable(), 0);
-		assertEquals(target.writeable(), 0);
-		target.release();
-
-		// 验证保留的数据
-		for (int index = 0; index < 2048; index++) {
+		buffer.mark();
+		for (int index = 0; index < 65536; index++) {
 			assertEquals(buffer.readByte(), (byte) index);
 		}
 
+		buffer.erase();
 		assertEquals(buffer.units(), 1);
-		assertEquals(buffer.capacity(), DataBufferUnit.UNIT_SIZE);
+		assertEquals(buffer.readable(), 0);
+
+		buffer.reset();
+		assertEquals(buffer.units(), 1);
 		assertEquals(buffer.readable(), 0);
 		assertEquals(buffer.writeable(), 0);
 		buffer.release();
+		assertEquals(buffer.units(), 1);
 	}
 
 	@RepeatedTest(100)
@@ -331,5 +273,60 @@ class TestDataBuffer {
 		assertEquals(target.readable(), 0);
 		assertEquals(target.writeable(), 0);
 		target.release();
+	}
+
+	@Test
+	void testTransfer() {
+		int size = 65536;
+		final DataBuffer target = DataBuffer.instance();
+		final DataBuffer source = DataBuffer.instance();
+		for (int index = 0; index < size; index++) {
+			source.writeByte((byte) index);
+		}
+
+		// 写入半单元量
+		source.transfer(target, 512);
+		source.transfer(target, 512);
+		assertEquals(target.readable(), 1024);
+		assertEquals(source.readable(), size -= 1024);
+		for (int index = 0; index < 1024; index++) {
+			assertEquals(target.readByte(), (byte) index);
+		}
+		// 写入全单元量
+		source.transfer(target, 1024);
+		source.transfer(target, 1024);
+		assertEquals(target.readable(), 2048);
+		assertEquals(source.readable(), size -= 2048);
+		for (int index = 0; index < 2048; index++) {
+			assertEquals(target.readByte(), (byte) (index + 1024));
+		}
+		// 写入超单元量
+		source.transfer(target, 1536);
+		source.transfer(target, 1536);
+		assertEquals(target.readable(), 3072);
+		assertEquals(source.readable(), size -= 3072);
+		for (int index = 0; index < 3072; index++) {
+			assertEquals(target.readByte(), (byte) (index + 3072));
+		}
+		// 写入半单元量
+		source.transfer(target, 512);
+		source.transfer(target, 512);
+		assertEquals(target.readable(), 1024);
+		assertEquals(source.readable(), size -= 1024);
+		for (int index = 0; index < 1024; index++) {
+			assertEquals(target.readByte(), (byte) (index + 4096));
+		}
+
+		source.transfer(target, 12);
+		source.transfer(target, 500);
+		source.transfer(target, 1000);
+		source.transfer(target, 24);
+		source.transfer(target, 512);
+		source.transfer(target, 1024);
+		assertEquals(target.readable(), 3072);
+		assertEquals(source.readable(), size -= 3072);
+		for (int index = 0; index < 3072; index++) {
+			assertEquals(target.readByte(), (byte) (index + 5120));
+		}
 	}
 }

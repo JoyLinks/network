@@ -52,6 +52,14 @@ public final class ChainGroup {
 		}
 	}
 
+	public boolean hasServer() {
+		return SERVERS.isEmpty();
+	}
+
+	public boolean hasClient() {
+		return CLIENTS.isEmpty();
+	}
+
 	public final static Server<?> getServer(String key) {
 		return SERVERS.get(key);
 	}
@@ -72,76 +80,106 @@ public final class ChainGroup {
 
 	/**
 	 * 群发给所有指定服务端的子链路,不判断是否有登录标识
+	 * <p>
+	 * 注意：群发的消息对象不应当有与链路以及发送相关的状态
+	 * </p>
 	 * 
 	 * @param server
 	 * @param message
+	 * @return 投递数量
 	 */
-	public final static void sendSlaves(ChainType server, Object message) {
+	public final static int sendSlaves(ChainType server, Object message) {
+		int size = 0;
 		for (Server<?> s : SERVERS.values()) {
 			if (s.type() == server) {
 				if (s.active()) {
 					for (Slave<?> slave : s.getSlaves()) {
 						if (slave.active()) {
-							// TODO 消息群发需要改造
-							// Message有状态，群发时会冲突
-							// 1包装Message由Chain识别处理
-							// 2复制Message需要提供复制方法
 							slave.send(message);
+							size++;
 						}
 					}
 				}
 			}
 		}
+		return size;
 	}
 
 	/**
 	 * 群发给指定服务端的子链路，排除无用户标识的链路
+	 * <p>
+	 * 注意：群发的消息对象不应当有与链路以及发送相关的状态
+	 * </p>
 	 * 
 	 * @param server
 	 * @param message
+	 * @return 投递数量
 	 */
-	public final static void sendLogonSlaves(ChainType server, Object message) {
+	public final static int sendLogonSlaves(ChainType server, Object message) {
+		int size = 0;
 		for (Server<?> s : SERVERS.values()) {
 			if (s.type() == server) {
 				if (s.active()) {
 					for (Slave<?> slave : s.getSlaves()) {
 						if (slave.active() && slave.getToken() != null) {
 							slave.send(message);
+							size++;
 						}
 					}
 				}
 			}
 		}
+		return size;
 	}
 
 	/**
 	 * 群发给指定服务端的子链路，排除无用户标识的链路，排除指定链路
+	 * <p>
+	 * 注意：群发的消息对象不应当有与链路以及发送相关的状态
+	 * </p>
 	 * 
 	 * @param server
 	 * @param exclude
 	 * @param message
+	 * @return 投递数量
 	 */
-	public final static void sendLogonSlaves(ChainType server, Chain exclude, Object message) {
+	public final static int sendLogonSlaves(ChainType server, Chain exclude, Object message) {
+		int size = 0;
 		for (Server<?> s : SERVERS.values()) {
 			if (s.type() == server) {
 				if (s.active()) {
 					for (Slave<?> slave : s.getSlaves()) {
 						if (slave.active() && slave != exclude && slave.getToken() != null) {
 							slave.send(message);
+							size++;
 						}
 					}
 				}
 			}
 		}
+		return size;
 	}
 
-	public final static void sendClients(ChainType type, Object message) {
+	/**
+	 * 群发给指定客户端类型的所有链路
+	 * <p>
+	 * 注意：群发的消息对象不应当有与链路以及发送相关的状态
+	 * </p>
+	 * 
+	 * @param type
+	 * @param message
+	 * @return 投递数量
+	 */
+	public final static int sendClients(ChainType type, Object message) {
+		int size = 0;
 		for (Client<?> client : CLIENTS.values()) {
 			if (client.type() == type) {
 				if (client.active()) {
 					client.send(message);
+					size++;
 				}
 			}
 		}
+		return size;
 	}
 }

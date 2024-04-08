@@ -88,4 +88,11 @@ public class ODBSClient<M extends ODBSMessage> extends TCPClient<M> {
 			k.unlock();
 		}
 	}
+
+	/**
+	 * 获取所有标识的项
+	 */
+	public IndexItems<M> items() {
+		return items;
+	}
 }

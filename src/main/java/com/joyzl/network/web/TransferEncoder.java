@@ -130,9 +130,10 @@ public class TransferEncoder extends WEBContentCoder {
 					if (buffer == null) {
 						response.setContent(buffer = DataBuffer.instance());
 					}
-					reader.buffer().bounds(length);
-					buffer.residue(reader.buffer());
-					reader.buffer().discard();
+					// reader.buffer().bounds(length);
+					// buffer.residue(reader.buffer());
+					// reader.buffer().discard();
+					reader.buffer().transfer(buffer, length);
 					reader.readTo(HTTPCoder.CRLF);
 					return false;
 				}

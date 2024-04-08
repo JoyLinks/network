@@ -62,7 +62,6 @@ public class WEBServerBase extends WEBServerHandler {
 	@Override
 	public void error(ChainChannel<Message> chain, Throwable e) {
 		super.error(chain, e);
-		e.printStackTrace();
 	}
 
 	public Wildcards<Servlet> getServlets() {

@@ -36,8 +36,8 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 		if (buffer == null) {
 			buffer = new DataBuffer();
 		} else {
-			// bounds的特殊值标记缓存状态
-			buffer.bounds = -1;
+			// length的特殊值标记缓存状态
+			buffer.length = 0;
 		}
 		return buffer;
 	}
@@ -58,8 +58,6 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	private DataBufferUnit write;
 
 	private int length;
-	private int bounds;
-	private int units;
 
 	// 必须至少保留一个ByteBufferUnit
 	// 对于获取DataBuffer的程序而言，至少需要一个ByteBufferUnit
@@ -68,24 +66,34 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 
 	private DataBuffer() {
 		read = write = DataBufferUnit.get();
-		bounds = -1;
-		length = 0;
-		units = 1;
 		mark = null;
+		length = 0;
 	}
 
 	/**
-	 * 获取缓存持有的单元数量
+	 * 获取缓存持有的单元数量（将遍历所有单元以计算数量）
 	 */
 	public final int units() {
+		int units = 0;
+		DataBufferUnit unit = read;
+		while (unit != null) {
+			unit = unit.next();
+			units++;
+		}
 		return units;
 	}
 
 	/**
-	 * 获取缓存总容量
+	 * 获取缓存总容量（将遍历所有单元以计算数量）
 	 */
 	public final int capacity() {
-		return units * DataBufferUnit.UNIT_SIZE;
+		int size = 0;
+		DataBufferUnit unit = read;
+		while (unit != null) {
+			size += unit.size();
+			unit = unit.next();
+		}
+		return size;
 	}
 
 	/**
@@ -99,7 +107,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 * 可读字节数量
 	 */
 	public final int readable() {
-		return bounds < 0 ? length : bounds;
+		return length;
 	}
 
 	/**
@@ -151,12 +159,12 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	/**
 	 * 写入缓存对象中所有字节，参与校验
 	 * 
-	 * @param buffer DataBufferLink
+	 * @param source DataBufferLink
 	 * @throws IOException
 	 */
-	public final void write(DataBuffer buffer) throws IOException {
-		while (buffer.readable() > 0) {
-			write(buffer.readUnsignedByte());
+	public final void write(DataBuffer source) throws IOException {
+		while (source.readable() > 0) {
+			write(source.readUnsignedByte());
 		}
 	}
 
@@ -204,17 +212,17 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	/**
 	 * 读取所有字节到缓存，参与校验
 	 * 
-	 * @param buffer DataBufferLink
+	 * @param target DataBufferLink
 	 * @throws IOException
 	 */
-	public final void read(DataBuffer buffer) throws IOException {
+	public final void read(DataBuffer target) throws IOException {
 		while (readable() > 0) {
-			buffer.write(readUnsignedByte());
+			target.write(readUnsignedByte());
 		}
 	}
 
 	/**
-	 * 标记读取位置，可通过{@link #reset()}恢复标记的位置
+	 * 标记读取位置，可通过{@link #reset()}恢复标记的位置，可通过{@link #erase()}擦除标记的位置
 	 */
 	public final void mark() {
 		mark = read;
@@ -226,121 +234,29 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	}
 
 	/**
-	 * 恢复读取位置，可通过{@link #mark()}标记读取位置
+	 * 恢复读取位置，可通过{@link #mark()}标记读取位置，如果之前未执行{@link #mark()}此方法无任何效果
 	 */
 	public final void reset() {
-		if (mark == null) {
-			throw new IllegalStateException("恢复读取位置之前未标记读取位置");
-		}
-
-		length = 0;
-		read = mark;
-		while (mark != null) {
-			mark.buffer().reset();
-			length += mark.readable();
-			mark = mark.next();
-		}
-	}
-
-	/**
-	 * 设置读取限制，当读取超出范围时抛出异常
-	 *
-	 * @param size 1~readable()
-	 */
-	public final void bounds(int size) {
-		if (size <= 0) {
-			throw new IllegalArgumentException("读取限制参数错误" + size);
-		}
-		if (size > length) {
-			throw new IllegalArgumentException("读取限制参数错误,超出可读范围" + size);
-		}
-		bounds = size;
-	}
-
-	/**
-	 * 丢弃读取限制的数据并返回丢弃数量
-	 *
-	 * @return 0~n
-	 */
-	public final int discard() {
-		if (bounds <= 0) {
-			// 0 表示限制读完
-			// -1 表示未设置限制
-			bounds = -1;
-			return 0;
-		}
-
-		int size = 0;
-		while (bounds >= read.readable()) {
-			bounds -= read.readable();
-			size += read.readable();
-			read = read.apart();
-			units--;
-		}
-		read.readIndex(read.readIndex() + bounds);
-		length -= size;
-		bounds = -1;
-		return size;
-	}
-
-	/**
-	 * 获取范围之外的数据量,如果未设置读取范围,则返回0
-	 */
-	public final int residue() {
-		return bounds > 0 ? length - bounds : 0;
-	}
-
-	/**
-	 * 将当前缓存对象中读取限制之外的剩余数据转移到目标缓存对象中，边界内数据被保留，边界外数据被转移，不参与校验
-	 */
-	public final void residue(DataBuffer target) {
-		// 源对象未标记边界则不会转移任何数据
-		if (bounds > 0) {
-			if (bounds < length) {
-				int u = 1;
-				int size = bounds;
-				// 1.跳过被整个包含在读取限制中的单元
-				DataBufferUnit unit = read;
-				while (size > unit.readable()) {
-					size -= unit.readable();
-					unit = unit.next();
-					u++;
-				}
-
-				// size此时表示当前单元可读部分署于读取限制的数量
-				int index = unit.readIndex() + size;
-				// 处理正好位于限制界限的单元
-				while (index < unit.writeIndex()) {
-					target.writeByte(unit.get(index));
-					index++;
-				}
-				unit.writeIndex(size);
-				write = unit;
-				// 已转移的数量
-				size = index - unit.readIndex() - size;
-
-				// 注意：之后的单元将整体转移，当前单元可能并未全部写完
-
-				// 整体转移后续单元
-				unit = unit.braek();
-				if (unit != null) {
-					// 后续单元无须复制，进行整体转移
-					target.write = target.write.link(unit);
-					target.length += length - bounds;
-					target.units += units - u;
-					units = u;
-				}
-				length = bounds;
-				bounds = -1;
-			} else {
-				// 设置了边界但是没有剩余数据需要转移
+		if (mark != null) {
+			length = 0;
+			read = mark;
+			while (mark != null) {
+				mark.buffer().reset();
+				length += mark.readable();
+				mark = mark.next();
 			}
-		} else if (bounds == 0) {
-			// 无数据需要转移
-		} else {
-			// 未设置边界
-			// 转移残余数据，需要设置读取限制，否则此操作无意义
-			throw new IllegalStateException("未设置读取限制");
+		}
+	}
+
+	/**
+	 * 擦除标记的读取位置，擦除后将无法通过{@link #reset()}恢复，如果之前未执行{@link #mark()}此方法无任何效果
+	 */
+	public final void erase() {
+		if (mark != null) {
+			while (mark != read) {
+				mark = mark.apart();
+			}
+			mark = null;
 		}
 	}
 
@@ -421,11 +337,120 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	}
 
 	/**
+	 * 转移所有数据到目标缓存对象中，转移数据不参与校验，此方法执行数据单元转移，不会执行逐字节复制；
+	 * 读取标记会被擦除，如果要避免擦除应在调用此方法之前执行{@link #reset()}
+	 * 
+	 * @param target 目标缓存对象
+	 */
+	public void transfer(DataBuffer target) {
+		if (length > 0) {
+			erase();
+			if (target.mark != null) {
+				mark();
+			}
+			target.write = target.write.link(read);
+			target.length += length;
+
+			read = write = DataBufferUnit.get();
+			mark = null;
+			length = 0;
+		}
+	}
+
+	/**
+	 * 转移指定数量的数据到目标缓存对象中，转移数据不参与校验，此方法执行数据单元转移，不会执行逐字节复制；
+	 * 读取标记会被擦除，如果要避免擦除应在调用此方法之前执行{@link #reset()}
+	 * 
+	 * @param target 目标缓存对象
+	 * @param size 要转移的数据量
+	 */
+	public void transfer(DataBuffer target, int size) {
+		if (size <= 0 || size > length) {
+			throw new IndexOutOfBoundsException(size);
+		}
+		erase();
+		if (target.mark == null && target.length == 0) {
+			if (size == length) {
+				target.length = size;
+				target.read = read;
+				read = target.write;
+				target.write = write;
+				write = read;
+				length = 0;
+			} else {
+				length -= size;
+				target.length += size;
+				if (size >= read.readable()) {
+					DataBufferUnit empty = target.read;
+					target.read = target.write = read;
+					size -= read.readable();
+					read = read.braek();
+
+					while (size >= read.readable()) {
+						size -= read.readable();
+						mark = read;
+						read = read.braek();
+						target.write = target.write.link(mark);
+					}
+					mark = null;
+
+					if (size > 0) {
+						empty.clear();
+						target.write = target.write.link(empty);
+						while (size-- > 0) {
+							target.write.writeByte(read.readByte());
+						}
+					} else {
+						empty.release();
+					}
+				} else {
+					target.read.clear();
+					while (size-- > 0) {
+						target.write.writeByte(read.readByte());
+					}
+				}
+			}
+		} else {
+			if (size == length) {
+				if (target.mark != null) {
+					mark();
+				}
+				target.length += size;
+				target.write = target.write.link(read);
+				write = read = DataBufferUnit.get();
+				length = 0;
+			} else {
+				length -= size;
+				target.length += size;
+				while (size >= read.readable()) {
+					size -= read.readable();
+					mark = read;
+					read = read.braek();
+					if (target.mark != null) {
+						mark.buffer().mark();
+					}
+					target.write = target.write.link(mark);
+				}
+				mark = null;
+
+				if (size > 0) {
+					target.write = target.write.link(DataBufferUnit.get());
+					while (size-- > 0) {
+						target.write.writeByte(read.readByte());
+					}
+					if (target.mark != null) {
+						target.write.buffer().mark();
+					}
+				}
+			}
+		}
+	}
+
+	/**
 	 * 清除所有数据
 	 */
 	public final void clear() {
 		length = 0;
-		bounds = -1;
 
 		if (mark != null) {
 			read = mark;
@@ -434,20 +459,19 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 		// 释放ByteBufferUnit只保留一个
 		while (read.next() != null) {
 			read = read.apart();
-			units--;
 		}
 		write.clear();
 	}
 
 	public void release() {
-		// 利用bounds的特殊值标记是否已释放
-		if (bounds != Integer.MIN_VALUE) {
+		// 利用length的特殊值标记是否已释放
+		if (length != Integer.MIN_VALUE) {
 			clear();
-			bounds = Integer.MIN_VALUE;
+			length = Integer.MIN_VALUE;
 			BYTE_BUFFERS.offer(this);
 		} else {
 			// 重复释放
-			System.out.println("DataBuffer重复释放");
+			throw new IllegalStateException("DataBuffer已释放（回收）");
 		}
 	}
 
@@ -539,7 +563,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 * @return
 	 */
 	public ByteBuffer[] reads() {
-		final ByteBuffer[] buffers = new ByteBuffer[units];
+		final ByteBuffer[] buffers = new ByteBuffer[units()];
 		DataBufferUnit unit = read;
 		for (int index = 0; index < buffers.length; index++) {
 			buffers[index] = unit.buffer();
@@ -564,7 +588,6 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 					break;
 				} else {
 					read = read.apart();
-					units--;
 				}
 			}
 		}
@@ -603,7 +626,6 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	public void writeByte(byte value) {
 		if (write.isFull()) {
 			write = write.link(DataBufferUnit.get());
-			units++;
 		}
 		length++;
 		write.writeByte(getVerifier().check(value));
@@ -616,19 +638,17 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 
 	@Override
 	public byte readByte() {
-		if (length > 0 && bounds != 0) {
+		if (length > 0) {
 			// 读完后最后可能会残留一个 EMPTY 的单元
 			// 此单元可能会在转移后混入链表中间导致读取抛出异常
 			// 用while循环判断可排除异常,是否有更好的方案避免 EMPTY 单元
 			while (read.isEmpty()) {
 				if (mark == null) {
 					read = read.apart();
-					units--;
 				} else {
 					read = read.next();
 				}
 			}
-			bounds--;
 			length--;
 			return getVerifier().check(read.readByte());
 		}

@@ -24,6 +24,12 @@ public class DataBufferInput extends InputStream {
 		release = false;
 	}
 
+	/**
+	 * 实例化DataBuffer为输入流
+	 * 
+	 * @param buffer DataBuffer
+	 * @param closeRelease 关闭流时是否释放DataBuffer实例
+	 */
 	public DataBufferInput(DataBuffer buffer, boolean closeRelease) {
 		this.buffer = buffer;
 		release = closeRelease;

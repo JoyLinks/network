@@ -77,8 +77,6 @@ public abstract class ODBSClientCoder<M extends ODBSMessage> extends ODBSFrame<M
 			length = reader.readUnsignedMedium();
 			// 判断帧是否接收完
 			if (reader.readable() >= length) {
-				// 解包，设置读取限制
-				reader.bounds(length);
 				// TAG
 				length = reader.readByte();
 				M message = null;

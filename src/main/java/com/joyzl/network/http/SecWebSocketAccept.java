@@ -8,7 +8,6 @@ package com.joyzl.network.http;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
-import java.util.UUID;
 
 /**
  * Sec-WebSocket-Accept
@@ -19,21 +18,16 @@ import java.util.UUID;
 public final class SecWebSocketAccept extends Header {
 
 	public final static String NAME = "Sec-WebSocket-Accept";
+	public final static String GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
 	private String key;
-	private String guid;
 	private String value;
 
 	public SecWebSocketAccept() {
 	}
 
 	public SecWebSocketAccept(String key) {
-		this(key, UUID.randomUUID().toString());
-	}
-
-	public SecWebSocketAccept(String key, String guid) {
 		this.key = key;
-		this.guid = guid;
 	}
 
 	@Override
@@ -45,7 +39,7 @@ public final class SecWebSocketAccept extends Header {
 	public String getHeaderValue() {
 		if (value == null) {
 			// base64( SHA1( Sec-WebSocket-Key + GUID ) )
-			final byte[] bytes = SHA1(key + guid);
+			final byte[] bytes = SHA1(key + GUID);
 			value = new String(Base64.getEncoder().encode(bytes), HTTPCoder.URL_CHARSET);
 		}
 		return value;
@@ -75,13 +69,5 @@ public final class SecWebSocketAccept extends Header {
 
 	public void setKey(String value) {
 		key = value;
-	}
-
-	public String getGuid() {
-		return guid;
-	}
-
-	public void setGuid(String value) {
-		guid = value;
 	}
 }

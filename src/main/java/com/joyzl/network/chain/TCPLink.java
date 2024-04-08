@@ -205,10 +205,6 @@ public class TCPLink<M> extends Client<M> {
 							// 解析数据应减少
 							throw new IllegalStateException("已解析消息但字节数据未减少");
 						}
-						if (read.discard() > 0) {
-							// 解析数据不应出现残留
-							throw new IllegalStateException("设置了读取范围但字节数据有残留");
-						}
 						if (read.readable() > 0) {
 							handler().received(this, receive_message);
 							// 注意:handler().received()方法中可能会调用receive()

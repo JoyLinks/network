@@ -115,9 +115,10 @@ public class WEBSocketCoder {
 					return null;
 				}
 			}
-			// 接收到足够的字节后直接绑定给消息对象
-			reader.bounds(length);
-			message.setContent(reader);
+			// 接收到足够的字节后绑定给消息对象
+			final DataBuffer buffer = DataBuffer.instance();
+			reader.transfer(buffer, length);
+			message.setContent(buffer);
 		} else {
 			message = new WebSocketMessage();
 		}
