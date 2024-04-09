@@ -38,4 +38,8 @@ public abstract class HTTPMessage extends Message {
 	public Map<String, String> getHeaders() {
 		return headers;
 	}
+
+	public void clearHeaders() {
+		headers.clear();
+	}
 }

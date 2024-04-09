@@ -33,7 +33,6 @@ public abstract class WEBClientHandler extends WEBContentCoder implements ChainH
 
 		// 阻止超过最大限制的数据帧
 		if (buffer.readable() > WEBContentCoder.MAX) {
-			client.setResponse(null);
 			buffer.clear();
 			return null;
 		}
@@ -45,6 +44,7 @@ public abstract class WEBClientHandler extends WEBContentCoder implements ChainH
 		if (response.state() == Message.COMMAND) {
 			if (HTTPCoder.readCommand(reader, response)) {
 				response.state(Message.HEADERS);
+				response.clearHeaders();
 			} else {
 				return null;
 			}
@@ -64,7 +64,7 @@ public abstract class WEBClientHandler extends WEBContentCoder implements ChainH
 			}
 		}
 		if (response.state() == Message.COMPLETE) {
-			client.setResponse(null);
+			response.state(Message.COMMAND);
 			return response;
 		}
 
@@ -74,11 +74,6 @@ public abstract class WEBClientHandler extends WEBContentCoder implements ChainH
 	@Override
 	public void beat(ChainChannel<Message> chain) throws Exception {
 		// HTTP 无心跳
-	}
-
-	@Override
-	public void received(ChainChannel<Message> chain, Message message) throws Exception {
-
 	}
 
 	@Override
@@ -111,6 +106,8 @@ public abstract class WEBClientHandler extends WEBContentCoder implements ChainH
 			}
 		}
 		if (request.state() == Message.COMPLETE) {
+			request.clearParameters();
+			request.clearHeaders();
 			request.setContent(null);
 			return buffer;
 		}
@@ -120,7 +117,9 @@ public abstract class WEBClientHandler extends WEBContentCoder implements ChainH
 
 	@Override
 	public void sent(ChainChannel<Message> chain, Message message) throws Exception {
-		if (message.state() == Message.COMPLETE) {
+		// HTTPClient仅发送WEBRequest
+		if (message == null) {
+		} else if (message.state() == Message.COMPLETE) {
 			// 消息发送完成
 			// 接收响应消息
 			chain.receive();
@@ -128,10 +127,6 @@ public abstract class WEBClientHandler extends WEBContentCoder implements ChainH
 			// 再次发送当前消息直至完成
 			chain.send(message);
 		}
-	}
-
-	@Override
-	public void disconnected(ChainChannel<Message> chain) throws Exception {
 	}
 
 	@Override

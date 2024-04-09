@@ -41,7 +41,6 @@ public abstract class WEBServerHandler implements ChainHandler<Message> {
 
 		// 阻止超过最大限制的数据帧
 		if (buffer.readable() > WEBContentCoder.MAX) {
-			slave.setRequest(null);
 			buffer.clear();
 			return null;
 		}
@@ -54,6 +53,7 @@ public abstract class WEBServerHandler implements ChainHandler<Message> {
 		if (request.state() <= Message.COMMAND) {
 			if (HTTPCoder.readCommand(reader, request)) {
 				request.state(Message.HEADERS);
+				request.clearHeaders();
 			} else {
 				return null;
 			}
@@ -61,6 +61,8 @@ public abstract class WEBServerHandler implements ChainHandler<Message> {
 		if (request.state() == Message.HEADERS) {
 			if (HTTPCoder.readHeaders(reader, request)) {
 				request.state(Message.CONTENT);
+				request.clearParameters();
+				request.clearContent();
 			} else {
 				return null;
 			}
@@ -73,7 +75,6 @@ public abstract class WEBServerHandler implements ChainHandler<Message> {
 			}
 		}
 		if (request.state() == Message.COMPLETE) {
-			// slave.setRequest(null);
 			request.state(Message.COMMAND);
 			return request;
 		}
@@ -125,7 +126,8 @@ public abstract class WEBServerHandler implements ChainHandler<Message> {
 			}
 		}
 		if (response.state() == Message.COMPLETE) {
-			response.setContent(null);
+			response.clearContent();
+			response.clearHeaders();
 			return buffer;
 		}
 
@@ -134,7 +136,9 @@ public abstract class WEBServerHandler implements ChainHandler<Message> {
 
 	@Override
 	public void sent(ChainChannel<Message> chain, Message message) throws Exception {
-		if (message.state() == Message.COMPLETE) {
+		// HTTPServer仅发送WEBResponse
+		if (message == null) {
+		} else if (message.state() == Message.COMPLETE) {
 			// 消息发送完成
 			if (chain.getType() == HTTPStatus.CLOSE.code()) {
 				// 链路标记为须关闭

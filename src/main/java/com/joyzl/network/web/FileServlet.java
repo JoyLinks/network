@@ -118,7 +118,7 @@ public abstract class FileServlet extends WEBServlet {
 		todo(request, response, true);
 	}
 
-	private final void todo(WEBRequest request, WEBResponse response, boolean content) throws IOException {
+	private final void todo(WEBRequest request, WEBResponse response, boolean content) throws Exception {
 		final File file = find(request.getURI());
 		if (file == null) {
 			// 文件未找到
@@ -275,7 +275,7 @@ public abstract class FileServlet extends WEBServlet {
 	/**
 	 * 响应部分内容
 	 */
-	private final void parts(Range range, WEBResponse response, File file, boolean content) throws IOException {
+	private final void parts(Range range, WEBResponse response, File file, boolean content) throws Exception {
 		long length = file.length();
 		// 单块请求
 		if (range.getRanges().size() == 1) {

@@ -87,7 +87,7 @@ public class WEBContentCoder extends HTTPCoder {
 			return input;
 		}
 		if (message.getContent() instanceof DataBuffer) {
-			final InputStream input = new DataBufferInput((DataBuffer) message.getContent());
+			final InputStream input = new DataBufferInput((DataBuffer) message.getContent(), true);
 			message.setContent(input);
 			return input;
 		}

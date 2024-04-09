@@ -37,10 +37,18 @@ public abstract class Message {
 
 	private Object content;
 
+	/**
+	 * 消息是否携带内容实体
+	 */
 	public boolean hasContent() {
 		return content != null;
 	}
 
+	/**
+	 * 获取消息内容实体
+	 * 
+	 * @return 可能是DataBuffer, InputStream, File, byte[]
+	 */
 	public Object getContent() {
 		return content;
 	}
@@ -51,28 +59,28 @@ public abstract class Message {
 	 * @param value 可以是DataBuffer, InputStream, File, byte[]
 	 */
 	public void setContent(Object value) {
-		if (value == null) {
-			close(content);
-		}
 		content = value;
 	}
 
+	public void clearContent() throws Exception {
+		if (content != null) {
+			close(content);
+			content = null;
+		}
+	}
+
 	/**
-	 * 关闭消息携带的实体内容
+	 * 关闭/释放消息携带的实体内容
 	 */
-	public static void close(Object value) {
+	public static void close(Object value) throws Exception {
 		if (value == null) {
 			return;
 		} else if (value instanceof Message) {
-			close(((Message) value).getContent());
+			((Message) value).clearContent();
 		} else if (value instanceof DataBuffer) {
 			((DataBuffer) value).release();
 		} else if (value instanceof Closeable) {
-			try {
-				((AutoCloseable) value).close();
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
+			((AutoCloseable) value).close();
 		} else if (value instanceof Collection<?>) {
 			for (Object item : (Collection<?>) value) {
 				close(item);

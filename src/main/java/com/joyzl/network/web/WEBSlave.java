@@ -29,30 +29,28 @@ public class WEBSlave extends TCPSlave<Message> {
 		return ChainType.TCP_HTTP_SLAVE;
 	}
 
+	@Override
+	public void close() {
+		try {
+			response.clearContent();
+			request.clearContent();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		} finally {
+			super.close();
+		}
+	}
+
 	// 服务端提供请求消息暂存以支持消息解码
 	// 在网络传输中可能需要多次接收数据才能完成解码
-	private WEBRequest request;
-	private WEBResponse response;
+	private final WEBRequest request = new WEBRequest();
+	private final WEBResponse response = new WEBResponse();
 
 	protected WEBRequest getRequest() {
-		if (request == null) {
-			return request = new WEBRequest();
-		}
 		return request;
 	}
 
-	protected void setRequest(WEBRequest value) {
-		request = value;
-	}
-
 	protected WEBResponse getResponse() {
-		if (response == null) {
-			return response = new WEBResponse();
-		}
 		return response;
-	}
-
-	protected void setResponse(WEBResponse value) {
-		response = value;
 	}
 }

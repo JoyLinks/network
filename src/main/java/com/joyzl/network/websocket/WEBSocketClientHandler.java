@@ -39,7 +39,7 @@ public abstract class WEBSocketClientHandler extends WEBClientHandler {
 	@Override
 	public void received(ChainChannel<Message> chain, Message message) throws Exception {
 		if (chain.type() == ChainType.TCP_HTTP_SLAVE) {
-			super.received(chain, message);
+			// super.received(chain, message);
 		} else //
 		if (chain.type() == ChainType.TCP_HTTP_SLAVE_WEB_SOCKET) {
 			final WebSocketMessage webSocketMessage = (WebSocketMessage) message;
