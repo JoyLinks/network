@@ -179,10 +179,6 @@ public class WEBContentCoder extends HTTPCoder {
 	 * Content-Length: *<br>
 	 */
 	static void check(HTTPMessage message) throws IOException {
-		if (message.getContent() == null) {
-			// 未设置消息内容不做任何处理
-			return;
-		}
 		if (message.hasHeader(ContentLength.NAME)) {
 			// 用户已设置Content-Length
 			return;
@@ -192,10 +188,17 @@ public class WEBContentCoder extends HTTPCoder {
 			return;
 		}
 
-		long length = size(message);
-
+		// 无论如何必须明确内容输出方式或长度
+		// 既：Transfer-Encoding 和 Content-Length 任何情况下必须出现一个
+		// 如果缺失浏览器会出现长时间请求“挂起”状态
 		// 未经验证，大多数浏览器不建议同时出现 Transfer-Encoding 和 Content-Length
-		if (length < 0 || length > BLOCK) {
+
+		long length = size(message);
+		if (length < 0) {
+			throw new IOException("无法识别的Content类型");
+		} else if (length == 0) {
+			message.addHeader(ContentLength.NAME, "0");
+		} else if (length > BLOCK) {
 			message.addHeader(TransferEncoding.NAME, TransferEncoding.CHUNKED);
 		} else {
 			message.addHeader(ContentLength.NAME, Long.toString(length));
