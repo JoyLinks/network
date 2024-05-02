@@ -121,9 +121,10 @@ public class TCPLink<M> extends Client<M> {
 				// 如果无法建立连接，则自动关闭通道。
 				socket_channel.connect(address, this, ClientConnectHandler.INSTANCE);
 			} catch (Exception e) {
+				handler().error(this, e);
 				// UnresolvedAddressException
 				// java.io.IOException: 在其上下文中，该请求的地址无效。
-				handler().error(this, e);
+				reset();
 			}
 		}
 	}
