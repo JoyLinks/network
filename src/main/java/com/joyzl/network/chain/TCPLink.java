@@ -385,7 +385,7 @@ public class TCPLink<M> extends Client<M> {
 		if (socket_channel != null) {
 			if (connected) {
 				connected = false;
-				if (socket_channel.isOpen()) {
+				if (socket_channel != null && socket_channel.isOpen()) {
 					try {
 						socket_channel.shutdownInput();
 						socket_channel.shutdownOutput();
@@ -401,7 +401,9 @@ public class TCPLink<M> extends Client<M> {
 				}
 			}
 			try {
-				socket_channel.close();
+				if (socket_channel != null) {
+					socket_channel.close();
+				}
 			} catch (IOException e) {
 				handler().error(this, e);
 			} finally {
