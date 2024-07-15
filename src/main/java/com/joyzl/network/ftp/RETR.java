@@ -5,23 +5,11 @@ package com.joyzl.network.ftp;
  * 
  * @author ZhangXi 2024年7月10日
  */
-public class RETR extends FTPMessage {
-
-	private String path;
+public class RETR extends FileMessage {
 
 	@Override
-	protected FTPCommand getCommand() {
+	public FTPCommand getCommand() {
 		return FTPCommand.RETR;
-	}
-
-	@Override
-	protected String getParameter() {
-		return getPath();
-	}
-
-	@Override
-	protected void setParameter(String value) {
-		setPath(value);
 	}
 
 	@Override
@@ -35,17 +23,5 @@ public class RETR extends FTPMessage {
 		// 450, 550
 		// 500, 501, 421, 530
 		return false;
-	}
-
-	@Override
-	protected void finish() {
-	}
-
-	public String getPath() {
-		return path;
-	}
-
-	public void setPath(String value) {
-		path = value;
 	}
 }

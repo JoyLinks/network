@@ -13,7 +13,7 @@ public abstract class FTPMessage {
 	private String text;
 
 	/** 获取控制命令 */
-	protected abstract FTPCommand getCommand();
+	public abstract FTPCommand getCommand();
 
 	/** 获取控制命令参数 */
 	protected abstract String getParameter();
@@ -56,4 +56,12 @@ public abstract class FTPMessage {
 
 	/** 命令完成后的动作 */
 	protected abstract void finish();
+
+	@Override
+	public String toString() {
+		if (getCode() > 0) {
+			return getCode() + " " + getText();
+		}
+		return getCommand().name() + " " + getParameter();
+	}
 }

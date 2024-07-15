@@ -14,7 +14,7 @@ public class MODE extends FTPMessage {
 	private String mode = STREAM;
 
 	@Override
-	protected FTPCommand getCommand() {
+	public FTPCommand getCommand() {
 		return FTPCommand.TYPE;
 	}
 

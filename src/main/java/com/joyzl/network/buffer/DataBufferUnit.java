@@ -175,7 +175,7 @@ public final class DataBufferUnit {
 		// mark=-1时执行ByteBuffer.reset()将抛出InvalidMarkException
 		// Channel只要写入过数据ByteBuffer.position>0
 
-		int current = buffer.position();
+		final int current = buffer.position();
 		buffer.limit(buffer.position());
 		buffer.reset();
 		return current - buffer.position();

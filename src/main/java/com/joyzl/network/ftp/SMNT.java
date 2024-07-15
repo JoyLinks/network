@@ -10,7 +10,7 @@ public class SMNT extends FTPMessage {
 	private String path;
 
 	@Override
-	protected FTPCommand getCommand() {
+	public FTPCommand getCommand() {
 		return FTPCommand.SMNT;
 	}
 
@@ -35,7 +35,7 @@ public class SMNT extends FTPMessage {
 		// 202 命令没有实现，对本站点冗余
 		// 250 请求文件动作完成
 		// 500, 501, 502, 421, 530, 550
-		return getCode() == 230;
+		return getCode() == 202 || getCode() == 230;
 	}
 
 	@Override

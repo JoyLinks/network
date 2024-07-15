@@ -5,23 +5,11 @@ package com.joyzl.network.ftp;
  * 
  * @author ZhangXi 2024年7月10日
  */
-public class STOU extends FTPMessage {
-
-	private String path;
+public class STOU extends FileMessage {
 
 	@Override
-	protected FTPCommand getCommand() {
+	public FTPCommand getCommand() {
 		return FTPCommand.STOU;
-	}
-
-	@Override
-	protected String getParameter() {
-		return getPath();
-	}
-
-	@Override
-	protected void setParameter(String value) {
-		setPath(value);
 	}
 
 	@Override
@@ -35,17 +23,5 @@ public class STOU extends FTPMessage {
 		// 532, 450, 452, 553
 		// 500, 501, 421, 530
 		return false;
-	}
-
-	@Override
-	protected void finish() {
-	}
-
-	public String getPath() {
-		return path;
-	}
-
-	public void setPath(String value) {
-		path = value;
 	}
 }

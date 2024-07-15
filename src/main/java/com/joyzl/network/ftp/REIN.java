@@ -8,7 +8,7 @@ package com.joyzl.network.ftp;
 public class REIN extends FTPMessage {
 
 	@Override
-	protected FTPCommand getCommand() {
+	public FTPCommand getCommand() {
 		return FTPCommand.REIN;
 	}
 

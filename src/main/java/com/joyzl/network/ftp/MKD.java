@@ -10,7 +10,7 @@ public class MKD extends FTPMessage {
 	private String path;
 
 	@Override
-	protected FTPCommand getCommand() {
+	public FTPCommand getCommand() {
 		return FTPCommand.MKD;
 	}
 

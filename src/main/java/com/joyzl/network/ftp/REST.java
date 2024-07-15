@@ -10,7 +10,7 @@ public class REST extends FTPMessage {
 	private long marker;
 
 	@Override
-	protected FTPCommand getCommand() {
+	public FTPCommand getCommand() {
 		return FTPCommand.REST;
 	}
 

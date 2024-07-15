@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import com.joyzl.codec.BigEndianDataInput;
@@ -142,18 +143,92 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	}
 
 	/**
-	 * 写入输入流中的所有字节，参与校验
+	 * 写入输入流中的全部字节(InputStream > DataBuffer)，参与校验
 	 * 
 	 * @param input InputStream
-	 * @throws IOException
+	 * @return 写入数量
 	 */
-	public final void write(InputStream input) throws IOException {
-		int value;
-		while (input.available() > 0) {
-			while ((value = input.read()) >= 0) {
-				write(value);
+	public final int write(final InputStream input) throws IOException {
+		int length = 0, value;
+		while ((value = input.read()) >= 0) {
+			writeByte(value);
+			length++;
+		}
+		return length;
+	}
+
+	/**
+	 * 写入输入流中的指定字节(InputStream > DataBuffer)，参与校验
+	 * 
+	 * @param input InputStream
+	 * @param len 最多可写入数量
+	 * @return 写入数量
+	 */
+	public final int write(final InputStream input, final int len) throws IOException {
+		int length = 0, value;
+		while (len > length && (value = input.read()) >= 0) {
+			writeByte(value);
+			length++;
+		}
+		return length;
+	}
+
+	/**
+	 * 写入通道中的所有字节(FileChannel > DataBuffer)，不参与校验
+	 * 
+	 * @param channel
+	 * @return 写入数量
+	 */
+	public final int write(FileChannel channel) throws IOException {
+		int l, wrotes = 0;
+		while (channel.size() - channel.position() > 0) {
+			if (write.isFull()) {
+				// 防止用已满的ByteBuffer接收数据,将导致读零
+				write = write.link(DataBufferUnit.get());
+			}
+			l = channel.read(write.receive());
+			length += write.received();
+			if (l > 0) {
+				wrotes += l;
+			} else {
+				break;
 			}
 		}
+		return wrotes;
+	}
+
+	/**
+	 * 写入通道中的指定字节(FileChannel > DataBuffer)，不参与校验
+	 * 
+	 * @param channel 打开的文件通道
+	 * @param length 最多可写入数量
+	 * @return 写入数量
+	 */
+	public final int write(FileChannel channel, int len) throws IOException {
+		int l, wrotes = 0;
+		while (len > 0 && channel.size() - channel.position() > 0) {
+			if (write.isFull()) {
+				// 防止用已满的ByteBuffer接收数据,将导致读零
+				write = write.link(DataBufferUnit.get());
+			}
+			if (len >= write.writeable()) {
+				l = channel.read(write.receive());
+				length += write.received();
+			} else {
+				write.receive();
+				// 这是特殊处理，通过设置ByteBuffer.limit值减少数据读入
+				write.braek().writeIndex(write.readIndex() - write.writeable() - len);
+				l = channel.read(write.buffer());
+				length += write.received();
+			}
+			if (l > 0) {
+				wrotes += l;
+				len -= l;
+			} else {
+				break;
+			}
+		}
+		return wrotes;
 	}
 
 	/**
@@ -198,14 +273,53 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	}
 
 	/**
-	 * 读取所有字节到输出流，参与校验
+	 * 读取所有字节到输出流(DataBuffer > OutputStream)，参与校验
 	 * 
 	 * @param output
-	 * @throws IOException
 	 */
 	public final void read(OutputStream output) throws IOException {
 		while (readable() > 0) {
 			output.write(readUnsignedByte());
+		}
+	}
+
+	/**
+	 * 读取指定字节到输出流(DataBuffer > OutputStream)，参与校验
+	 * 
+	 * @param output
+	 */
+	public final void read(OutputStream output, int length) throws IOException {
+		while (length > 0 && readable() > 0) {
+			output.write(readUnsignedByte());
+			length--;
+		}
+	}
+
+	/**
+	 * 读取所有字节到通道(DataBuffer > FileChannel)，不参与校验
+	 * 
+	 * @param channel 打开的文件通道
+	 */
+	public final void read(FileChannel channel) throws IOException {
+		int length;
+		while (readable() > 0) {
+			length = channel.write(read());
+			read(length);
+		}
+	}
+
+	/**
+	 * 读取指定字节到通道(DataBuffer > FileChannel)，不参与校验
+	 * 
+	 * @param channel 打开的文件通道
+	 * @param length 字节数量
+	 */
+	public final void read(FileChannel channel, int length) throws IOException {
+		int l;
+		while (length > 0 && readable() > 0) {
+			l = channel.write(read());
+			read(l);
+			length -= l;
 		}
 	}
 
@@ -534,6 +648,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 * @see #write()
 	 */
 	public void written(int size) {
+		// wrote
 		if (size > 0) {
 			length += size;
 		}

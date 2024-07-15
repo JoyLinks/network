@@ -8,7 +8,7 @@ package com.joyzl.network.ftp;
 public class PASV extends PORT {
 
 	@Override
-	protected FTPCommand getCommand() {
+	public FTPCommand getCommand() {
 		return FTPCommand.PASV;
 	}
 

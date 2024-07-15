@@ -10,7 +10,7 @@ public class ALLO extends FTPMessage {
 	private long size, occupy;
 
 	@Override
-	protected FTPCommand getCommand() {
+	public FTPCommand getCommand() {
 		return FTPCommand.ALLO;
 	}
 

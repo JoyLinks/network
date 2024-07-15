@@ -14,7 +14,7 @@ public class STRU extends FTPMessage {
 	private String structure = FILE;
 
 	@Override
-	protected FTPCommand getCommand() {
+	public FTPCommand getCommand() {
 		return FTPCommand.STRU;
 	}
 

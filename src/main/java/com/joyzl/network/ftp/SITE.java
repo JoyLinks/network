@@ -10,7 +10,7 @@ public class SITE extends FTPMessage {
 	private String name;
 
 	@Override
-	protected FTPCommand getCommand() {
+	public FTPCommand getCommand() {
 		return FTPCommand.SITE;
 	}
 

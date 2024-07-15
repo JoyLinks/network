@@ -19,7 +19,7 @@ public class TYPE extends FTPMessage {
 	private String format = ASCII, show = NOT_PRINT;
 
 	@Override
-	protected FTPCommand getCommand() {
+	public FTPCommand getCommand() {
 		return FTPCommand.TYPE;
 	}
 

@@ -2,6 +2,10 @@ package com.joyzl.network.ftp;
 
 /**
  * 文件传输协议 FTP(File Transfer Protocol)
+ * <p>
+ * RFC959 FILE TRANSFER PROTOCOL (FTP)<br>
+ * RFC1700 ASSIGNED NUMBERS<br>
+ * </p>
  * 
  * @author ZhangXi 2024年7月4日
  */
@@ -9,6 +13,7 @@ public class FTP {
 
 	final static char SPACE = ' ';
 	final static char HYPHEN = '-';
+	final static char SEPARATOR = '/';
 	final static String CRLF = "\r\n";
 
 	public static String codeText(int code) {
@@ -109,6 +114,10 @@ public class FTP {
 
 			// 自定义
 
+			case 901:// 网络未连接/网络无法连接
+				return "Network.";
+			case 902:// 网络忙/等待当前命令返回
+				return "Network busy.";
 			case 999:// 超时
 				return "Timeout.";
 

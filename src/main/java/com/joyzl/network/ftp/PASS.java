@@ -10,7 +10,7 @@ public class PASS extends FTPMessage {
 	private String password;
 
 	@Override
-	protected FTPCommand getCommand() {
+	public FTPCommand getCommand() {
 		return FTPCommand.PASS;
 	}
 

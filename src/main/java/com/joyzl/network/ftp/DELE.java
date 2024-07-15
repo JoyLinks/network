@@ -10,7 +10,7 @@ public class DELE extends FTPMessage {
 	private String path;
 
 	@Override
-	protected FTPCommand getCommand() {
+	public FTPCommand getCommand() {
 		return FTPCommand.DELE;
 	}
 

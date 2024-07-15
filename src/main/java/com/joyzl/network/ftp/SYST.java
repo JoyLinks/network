@@ -7,8 +7,13 @@ package com.joyzl.network.ftp;
  */
 public class SYST extends FTPMessage {
 
+	// RFC1700 Assigned Numbers
+	// OPERATING SYSTEM NAMES
+
+	private String system;
+
 	@Override
-	protected FTPCommand getCommand() {
+	public FTPCommand getCommand() {
 		return FTPCommand.SYST;
 	}
 
@@ -30,5 +35,26 @@ public class SYST extends FTPMessage {
 
 	@Override
 	protected void finish() {
+	}
+
+	@Override
+	protected void setText(String value) {
+		super.setText(value);
+		// 215 UNIX emulated by FileZilla.
+		// 状态代码后第一段字符为操作系统名称
+		int index = value.indexOf(' ');
+		if (index > 0) {
+			setSystem(value.substring(0, index));
+		} else {
+			setSystem(null);
+		}
+	}
+
+	public String getSystem() {
+		return system;
+	}
+
+	protected void setSystem(String value) {
+		system = value;
 	}
 }

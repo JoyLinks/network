@@ -10,18 +10,18 @@ public class USER extends FTPMessage {
 	private String username;
 
 	@Override
-	protected FTPCommand getCommand() {
+	public FTPCommand getCommand() {
 		return FTPCommand.USER;
 	}
 
 	@Override
 	protected String getParameter() {
-		return username;
+		return getUsername();
 	}
 
 	@Override
 	protected void setParameter(String value) {
-		username = value;
+		setUsername(value);
 	}
 
 	@Override

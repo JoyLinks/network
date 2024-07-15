@@ -10,7 +10,7 @@ public class ACCT extends FTPMessage {
 	private String account;
 
 	@Override
-	protected FTPCommand getCommand() {
+	public FTPCommand getCommand() {
 		return FTPCommand.ACCT;
 	}
 

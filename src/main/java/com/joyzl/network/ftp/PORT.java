@@ -8,10 +8,10 @@ package com.joyzl.network.ftp;
 public class PORT extends FTPMessage {
 
 	private String host;
-	private int port1, port2;
+	private int port;
 
 	@Override
-	protected FTPCommand getCommand() {
+	public FTPCommand getCommand() {
 		return FTPCommand.PORT;
 	}
 
@@ -19,7 +19,8 @@ public class PORT extends FTPMessage {
 	protected String getParameter() {
 		// 127,0,0,1,196,146
 		String host_port = host.replace('.', ',');
-		host_port += ',' + port1 + ',' + port2;
+		host_port += ',' + (port >>> 8);
+		host_port += ',' + (port & 0x0F);
 		return host_port;
 	}
 
@@ -29,13 +30,15 @@ public class PORT extends FTPMessage {
 
 		// PORT2
 		int p2 = value.lastIndexOf(',');
-		port2 = Integer.parseInt(value, p2 + 1, value.length(), 10);
 		// PORT1
 		int p1 = value.lastIndexOf(',', p2 - 1);
-		port1 = Integer.parseInt(value, p1 + 1, p2, 10);
 		// HOST
 		host = value.substring(0, p1);
 		host = host.replace(',', '.');
+
+		p1 = Integer.parseInt(value, p1 + 1, p2, 10);
+		p2 = Integer.parseInt(value, p2 + 1, value.length(), 10);
+		port = (p1 << 8) | p2;
 	}
 
 	@Override
@@ -57,19 +60,11 @@ public class PORT extends FTPMessage {
 		host = value;
 	}
 
-	public int getPort1() {
-		return port1;
+	public int getPort() {
+		return port;
 	}
 
-	public void setPort1(int value) {
-		port1 = value;
-	}
-
-	public int getPort2() {
-		return port2;
-	}
-
-	public void setPort2(int value) {
-		port2 = value;
+	public void setPort(int value) {
+		port = value;
 	}
 }
