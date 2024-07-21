@@ -60,33 +60,22 @@ public class FileBlockHandler extends FileHandler {
 		final FileClient client = (FileClient) chain;
 		final FileMessage message = client.getCommand();
 		if ((tag & EOR) > 0) {
-			int l;
-			while (length > 0) {
-				l = client.getChannel().write(reader.read());
-				length -= l;
-				message.setTransferred(message.getTransferred() + l);
-			}
+			reader.read(client.getChannel(), length);
+			message.setTransferred(message.getTransferred() + length);
 			client.closeChannel();
 		} else//
 		if ((tag & EOF) > 0) {
-			int l;
-			while (length > 0) {
-				l = client.getChannel().write(reader.read());
-				length -= l;
-				message.setTransferred(message.getTransferred() + l);
-			}
+			reader.read(client.getChannel(), length);
+			message.setTransferred(message.getTransferred() + length);
 			client.closeChannel();
 		} else//
 		if ((tag & RST) > 0) {
 			// TODO 如何保存这个
 			reader.readASCIIs(length);
 		} else {
-			int l;
-			while (length > 0) {
-				l = client.getChannel().write(reader.read());
-				length -= l;
-				message.setTransferred(message.getTransferred() + l);
-			}
+			reader.read(client.getChannel(), length);
+			message.setTransferred(message.getTransferred() + length);
+
 		}
 		return message;
 	}
@@ -124,13 +113,8 @@ public class FileBlockHandler extends FileHandler {
 				// LENGTH 2B
 				buffer.writeShort((int) length);
 				// DATA
-				int l;
-				while (length > 0) {
-					l = channel.read(buffer.write());
-					buffer.written(l);
-					length -= l;
-					message.setTransferred(message.getTransferred() + l);
-				}
+				length = buffer.write(channel, (int) length);
+				message.setTransferred(message.getTransferred() + length);
 
 				// RST 1B
 				if (message.getTransferred() % MARKE_SIZE == 0) {
@@ -146,13 +130,8 @@ public class FileBlockHandler extends FileHandler {
 				// LENGTH 2B
 				buffer.writeShort((int) length);
 				// DATA
-				int l;
-				while (length > 0) {
-					l = channel.read(buffer.write());
-					buffer.written(l);
-					length -= l;
-					message.setTransferred(message.getTransferred() + l);
-				}
+				length = buffer.write(channel, (int) length);
+				message.setTransferred(message.getTransferred() + length);
 			}
 		} else {
 			client.closeChannel();

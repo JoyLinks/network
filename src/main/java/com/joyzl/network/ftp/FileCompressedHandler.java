@@ -1,5 +1,7 @@
 package com.joyzl.network.ftp;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
 import com.joyzl.network.buffer.DataBuffer;
@@ -11,6 +13,10 @@ import com.joyzl.network.chain.ChainChannel;
  * @author ZhangXi 2024年7月13日
  */
 public class FileCompressedHandler extends FileHandler {
+
+	final static byte ASCII_SPACE = 32;
+	final static byte EBCDIC_SPACE = 64;
+	final static byte IMAGE_SPACE = 0;
 
 	/*-
 	 * 常规数据
@@ -53,34 +59,42 @@ public class FileCompressedHandler extends FileHandler {
 	@Override
 	public FileMessage decode(ChainChannel<FileMessage> chain, DataBuffer reader) throws Exception {
 		final FileClient client = (FileClient) chain;
-
-		reader.mark();
-		byte tag = reader.readByte();
-		if (tag > 0 && tag <= 127) {
-			// 常规数据
-			if (reader.readable() >= tag) {
-
-			} else {
-				reader.reset();
-				return null;
-			}
-		}
-		if ((tag >>> 6) == 2) {
-			// 压缩的重复数据
-		}
-		if ((tag >>> 6) == 3) {
-			// 压缩的填充数据
-		}
-
-		final FileChannel channel = client.getChannel();
-
-		int length;
+		final FileMessage message = client.getCommand();
+		byte tag;
 		while (reader.readable() > 0) {
-			length = channel.write(reader.read());
-			reader.read(length);
-			client.getCommand().setTransferred(client.getCommand().getTransferred() + length);
+			reader.mark();
+			tag = reader.readByte();
+			if (tag > 0 && tag <= 127) {
+				// 常规数据
+				if (reader.readable() >= tag) {
+					reader.read(client.getChannel(), tag);
+					message.setTransferred(message.getTransferred() + tag);
+				} else {
+					reader.reset();
+					return null;
+				}
+			} else //
+			if ((tag >>> 6) == 2) {
+				// 压缩的重复数据
+				if (reader.readable() > 0) {
+					tag &= 0b00111111;
+					final byte value = reader.readByte();
+					writeBytes(client.getChannel(), value, tag);
+					message.setTransferred(message.getTransferred() + tag);
+				} else {
+					reader.reset();
+					return null;
+				}
+			} else //
+			if ((tag >>> 6) == 3) {
+				// 压缩的填充数据
+				tag &= 0b00111111;
+				writeBytes(client.getChannel(), IMAGE_SPACE, tag);
+				message.setTransferred(message.getTransferred() + tag);
+			}
+			reader.erase();
 		}
-		return client.getCommand();
+		return message;
 	}
 
 	@Override
@@ -142,5 +156,14 @@ public class FileCompressedHandler extends FileHandler {
 				client.send(client.getCommand());
 			}
 		}
+	}
+
+	int writeBytes(FileChannel channel, byte value, int length) throws IOException {
+		final ByteBuffer buffer = ByteBuffer.allocate(length);
+		while (length-- > 0) {
+			buffer.put(value);
+		}
+		buffer.flip();
+		return channel.write(buffer);
 	}
 }

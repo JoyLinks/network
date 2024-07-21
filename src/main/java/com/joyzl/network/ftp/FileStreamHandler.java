@@ -19,12 +19,10 @@ public class FileStreamHandler extends FileHandler {
 	@Override
 	public FileMessage decode(ChainChannel<FileMessage> chain, DataBuffer reader) throws Exception {
 		final FileClient client = (FileClient) chain;
-		final FileChannel channel = client.getChannel();
 
-		if (reader.readable() > 0) {
-			client.getCommand().setTransferred(client.getCommand().getTransferred() + reader.readable());
-			reader.read(channel);
-		}
+		client.getCommand().setTransferred(client.getCommand().getTransferred() + reader.readable());
+		reader.read(client.getChannel());
+
 		return client.getCommand();
 	}
 
