@@ -75,7 +75,10 @@ public final class Session<T> {
 	}
 
 	public final T get(String token) {
-		Token t = TOKENS.get(token);
+		if (token == null) {
+			return null;
+		}
+		final Token t = TOKENS.get(token);
 		if (t == null) {
 			return null;
 		} else {

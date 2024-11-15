@@ -55,4 +55,20 @@ public final class TransferEncoding {
 	 * 用于指代自身（例如：未经过压缩和修改）。除非特别指明，这个标记始终可以被接受。
 	 */
 	public final static String IDENTITY = "identity";
+
+	public static String combine(String a) {
+		if (GZIP.equals(a)) {
+			return "gzip, chunked";
+		}
+		if (DEFLATE.equals(a)) {
+			return "deflate, chunked";
+		}
+		if (IDENTITY.equals(a)) {
+			return "chunked";
+		}
+		if (COMPRESS.equals(a)) {
+			return "compress, chunked";
+		}
+		return "chunked";
+	}
 }

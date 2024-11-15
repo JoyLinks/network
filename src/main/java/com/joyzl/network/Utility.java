@@ -88,4 +88,12 @@ public class Utility {
 		}
 		return true;
 	}
+
+	public static long toLong(String text, int start, int length) {
+		long value = 0;
+		for (int index = 0; index < length; index++) {
+			value += text.charAt(start + index) * (index + 1);
+		}
+		return value;
+	}
 }

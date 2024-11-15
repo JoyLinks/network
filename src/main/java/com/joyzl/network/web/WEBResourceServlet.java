@@ -5,16 +5,10 @@
  */
 package com.joyzl.network.web;
 
-import java.io.File;
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.joyzl.network.SegmentInputStream;
 import com.joyzl.network.Utility;
 import com.joyzl.network.http.AcceptEncoding;
 import com.joyzl.network.http.CacheControl;
@@ -22,7 +16,6 @@ import com.joyzl.network.http.ContentEncoding;
 import com.joyzl.network.http.ContentLength;
 import com.joyzl.network.http.ContentRange;
 import com.joyzl.network.http.ContentType;
-import com.joyzl.network.http.Date;
 import com.joyzl.network.http.ETag;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.Message;
@@ -31,13 +24,12 @@ import com.joyzl.network.http.Range.ByteRange;
 import com.joyzl.network.http.TransferEncoding;
 
 /**
- * 文件资源请求服务
+ * 资源请求服务
  * 
  * @author ZhangXi
  * @date 2020年8月30日
  */
-@Deprecated
-public abstract class FileServlet extends WEBServlet {
+public abstract class WEBResourceServlet extends WEBServlet {
 
 	// Cache-Control: no-store
 	// 缓存中不得存储任何关于客户端请求和服务端响应的内容。每次由客户端发起的请求都会下载完整的响应内容。
@@ -111,51 +103,41 @@ public abstract class FileServlet extends WEBServlet {
 
 	@Override
 	protected void head(WEBRequest request, WEBResponse response) throws Exception {
-		todo(request, response, false);
+		execute(request, response, false);
 	}
 
 	@Override
 	protected void get(WEBRequest request, WEBResponse response) throws Exception {
-		todo(request, response, true);
+		execute(request, response, true);
 	}
 
-	private final void todo(WEBRequest request, WEBResponse response, boolean content) throws Exception {
-		final File file = find(request.getURI());
-		if (file == null) {
-			// 文件未找到
+	private final void execute(WEBRequest request, WEBResponse response, boolean content) throws Exception {
+		final WEBResource resource = find(request.getURI());
+		if (resource == null) {
+			// 资源未找到
 			response.setStatus(HTTPStatus.NOT_FOUND);
-			return;
-		}
-
-		if (file.exists() && file.isFile()) {
-			final long last_modified = file.lastModified() / 1000;
-			final String etag = ETag.makeWTag(file);
-
+		} else {
 			// 公共头部分
-			// Cache-Control、Content-Location、Date、ETag、Expires 和 Vary
-			response.addHeader(CONTENT_LOCATION, request.getURI());
 			response.addHeader(CacheControl.NAME, CacheControl.NO_CACHE);
-			response.addHeader(LAST_MODIFIED, DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(LocalDateTime.ofEpochSecond(last_modified, 0, ZoneOffset.UTC), Date.GMT)));
-			response.addHeader(ACCEPT_RANGES, Range.UNIT);
-			response.addHeader(ETag.NAME, etag);
+			response.addHeader(LAST_MODIFIED, resource.getLastModified());
+			response.addHeader(ETag.NAME, resource.getETag());
 
 			// ETAG不同则返回资源 RFC7232
-			String code = request.getHeader(IF_NONE_MATCH);
-			if (Utility.noEmpty(code)) {
-				if (Utility.equals(code, etag, false)) {
+			String value = request.getHeader(IF_NONE_MATCH);
+			if (Utility.noEmpty(value)) {
+				if (Utility.equals(value, resource.getETag(), false)) {
 					response.setStatus(HTTPStatus.NOT_MODIFIED);
 				} else {
-					response.setStatus(HTTPStatus.OK);
-					whole(request, response, file, content);
+					whole(request, response, resource, content);
 				}
 				return;
 			}
+
 			// ETAG相同则返回资源 RFC7232
-			code = request.getHeader(IF_MATCH);
-			if (Utility.noEmpty(code)) {
-				if (Utility.equals(code, etag, false)) {
-					response.setStatus(HTTPStatus.OK);
-					whole(request, response, file, content);
+			value = request.getHeader(IF_MATCH);
+			if (Utility.noEmpty(value)) {
+				if (Utility.equals(value, resource.getETag(), false)) {
+					whole(request, response, resource, content);
 				} else {
 					response.setStatus(HTTPStatus.PRECONDITION_FAILED);
 				}
@@ -163,24 +145,21 @@ public abstract class FileServlet extends WEBServlet {
 			}
 
 			// 修改时间有更新返回文件内容
-			code = request.getHeader(IF_MODIFIED_SINCE);
-			if (Utility.noEmpty(code)) {
-				final ZonedDateTime d = ZonedDateTime.parse(code, DateTimeFormatter.RFC_1123_DATE_TIME);
-				if (d.toEpochSecond() < last_modified) {
-					response.setStatus(HTTPStatus.OK);
-					whole(request, response, file, content);
+			value = request.getHeader(IF_MODIFIED_SINCE);
+			if (Utility.noEmpty(value)) {
+				if (Utility.equals(value, resource.getLastModified(), false)) {
+					whole(request, response, resource, content);
 				} else {
 					response.setStatus(HTTPStatus.NOT_MODIFIED);
 				}
 				return;
 			}
+
 			// 修改时间未更新返回文件内容
-			code = request.getHeader(IF_UNMODIFIED_SINCE);
-			if (Utility.noEmpty(code)) {
-				final ZonedDateTime d = ZonedDateTime.parse(code, DateTimeFormatter.RFC_1123_DATE_TIME);
-				if (d.toEpochSecond() == last_modified) {
-					response.setStatus(HTTPStatus.OK);
-					whole(request, response, file, content);
+			value = request.getHeader(IF_UNMODIFIED_SINCE);
+			if (Utility.noEmpty(value)) {
+				if (Utility.equals(value, resource.getLastModified(), false)) {
+					whole(request, response, resource, content);
 				} else {
 					response.setStatus(HTTPStatus.PRECONDITION_FAILED);
 				}
@@ -190,142 +169,134 @@ public abstract class FileServlet extends WEBServlet {
 			// RANGE部分请求
 			final Range range = Range.parse(request.getHeader(Range.NAME));
 			if (range != null) {
-				code = request.getHeader(IF_RANGE);
-				if (Utility.noEmpty(code)) {
+				value = request.getHeader(IF_RANGE);
+				if (Utility.noEmpty(value)) {
 					// Last-Modified/ETag相同时Range生效
-					if (Utility.equals(code, etag, false)) {
-						response.setStatus(HTTPStatus.PARTIAL_CONTENT);
-						parts(range, response, file, content);
+					if (Utility.equals(value, resource.getETag(), false)) {
+						parts(request, response, resource, range, content);
+					} else
+					// Last-Modified/ETag相同时Range生效
+					if (Utility.equals(value, resource.getLastModified(), false)) {
+						parts(request, response, resource, range, content);
 					} else {
-						try {
-							final ZonedDateTime d = ZonedDateTime.parse(code, DateTimeFormatter.RFC_1123_DATE_TIME);
-							if (d.toEpochSecond() == last_modified) {
-								response.setStatus(HTTPStatus.PARTIAL_CONTENT);
-								parts(range, response, file, content);
-							} else {
-								response.setStatus(HTTPStatus.OK);
-								whole(request, response, file, content);
-							}
-						} catch (Exception e) {
-							response.setStatus(HTTPStatus.OK);
-							whole(request, response, file, content);
-						}
+						whole(request, response, resource, content);
 					}
 				} else {
-					response.setStatus(HTTPStatus.PARTIAL_CONTENT);
-					parts(range, response, file, content);
+					parts(request, response, resource, range, content);
 				}
 				return;
 			}
 
-			response.setStatus(HTTPStatus.OK);
-			whole(request, response, file, content);
-		} else {
-			response.setStatus(HTTPStatus.NOT_FOUND);
+			// 其它情况
+			whole(request, response, resource, content);
 		}
 	}
 
 	/**
 	 * 响应全部内容
 	 */
-	private final void whole(WEBRequest request, WEBResponse response, File file, boolean content) throws IOException {
-		// Content-Type: text/html
-		response.addHeader(new ContentType(MIMEType.getMIMEType(file)));
-
-		long length = file.length();
+	private final void whole(WEBRequest request, WEBResponse response, WEBResource resource, boolean content) throws IOException {
 		final AcceptEncoding acceptEncoding = AcceptEncoding.parse(request.getHeader(AcceptEncoding.NAME));
-		if (acceptEncoding != null) {
-			if (canCompress(file)) {
-				if (AcceptEncoding.BR.equalsIgnoreCase(acceptEncoding.getValue())) {
-					final File f = br(file);
-					if (f != null) {
-						// Content-Encoding: br
-						response.addHeader(ContentEncoding.NAME, ContentEncoding.BR);
-						length = f.length();
-						file = f;
-					}
-				} else if (AcceptEncoding.GZIP.equalsIgnoreCase(acceptEncoding.getValue())) {
-					final File f = gzip(file);
-					if (f != null) {
-						// Content-Encoding: gzip
-						response.addHeader(ContentEncoding.NAME, ContentEncoding.GZIP);
-						length = f.length();
-						file = f;
-					}
-				} else if (AcceptEncoding.DEFLATE.equalsIgnoreCase(acceptEncoding.getValue())) {
-					final File f = deflate(file);
-					if (f != null) {
-						// Content-Encoding: deflate
-						response.addHeader(ContentEncoding.NAME, ContentEncoding.DEFLATE);
-						length = f.length();
-						file = f;
-					}
-				}
-			}
-		}
+		final String encoding = resource.fitEncoding(acceptEncoding);
+		final long length = resource.getLength(encoding);
+
+		// Content-Type: text/html
+		response.addHeader(ContentType.NAME, resource.getContentType());
+		// Content-Encoding: br/gzip/deflate
+		response.addHeader(ContentEncoding.NAME, encoding);
+
 		if (length < WEBContentCoder.BLOCK) {
+			// Content-Length:9
 			response.addHeader(ContentLength.NAME, Long.toString(length));
 		} else {
+			// Transfer-Encoding: chunked
 			response.addHeader(TransferEncoding.NAME, TransferEncoding.CHUNKED);
+			// Accept-Ranges: bytes
+			response.addHeader(ACCEPT_RANGES, Range.UNIT);
 		}
+
+		response.setStatus(HTTPStatus.OK);
 		if (content) {
-			response.setContent(file);
+			response.setContent(resource.getData(encoding));
 		}
 	}
 
 	/**
 	 * 响应部分内容
 	 */
-	private final void parts(Range range, WEBResponse response, File file, boolean content) throws Exception {
-		long length = file.length();
-		// 单块请求
-		if (range.getRanges().size() == 1) {
-			ByteRange byterange = range.getRanges().get(0);
-			if (byterange.valid(length, WEBContentCoder.BLOCK, WEBContentCoder.MAX)) {
-				response.addHeader(new ContentType(MIMEType.getMIMEType(file)));
-				response.addHeader(new ContentRange(byterange.getStart(), byterange.getEnd(), length));
-				response.addHeader(ContentLength.NAME, Long.toString(byterange.getSize()));
-				if (content) {
-					response.setContent(new SegmentInputStream(file, byterange.getStart(), byterange.getSize()));
+	private final void parts(WEBRequest request, WEBResponse response, WEBResource resource, Range range, boolean content) throws Exception {
+		final AcceptEncoding acceptEncoding = AcceptEncoding.parse(request.getHeader(AcceptEncoding.NAME));
+		final String encoding = resource.fitEncoding(acceptEncoding);
+		final long length = resource.getLength(encoding);
+
+		if (length > WEBContentCoder.BLOCK) {
+			// 单块请求
+			if (range.getRanges().size() == 1) {
+				final ByteRange byterange = range.getRanges().get(0);
+				if (byterange.valid(length, WEBContentCoder.BLOCK, WEBContentCoder.MAX)) {
+					// Content-Type: text/html
+					response.addHeader(ContentType.NAME, resource.getContentType());
+					// Content-Encoding: br/gzip/deflate
+					response.addHeader(ContentEncoding.NAME, encoding);
+					// Content-Range: bytes 200-1000/67589
+					response.addHeader(new ContentRange(byterange.getStart(), byterange.getEnd(), length));
+					response.setStatus(HTTPStatus.PARTIAL_CONTENT);
+					if (content) {
+						response.setContent(resource.getData(encoding, byterange));
+					}
+				} else {
+					response.setStatus(HTTPStatus.RANGE_NOT_SATISFIABLE);
 				}
+			} else
+			// 多块请求
+			if (range.getRanges().size() > 1 && range.getRanges().size() < WEBContentCoder.PART_SIZE) {
+				Part part;
+				ByteRange byterange;
+				final List<Part> parts = new ArrayList<>(range.getRanges().size());
+				for (int index = 0; index < range.getRanges().size(); index++) {
+					byterange = range.getRanges().get(index);
+					if (byterange.valid(length, WEBContentCoder.BLOCK, WEBContentCoder.MAX)) {
+						part = new Part();
+						// Content-Type: text/html
+						part.addHeader(ContentType.NAME, resource.getContentType());
+						// Content-Encoding: br/gzip/deflate
+						response.addHeader(ContentEncoding.NAME, encoding);
+						// Content-Range: bytes 200-1000/67589
+						part.addHeader(new ContentRange(byterange.getStart(), byterange.getEnd(), length));
+						parts.add(part);
+						if (content) {
+							part.setContent(resource.getData(encoding, byterange));
+						}
+					} else {
+						Message.close(parts);
+						response.setStatus(HTTPStatus.RANGE_NOT_SATISFIABLE);
+						return;
+					}
+				}
+				response.addHeader(ContentType.NAME, MIMEType.MULTIPART_BYTERANGES);
+				response.setStatus(HTTPStatus.PARTIAL_CONTENT);
+				response.setContent(parts);
 			} else {
+				// 无效分部请求
 				response.setStatus(HTTPStatus.RANGE_NOT_SATISFIABLE);
 			}
-		} else // 多块请求
-		if (range.getRanges().size() > 1) {
-			final String contentType = MIMEType.getMIMEType(file);
-			final List<Part> parts = new ArrayList<>(range.getRanges().size());
-			for (int index = 0; index < range.getRanges().size(); index++) {
-				ByteRange byterange = range.getRanges().get(index);
-				if (byterange.valid(length, WEBContentCoder.BLOCK, WEBContentCoder.MAX)) {
-					final Part part = new Part();
-					part.addHeader(ContentType.NAME, contentType);
-					part.addHeader(new ContentRange(byterange.getStart(), byterange.getEnd(), length));
-					if (content) {
-						part.setContent(new SegmentInputStream(file, byterange.getStart(), byterange.getSize()));
-					}
-					parts.add(part);
-				} else {
-					Message.close(parts);
-					response.setStatus(HTTPStatus.RANGE_NOT_SATISFIABLE);
-					return;
-				}
-			}
-			response.addHeader(new ContentType(MIMEType.MULTIPART_BYTERANGES));
-			response.setContent(parts);
 		} else {
-			response.setStatus(HTTPStatus.RANGE_NOT_SATISFIABLE);
+			// 资源无须分部请求
+			// Content-Type: text/html
+			response.addHeader(ContentType.NAME, resource.getContentType());
+			// Content-Length:9
+			response.addHeader(ContentLength.NAME, Long.toString(length));
+			// Content-Encoding: br/gzip/deflate
+			response.addHeader(ContentEncoding.NAME, encoding);
+
+			// 200 OK
+			response.setStatus(HTTPStatus.OK);
+			if (content) {
+				response.setContent(resource.getData(encoding));
+			}
 		}
 	}
 
-	protected abstract boolean canCompress(File file);
-
-	protected abstract File find(String uri);
-
-	protected abstract File br(File source) throws IOException;
-
-	protected abstract File gzip(File source) throws IOException;
-
-	protected abstract File deflate(File source) throws IOException;
+	protected abstract WEBResource find(String uri);
 
 }

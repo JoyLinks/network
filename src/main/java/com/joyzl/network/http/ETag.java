@@ -27,14 +27,19 @@ public final class ETag {
 	/**
 	 * 生成弱算法值
 	 * 
-	 * @param file
-	 * @return W/"[length][lastModified][name.ext]"
+	 * @return W/"[length][lastModified]"
 	 */
 	public final static String makeWTag(File file) {
-		final String length = Long.toString(file.length(), Character.MAX_RADIX);
-		final String lastModified = Long.toString(file.lastModified(), Character.MAX_RADIX);
-		final String name = URLEncoder.encode(file.getName(), HTTPCoder.URL_CHARSET);
-		return "W/\"" + length + lastModified + name + "\"";
+		return makeWTag(file.length(), file.lastModified());
+	}
+
+	/**
+	 * 生成弱算法值
+	 * 
+	 * @return W/"[length][lastModified]"
+	 */
+	public final static String makeWTag(long length, long lastModified) {
+		return "W/\"" + Long.toString(length, Character.MAX_RADIX) + Long.toString(lastModified, Character.MAX_RADIX) + "\"";
 	}
 
 	/**

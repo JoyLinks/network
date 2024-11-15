@@ -5,6 +5,8 @@
  */
 package com.joyzl.network.http;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -48,5 +50,25 @@ public final class Date extends Header {
 
 	public void setValue(ZonedDateTime value) {
 		this.value = value;
+	}
+
+	public void setValue(LocalDateTime value) {
+		this.value = value.atZone(GMT);
+	}
+
+	public void setValue(long value) {
+		this.value = ZonedDateTime.ofInstant(Instant.ofEpochMilli(value), Date.GMT);
+	}
+
+	public static String toText(ZonedDateTime value) {
+		return DateTimeFormatter.RFC_1123_DATE_TIME.format(value);
+	}
+
+	public static String toText(LocalDateTime value) {
+		return DateTimeFormatter.RFC_1123_DATE_TIME.format(value.atZone(GMT));
+	}
+
+	public static String toText(long value) {
+		return DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.ofInstant(Instant.ofEpochMilli(value), GMT));
 	}
 }

@@ -12,6 +12,7 @@ import java.time.format.DateTimeFormatter;
 import org.junit.jupiter.api.Test;
 
 import com.joyzl.network.http.Accept;
+import com.joyzl.network.http.AcceptEncoding;
 import com.joyzl.network.http.Authorization;
 import com.joyzl.network.http.CacheControl;
 import com.joyzl.network.http.ContentDisposition;
@@ -140,6 +141,17 @@ class TestHTTPHeaders {
 		assertEquals(accept.getValue(2), "application/xml");
 		assertEquals(accept.getValue(3), "*/*");
 		assertEquals(accept.getHeaderValue(), sample1);
+	}
+
+	@Test
+	void testAcceptEncoding() {
+		final String value = "deflate, gzip;q=1.0, *;q=0.5";
+		AcceptEncoding ae = AcceptEncoding.parse(value);
+		assertEquals(ae.size(), 3);
+		assertEquals(ae.getValue(), "deflate");
+		assertEquals(ae.getValue(0), "deflate");
+		assertEquals(ae.getValue(1), "gzip");
+		assertEquals(ae.getValue(2), "*");
 	}
 
 	@Test

@@ -64,6 +64,11 @@ public final class Wildcards<T> {
 		return items;
 	}
 
+	@SuppressWarnings("unchecked")
+	public final void clear() {
+		ITEMS = (Item<T>[]) Array.newInstance(Item.class, 0);
+	}
+
 	static class Item<T> {
 		final boolean wildcard;
 		final String prefix;

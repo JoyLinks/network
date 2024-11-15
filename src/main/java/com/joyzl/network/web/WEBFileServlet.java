@@ -14,6 +14,7 @@ import com.joyzl.network.Utility;
  * 
  * @author ZhangXi 2023年9月15日
  */
+@Deprecated
 public class WEBFileServlet extends FileServlet {
 
 	/** 主目录 */
@@ -28,6 +29,10 @@ public class WEBFileServlet extends FileServlet {
 
 	public WEBFileServlet(String path) {
 		this(path, null);
+	}
+
+	public WEBFileServlet(File path, File cache) {
+		this(path.getPath(), cache.getPath());
 	}
 
 	public WEBFileServlet(String path, String cache) {

@@ -84,12 +84,23 @@ public abstract class WEBServerHandler implements ChainHandler<Message> {
 
 	@Override
 	public void received(ChainChannel<Message> chain, Message message) throws Exception {
+		final WEBSlave slave = (WEBSlave) chain;
+		try {
+			received(slave, (WEBRequest) message, slave.getResponse());
+		} catch (Exception e) {
+			slave.getResponse().setStatus(HTTPStatus.INTERNAL_SERVER_ERROR);
+		} finally {
+			slave.send(slave.getResponse());
+		}
+
 		// 当HTTP/1.0版本不再支持时以下判断可移除
 		final HTTPMessage httpMessage = (HTTPMessage) message;
 		if (Utility.equals(Connection.CLOSE, httpMessage.getHeader(Connection.NAME), false)) {
 			chain.setType(HTTPStatus.CLOSE.code());
 		}
 	}
+
+	protected abstract void received(WEBSlave slave, WEBRequest request, WEBResponse response) throws Exception;
 
 	@Override
 	public void beat(ChainChannel<Message> chain) throws Exception {

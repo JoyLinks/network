@@ -38,23 +38,19 @@ public class WEBServerBase extends WEBServerHandler {
 	}
 
 	@Override
-	public void received(ChainChannel<Message> chain, Message message) throws Exception {
-		final WEBSlave slave = (WEBSlave) chain;
-		final WEBRequest request = (WEBRequest) message;
-		final WEBResponse response = slave.getResponse();
-
+	public void received(WEBSlave slave, WEBRequest request, WEBResponse response) {
 		request.setURI(HTTPCoder.parseQuery(request.getURI(), request.getParametersMap()));
 		final Servlet servlet = SERVLETS.find(request.getURI());
 		if (servlet == null) {
 			response.setStatus(HTTPStatus.NOT_FOUND);
-			chain.send(response);
+			slave.send(response);
 		} else {
 			try {
-				servlet.service(chain, request, response);
+				servlet.service(slave, request, response);
 			} catch (Exception e) {
 				response.setStatus(HTTPStatus.INTERNAL_SERVER_ERROR);
-				chain.send(response);
-				error(chain, e);
+				slave.send(response);
+				error(slave, e);
 			}
 		}
 	}

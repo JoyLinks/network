@@ -37,6 +37,8 @@ public class WEBContentCoder extends HTTPCoder {
 	public final static int MAX = 1024 * 1024 * 16;
 	/** 实体数据发送块大小 8K */
 	public final static int BLOCK = 1024 * 8;
+	/** 支持分块数量 */
+	public final static int PART_SIZE = MAX / BLOCK;
 
 	/** BOUNDARY 开始和结束标志,分隔时[--BOUNDARY],结束时[--BOUNDARY--] */
 	public final static String BOUNDARY_TAG = "--";
