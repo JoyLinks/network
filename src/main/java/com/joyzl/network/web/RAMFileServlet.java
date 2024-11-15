@@ -7,8 +7,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -33,7 +33,7 @@ public class RAMFileServlet extends WEBResourceServlet {
 	/** 缓存的文件扩展名 */
 	private String[] CACHES = new String[] { ".jpg", ".jpeg", ".png", ".gif" };
 	/** 资源对象缓存 */
-	private final Map<String, WEBResource> resources = new HashMap<>();
+	private final Map<String, WEBResource> resources = new ConcurrentHashMap<>();
 
 	public RAMFileServlet(String root) {
 		this(new File(root));
@@ -56,25 +56,35 @@ public class RAMFileServlet extends WEBResourceServlet {
 					// 查找默认页面
 					file = findDefault(file);
 					if (file != null) {
-						if (canCompress(file)) {
-							resource = new CompressResource(file);
-						} else if (canCache(file)) {
-							resource = new CacheResource(file);
-						} else {
-							resource = new FileResource(file);
+						synchronized (this) {
+							resource = resources.get(uri);
+							if (resource == null) {
+								if (canCompress(file)) {
+									resource = new CompressResource(file);
+								} else if (canCache(file)) {
+									resource = new CacheResource(file);
+								} else {
+									resource = new FileResource(file);
+								}
+								resources.put(uri, resource);
+								resources.put(uri + file.getName(), resource);
+							}
 						}
-						resources.put(uri + file.getName(), resource);
-						resources.put(uri, resource);
 					}
 				} else {
-					if (canCompress(file)) {
-						resource = new CompressResource(file);
-					} else if (canCache(file)) {
-						resource = new CacheResource(file);
-					} else {
-						resource = new FileResource(file);
+					synchronized (this) {
+						resource = resources.get(uri);
+						if (resource == null) {
+							if (canCompress(file)) {
+								resource = new CompressResource(file);
+							} else if (canCache(file)) {
+								resource = new CacheResource(file);
+							} else {
+								resource = new FileResource(file);
+							}
+							resources.put(uri, resource);
+						}
 					}
-					resources.put(uri, resource);
 				}
 			}
 		}
@@ -124,14 +134,18 @@ public class RAMFileServlet extends WEBResourceServlet {
 
 		ByteBuffer identity() throws IOException {
 			if (identity == null) {
-				identity = ByteBuffer.allocateDirect((int) getLength());
-				try (FileInputStream input = new FileInputStream(getFile());
-					FileChannel channel = input.getChannel();) {
-					channel.read(identity);
-					identity.flip();
-				} catch (IOException e) {
-					identity = null;
-					throw e;
+				synchronized (this) {
+					if (identity == null) {
+						identity = ByteBuffer.allocateDirect((int) getLength());
+						try (FileInputStream input = new FileInputStream(getFile());
+							FileChannel channel = input.getChannel();) {
+							channel.read(identity);
+							identity.flip();
+						} catch (IOException e) {
+							identity = null;
+							throw e;
+						}
+					}
 				}
 			}
 			return identity;
@@ -158,31 +172,39 @@ public class RAMFileServlet extends WEBResourceServlet {
 
 		void deflate() throws IOException {
 			if (deflate == null) {
-				final ByteArrayOutputStream buffer = new ByteArrayOutputStream((int) getLength());
-				try (FileInputStream input = new FileInputStream(getFile());
-					DeflaterOutputStream output = new DeflaterOutputStream(buffer);) {
-					input.transferTo(output);
-					output.flush();
-					output.finish();
+				synchronized (this) {
+					if (deflate == null) {
+						final ByteArrayOutputStream buffer = new ByteArrayOutputStream((int) getLength());
+						try (FileInputStream input = new FileInputStream(getFile());
+							DeflaterOutputStream output = new DeflaterOutputStream(buffer);) {
+							input.transferTo(output);
+							output.flush();
+							output.finish();
+						}
+						deflate = ByteBuffer.allocateDirect(buffer.size());
+						deflate.put(buffer.buffer(), 0, buffer.size());
+						deflate.flip();
+					}
 				}
-				deflate = ByteBuffer.allocateDirect(buffer.size());
-				deflate.put(buffer.buffer(), 0, buffer.size());
-				deflate.flip();
 			}
 		}
 
 		void gzip() throws IOException {
 			if (gzip == null) {
-				final ByteArrayOutputStream buffer = new ByteArrayOutputStream((int) getLength());
-				try (FileInputStream input = new FileInputStream(getFile());
-					GZIPOutputStream output = new GZIPOutputStream(buffer)) {
-					input.transferTo(output);
-					output.flush();
-					output.finish();
+				synchronized (this) {
+					if (gzip == null) {
+						final ByteArrayOutputStream buffer = new ByteArrayOutputStream((int) getLength());
+						try (FileInputStream input = new FileInputStream(getFile());
+							GZIPOutputStream output = new GZIPOutputStream(buffer)) {
+							input.transferTo(output);
+							output.flush();
+							output.finish();
+						}
+						gzip = ByteBuffer.allocateDirect(buffer.size());
+						gzip.put(buffer.buffer(), 0, buffer.size());
+						gzip.flip();
+					}
 				}
-				gzip = ByteBuffer.allocateDirect(buffer.size());
-				gzip.put(buffer.buffer(), 0, buffer.size());
-				gzip.flip();
 			}
 		}
 

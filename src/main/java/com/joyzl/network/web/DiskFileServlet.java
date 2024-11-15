@@ -5,8 +5,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -31,7 +31,7 @@ public class DiskFileServlet extends WEBResourceServlet {
 	/** 压缩的文件扩展名 */
 	private String[] COMPRESSES = new String[] { ".html", ".htm", ".css", ".js", ".json", ".xml", ".svg" };
 	/** 资源对象缓存 */
-	private final Map<String, WEBResource> resources = new HashMap<>();
+	private final Map<String, WEBResource> resources = new ConcurrentHashMap<>();
 
 	public DiskFileServlet(String path) {
 		this(new File(path), null);
@@ -62,21 +62,31 @@ public class DiskFileServlet extends WEBResourceServlet {
 					// 查找默认页面
 					file = findDefault(file);
 					if (file != null) {
-						if (canCompress(file)) {
-							resource = new CompressResource(file);
-						} else {
-							resource = new FileResource(file);
+						synchronized (this) {
+							resource = resources.get(uri);
+							if (resource == null) {
+								if (canCompress(file)) {
+									resource = new CompressResource(file);
+								} else {
+									resource = new FileResource(file);
+								}
+								resources.put(uri + file.getName(), resource);
+								resources.put(uri, resource);
+							}
 						}
-						resources.put(uri + file.getName(), resource);
-						resources.put(uri, resource);
 					}
 				} else {
-					if (canCompress(file)) {
-						resource = new CompressResource(file);
-					} else {
-						resource = new FileResource(file);
+					synchronized (this) {
+						resource = resources.get(uri);
+						if (resource == null) {
+							if (canCompress(file)) {
+								resource = new CompressResource(file);
+							} else {
+								resource = new FileResource(file);
+							}
+							resources.put(uri, resource);
+						}
 					}
-					resources.put(uri, resource);
 				}
 			}
 		}
@@ -173,27 +183,35 @@ public class DiskFileServlet extends WEBResourceServlet {
 
 		void deflate() throws IOException {
 			if (deflate == null) {
-				deflate = cacheFile(getFile(), ".dft");
-				try (FileInputStream input = new FileInputStream(getFile());
-					DeflaterOutputStream output = new DeflaterOutputStream(new FileOutputStream(deflate))) {
-					input.transferTo(output);
-					output.flush();
-					output.finish();
+				synchronized (this) {
+					if (deflate == null) {
+						deflate = cacheFile(getFile(), ".dft");
+						try (FileInputStream input = new FileInputStream(getFile());
+							DeflaterOutputStream output = new DeflaterOutputStream(new FileOutputStream(deflate))) {
+							input.transferTo(output);
+							output.flush();
+							output.finish();
+						}
+						deflateLength = deflate.length();
+					}
 				}
-				deflateLength = deflate.length();
 			}
 		}
 
 		void gzip() throws IOException {
 			if (gzip == null) {
-				gzip = cacheFile(getFile(), ".gzp");
-				try (FileInputStream input = new FileInputStream(getFile());
-					GZIPOutputStream output = new GZIPOutputStream(new FileOutputStream(gzip))) {
-					input.transferTo(output);
-					output.flush();
-					output.finish();
+				synchronized (this) {
+					if (gzip == null) {
+						gzip = cacheFile(getFile(), ".gzp");
+						try (FileInputStream input = new FileInputStream(getFile());
+							GZIPOutputStream output = new GZIPOutputStream(new FileOutputStream(gzip))) {
+							input.transferTo(output);
+							output.flush();
+							output.finish();
+						}
+						gzipLength = gzip.length();
+					}
 				}
-				gzipLength = gzip.length();
 			}
 		}
 
