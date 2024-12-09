@@ -35,7 +35,7 @@ import com.joyzl.network.Utility;
  */
 public final class SetCookie extends Header {
 
-	public final static String NAME = "Set-Cookie";
+	public final static String NAME = HTTP.Set_Cookie;
 
 	final static String EXPIRES = "Expires";
 	final static String MAX_AGE = "Max-Age";
@@ -64,7 +64,7 @@ public final class SetCookie extends Header {
 
 	@Override
 	public String getHeaderName() {
-		return NAME;
+		return HTTP.Set_Cookie;
 	}
 
 	@Override

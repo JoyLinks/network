@@ -17,8 +17,12 @@ import com.joyzl.network.http.Range.ByteRange;
  */
 public class FileResource extends WEBResource {
 
+	/** URI */
+	private String contentLocation;
 	/** "Wed, 21 Oct 2015 07:28:00 GMT" */
 	private String lastModified;
+	/** zh */
+	private String contentLanguage;
 	/** MIME Type */
 	private String contentType;
 	/** W/KIJNHYGFRE/ */
@@ -28,14 +32,43 @@ public class FileResource extends WEBResource {
 	private long modified;
 	private long length;
 
-	public FileResource(File file) {
+	public FileResource(File root, File file, boolean weak) {
 		this.file = file;
 		length = file.length();
 		modified = file.lastModified();
 
+		contentLocation = uri(root, file);
 		lastModified = Date.toText(modified);
-		contentType = MIMEType.getMIMEType(file);
-		eTag = ETag.makeWTag(length, modified);
+
+		// index.html.en
+		// index.en.html
+		String extension, name = file.getName();
+		int index = name.lastIndexOf('.');
+		if (index > 0) {
+			int end = name.length();
+			do {
+				extension = name.substring(index + 1, end);
+				if (contentType == null) {
+					contentType = MIMEType.getByExtension(extension);
+				}
+				if (contentLanguage == null) {
+					contentLanguage = LanguageCodes.SEEKER.take(extension);
+				}
+				index = name.lastIndexOf('.', end = index - 1);
+			} while (index > 0);
+		} else {
+			contentType = MIMEType.APPLICATION_OCTET_STREAM;
+		}
+
+		if (weak) {
+			eTag = ETag.makeWeak(length, modified);
+		} else {
+			eTag = ETag.makeStorng(file);
+		}
+	}
+
+	String uri(File root, File file) {
+		return file.getPath().substring(root.getPath().length()).replace('\\', '/');
 	}
 
 	@Override
@@ -56,6 +89,16 @@ public class FileResource extends WEBResource {
 	@Override
 	public InputStream getData(String encoding, ByteRange byterange) throws IOException {
 		return new FilePartInputStream(getFile(), byterange.getStart(), byterange.getSize());
+	}
+
+	@Override
+	public String getContentLocation() {
+		return contentLocation;
+	}
+
+	@Override
+	public String getContentLanguage() {
+		return contentLanguage;
 	}
 
 	@Override

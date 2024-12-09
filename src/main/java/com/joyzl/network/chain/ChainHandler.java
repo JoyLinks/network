@@ -77,19 +77,19 @@ public interface ChainHandler<M> {
 	/**
 	 * 获取读取数据超时时间（毫秒）
 	 * 
-	 * @return 默认0无超时限制
+	 * @return 默认3秒超时限制
 	 */
 	default long getTimeoutRead() {
-		return 0L;
+		return 3000L;
 	}
 
 	/**
 	 * 获取发送数据超时时间（毫秒）
 	 * 
-	 * @return 默认0无超时限制
+	 * @return 默认3秒超时限制
 	 */
 	default long getTimeoutWrite() {
-		return 0L;
+		return 3000L;
 	}
 
 	/**

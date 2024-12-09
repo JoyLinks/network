@@ -8,10 +8,11 @@ package com.joyzl.network.web;
 import java.io.File;
 
 /**
- * MIME类型
+ * MIME类型 RFC2046
  * 
  * <p>
- * 所有注册的MIME-Type由IANA管理https://www.iana.org/assignments/media-types/media-types.xhtml
+ * 所有注册的MIME-Type由IANA管理
+ * https://www.iana.org/assignments/media-types/media-types.xhtml
  * </p>
  * 
  * @author ZhangXi
@@ -32,8 +33,9 @@ public final class MIMEType {
 	public final static String VIDEO = "video";
 	/** 应用 */
 	public final static String APPLICATION = "application";
-
-	/** 细分 */
+	/** 消息 */
+	public final static String MESSAGE = "message";
+	/** 多部 */
 	public final static String MULTIPART = "multipart";
 	/** 浏览器发送信息给服务器,作为多部分文档格式,混合 */
 	public final static String MULTIPART_MIXED = "multipart/mixed";
@@ -43,6 +45,7 @@ public final class MIMEType {
 	public final static String MULTIPART_BYTERANGES = "multipart/byteranges";
 	/** POST请求键值对数据 */
 	public final static String X_WWW_FORM_URLENCODED = "application/x-www-form-urlencoded";
+	public final static String X_FORM_WWW_URLENCODED = "application/x-form-www-urlencoded";
 
 	/** 应用程序文件 */
 	public final static String APPLICATION_OCTET_STREAM = "application/octet-stream";
@@ -74,27 +77,30 @@ public final class MIMEType {
 	/** HTTP TRACE DEBUG */
 	public final static String MESSAGE_HTTP = "message/http";
 
-	public final static String getMIMEType(File file) {
-		return getMIMEType(file.getName());
+	public final static String getByFile(File file) {
+		return getByFilename(file.getName());
 	}
 
-	public final static String getMIMEType(String filename) {
+	public final static String getByFilename(String filename) {
 		if (filename == null || filename.length() <= 0) {
 			return APPLICATION_OCTET_STREAM;
 		}
 
+		String type;
 		int index = filename.lastIndexOf('.');
-		if (index > 0) {
-			return getMIMEType2(filename.substring(index + 1));
+		int end = filename.length();
+		while (index > 0) {
+			type = getByExtension(filename.substring(index + 1, end));
+			if (type == null) {
+				index = filename.lastIndexOf('.', end = index - 1);
+			} else {
+				return type;
+			}
 		}
 		return APPLICATION_OCTET_STREAM;
 	}
 
-	public final static String getMIMEType2(String extension) {
-		if (extension == null || extension.length() <= 0) {
-			return APPLICATION_OCTET_STREAM;
-		}
-
+	public static String getByExtension(String extension) {
 		switch (extension.toLowerCase()) {
 			case "gif":
 				return IMAGE_GIF;
@@ -104,7 +110,6 @@ public final class MIMEType {
 				return IMAGE_PNG;
 			case "svg":
 				return IMAGE_SVG_XML;
-
 			case "css":
 				return TEXT_CSS;
 			case "htm":
@@ -118,9 +123,8 @@ public final class MIMEType {
 				return APPLICATION_JAVA_SCRIPT;
 			case "json":
 				return APPLICATION_JSON;
-
 			default:
-				return APPLICATION_OCTET_STREAM;
+				return null;
 		}
 	}
 

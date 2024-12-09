@@ -20,29 +20,23 @@ import org.junit.jupiter.api.Test;
 import com.joyzl.network.SegmentInputStream;
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.http.ContentType;
-import com.joyzl.network.http.HTTPReader;
-import com.joyzl.network.http.HTTPWriter;
+import com.joyzl.network.http.FormDataCoder;
+import com.joyzl.network.http.HTTPCoder;
+import com.joyzl.network.http.Request;
+import com.joyzl.network.http.Response;
 import com.joyzl.network.web.MIMEType;
-import com.joyzl.network.web.MultipartByteranges;
-import com.joyzl.network.web.MultipartFormData;
 import com.joyzl.network.web.Part;
-import com.joyzl.network.web.WEBRequest;
-import com.joyzl.network.web.WEBResponse;
-import com.joyzl.network.web.XWWWFormUrlencoded;
 
 /**
  * WEB Coder 相关测试
  * 
  * @author ZhangXi 2023年9月8日
  */
-class TestWEBContentCoder {
+class TestContentCoder {
 
 	final DataBuffer buffer = DataBuffer.instance();
-	final HTTPWriter writer = new HTTPWriter(buffer);
-	final HTTPReader reader = new HTTPReader(buffer);
-
-	final WEBRequest request = new WEBRequest();
-	final WEBResponse response = new WEBResponse();
+	final Request request = new Request();
+	final Response response = new Response();
 
 	@BeforeEach
 	void setUp() throws Exception {
@@ -67,9 +61,9 @@ class TestWEBContentCoder {
 		request.setParameter("argment4", "123456");
 		request.setParameter("argment5", "壹贰叁肆伍陆柒捌玖拾");
 
-		XWWWFormUrlencoded.write(writer, request);
+		FormDataCoder.writeXWWWForm(request, buffer);
 		request.clearParameters();
-		XWWWFormUrlencoded.read(reader, request);
+		FormDataCoder.readXWWWForm(request, buffer);
 
 		assertTrue(request.hasParameter("argment1"));
 		assertTrue(request.hasParameter("argment2"));
@@ -99,11 +93,11 @@ class TestWEBContentCoder {
 		parts.add(new Part("argment4", file));
 		request.setContent(parts);
 
-		MultipartFormData.write(writer, request, contentType);
+		FormDataCoder.writeFormData(request, buffer, contentType.getBoundary());
 		// System.out.println(writer);
 		request.clearParameters();
 		request.setContent(null);
-		MultipartFormData.read(reader, request, contentType);
+		FormDataCoder.readFormData(request, buffer, contentType.getBoundary());
 
 		assertTrue(request.hasParameter("argment1"));
 		assertTrue(request.hasParameter("argment2"));
@@ -135,9 +129,9 @@ class TestWEBContentCoder {
 		}
 		response.setContent(parts);
 
-		MultipartByteranges.write(writer, response, contentType);
+		HTTPCoder.writeContentMultipart(buffer, response);
 		response.setContent(null);
-		MultipartByteranges.read(reader, response, contentType);
+		HTTPCoder.readContentMultipart(buffer, response);
 
 		assertNotNull(response.getContent());
 		final InputStream source = new FileInputStream(file);
@@ -151,6 +145,4 @@ class TestWEBContentCoder {
 		}
 		source.close();
 	}
-	
-	
 }

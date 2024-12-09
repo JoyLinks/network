@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.DeflaterOutputStream;
@@ -21,91 +22,83 @@ import com.joyzl.network.http.Range.ByteRange;
  * 
  * @author ZhangXi 2023年9月15日
  */
-public class RAMFileServlet extends WEBResourceServlet {
+public class RAMFileServlet extends FileResourceServlet {
 
-	/** 主目录 */
-	private final File root;
-
-	/** 默认文件名 */
-	private String[] DEFAULTS = new String[] { "default.html", "index.html" };
-	/** 压缩的文件扩展名 */
-	private String[] COMPRESSES = new String[] { ".html", ".htm", ".css", ".js", ".json", ".xml", ".svg" };
 	/** 缓存的文件扩展名 */
-	private String[] CACHES = new String[] { ".jpg", ".jpeg", ".png", ".gif" };
+	private String[] caches = new String[] { ".jpg", ".jpeg", ".png", ".gif" };
 	/** 资源对象缓存 */
 	private final Map<String, WEBResource> resources = new ConcurrentHashMap<>();
 
 	public RAMFileServlet(String root) {
-		this(new File(root));
+		super(new File(root));
 	}
 
 	public RAMFileServlet(File root) {
-		this.root = root;
+		super(root);
 	}
 
 	@Override
-	protected WEBResource find(String uri) {
-		if (uri == null || uri.length() == 0) {
-			uri = "/";
-		}
-		WEBResource resource = resources.get(uri);
+	protected WEBResource find(String path) {
+		WEBResource resource = resources.get(path);
 		if (resource == null) {
-			File file = new File(root, uri);
+			File file = new File(getRoot(), path);
 			if (file.exists()) {
 				if (file.isDirectory()) {
-					// 查找默认页面
-					file = findDefault(file);
-					if (file != null) {
-						synchronized (this) {
-							resource = resources.get(uri);
-							if (resource == null) {
-								if (canCompress(file)) {
-									resource = new CompressResource(file);
-								} else if (canCache(file)) {
-									resource = new CacheResource(file);
-								} else {
-									resource = new FileResource(file);
+					if (path.endsWith("/")) {
+						// 查找默认页面
+						final File page = findDefault(file);
+						if (page != null) {
+							synchronized (this) {
+								resource = resources.get(path);
+								if (resource == null) {
+									if (canCompress(page)) {
+										resource = new CompressResource(getRoot(), page);
+									} else if (canCache(page)) {
+										resource = new CacheResource(getRoot(), page);
+									} else {
+										resource = new FileResource(getRoot(), page, isWeak());
+									}
+									resources.put(resource.getContentLocation(), resource);
+									resources.put(path, resource);
 								}
-								resources.put(uri, resource);
-								resources.put(uri + file.getName(), resource);
 							}
+						} else {
+							// 返回目录资源
+							// 可用于重定向或返回目录列表
+							resource = new DirResource(getRoot(), file, isBrowse());
 						}
+					} else {
+						// 返回目录资源
+						// 可用于重定向或返回目录列表
+						resource = new DirResource(getRoot(), file, isBrowse());
 					}
 				} else {
 					synchronized (this) {
-						resource = resources.get(uri);
+						resource = resources.get(path);
 						if (resource == null) {
 							if (canCompress(file)) {
-								resource = new CompressResource(file);
+								resource = new CompressResource(getRoot(), file);
 							} else if (canCache(file)) {
-								resource = new CacheResource(file);
+								resource = new CacheResource(getRoot(), file);
 							} else {
-								resource = new FileResource(file);
+								resource = new FileResource(getRoot(), file, isWeak());
 							}
-							resources.put(uri, resource);
+							resources.put(path, resource);
 						}
 					}
 				}
+			} else {
+				// 尝试查找
+				resource = FileMultiple.find(file);
 			}
 		}
 		return resource;
 	}
 
-	File findDefault(File path) {
-		File file;
-		for (int index = 0; index < DEFAULTS.length; index++) {
-			file = new File(path, DEFAULTS[index]);
-			if (file.exists() && file.isFile()) {
-				return file;
-			}
-		}
-		return null;
-	}
-
-	boolean canCache(File file) {
-		if (file.length() < WEBContentCoder.MAX) {
-			for (int index = 0; index < CACHES.length; index++) {
-				if (Utility.ends(file.getPath(), CACHES[index], true)) {
+	protected boolean canCache(File file) {
+		if (file.length() < MAX) {
+			for (int index = 0; index < caches.length; index++) {
+				if (Utility.ends(file.getPath(), caches[index], true)) {
 					return true;
 				}
 			}
@@ -113,23 +106,45 @@ public class RAMFileServlet extends WEBResourceServlet {
 		return false;
 	}
 
-	boolean canCompress(File file) {
-		if (file.length() < WEBContentCoder.MAX) {
-			for (int index = 0; index < COMPRESSES.length; index++) {
-				if (Utility.ends(file.getPath(), COMPRESSES[index], true)) {
-					return true;
-				}
+	/**
+	 * 获取应缓存的文件扩展名
+	 */
+	public String[] getCaches() {
+		return caches;
+	}
+
+	/**
+	 * 设置应缓存的文件扩展名
+	 */
+	public void setCaches(String[] values) {
+		if (values == null) {
+			caches = new String[0];
+		} else {
+			caches = values;
+		}
+	}
+
+	/**
+	 * @see #setCaches(String[])
+	 */
+	public void setCaches(Collection<String> values) {
+		if (values == null || values.isEmpty()) {
+			caches = new String[0];
+		} else {
+			caches = new String[values.size()];
+			int index = 0;
+			for (String value : values) {
+				caches[index++] = value;
 			}
 		}
-		return false;
 	}
 
 	class CacheResource extends FileResource {
 
 		private ByteBuffer identity;
 
-		public CacheResource(File file) {
-			super(file);
+		public CacheResource(File root, File file) {
+			super(root, file, isWeak());
 		}
 
 		ByteBuffer identity() throws IOException {
@@ -158,7 +173,7 @@ public class RAMFileServlet extends WEBResourceServlet {
 
 		@Override
 		public InputStream getData(String encoding, ByteRange range) throws IOException {
-			return new ByteBufferInputStream(identity(), range.getStart(), range.getSize());
+			return new ByteBufferPartInputStream(identity(), range.getStart(), range.getSize());
 		}
 	}
 
@@ -166,8 +181,8 @@ public class RAMFileServlet extends WEBResourceServlet {
 
 		private ByteBuffer deflate, gzip;
 
-		public CompressResource(File file) {
-			super(file);
+		public CompressResource(File root, File file) {
+			super(root, file);
 		}
 
 		void deflate() throws IOException {
@@ -258,68 +273,14 @@ public class RAMFileServlet extends WEBResourceServlet {
 			if (encoding != null) {
 				if (AcceptEncoding.GZIP.equals(encoding)) {
 					gzip();
-					return new ByteBufferInputStream(gzip, range.getStart(), range.getSize());
+					return new ByteBufferPartInputStream(gzip, range.getStart(), range.getSize());
 				}
 				if (AcceptEncoding.DEFLATE.equals(encoding)) {
 					deflate();
-					return new ByteBufferInputStream(deflate, range.getStart(), range.getSize());
+					return new ByteBufferPartInputStream(deflate, range.getStart(), range.getSize());
 				}
 			}
-			return new ByteBufferInputStream(identity(), range.getStart(), range.getSize());
-		}
-	}
-
-	/**
-	 * 获取默认文件名，当访问网站地址未指定文件名时按默认文件名顺序查询默认文件资源
-	 */
-	public String[] getDefaults() {
-		return DEFAULTS;
-	}
-
-	/**
-	 * 设置默认文件名，当访问网站地址未指定文件名时按默认文件名顺序查询默认文件资源
-	 */
-	public void setDefaults(String[] values) {
-		if (values == null) {
-			DEFAULTS = new String[0];
-		} else {
-			DEFAULTS = values;
-		}
-	}
-
-	/**
-	 * 获取应压缩的文件扩展名，当浏览器支持内容压缩时，这些扩展名的文件将被压缩以减少字节数量
-	 */
-	public String[] getCompresses() {
-		return COMPRESSES;
-	}
-
-	/**
-	 * 设置应压缩的文件扩展名，当浏览器支持内容压缩时，这些扩展名的文件将被压缩以减少字节数量
-	 */
-	public void setCompresses(String[] values) {
-		if (values == null) {
-			COMPRESSES = new String[0];
-		} else {
-			COMPRESSES = values;
-		}
-	}
-
-	/**
-	 * 获取应缓存的文件扩展名
-	 */
-	public String[] getCaches() {
-		return CACHES;
-	}
-
-	/**
-	 * 设置应缓存的文件扩展名
-	 */
-	public void setCaches(String[] values) {
-		if (values == null) {
-			CACHES = new String[0];
-		} else {
-			CACHES = values;
+			return new ByteBufferPartInputStream(identity(), range.getStart(), range.getSize());
 		}
 	}
 
@@ -336,14 +297,10 @@ public class RAMFileServlet extends WEBResourceServlet {
 			this.buffer = buffer;
 		}
 
-		ByteBufferInputStream(ByteBuffer buffer, long offset, long length) {
-			this.buffer = buffer;
-		}
-
 		@Override
 		public int read() {
 			if (index < buffer.limit()) {
-				return buffer.get(index++);
+				return buffer.get(index++) & 0xFF;
 			}
 			return -1;
 		}
@@ -361,6 +318,53 @@ public class RAMFileServlet extends WEBResourceServlet {
 			if (n >= available()) {
 				n = available();
 				index = buffer.limit();
+				return n;
+			}
+			index += n;
+			return n;
+		}
+	}
+
+	/**
+	 * 包装 ByteBuffer 为 InputStream <br>
+	 * 可将同一个 ByteBuffer 同时包装给多个线程使用
+	 */
+	class ByteBufferPartInputStream extends InputStream {
+
+		private final ByteBuffer buffer;
+		private final int length;
+		private int index;
+
+		ByteBufferPartInputStream(ByteBuffer buffer, long offset, long length) {
+			if (offset + length > buffer.limit()) {
+				throw new IndexOutOfBoundsException();
+			}
+			this.buffer = buffer;
+			this.length = (int) (offset + length);
+			index = (int) offset;
+		}
+
+		@Override
+		public int read() {
+			if (index < length) {
+				return buffer.get(index++) & 0xFF;
+			}
+			return -1;
+		}
+
+		@Override
+		public int available() {
+			return buffer.limit() - index;
+		}
+
+		@Override
+		public long skip(long n) {
+			if (n <= 0) {
+				return 0;
+			}
+			if (n >= available()) {
+				n = available();
+				index = length;
 				return n;
 			}
 			index += n;

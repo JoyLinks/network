@@ -18,6 +18,10 @@ public class DataBufferOutput extends OutputStream {
 
 	private final DataBuffer buffer;
 
+	public DataBufferOutput() {
+		this.buffer = DataBuffer.instance();
+	}
+
 	public DataBufferOutput(DataBuffer buffer) {
 		this.buffer = buffer;
 	}
@@ -35,5 +39,9 @@ public class DataBufferOutput extends OutputStream {
 	@Override
 	public void close() throws IOException {
 		// 不会关闭 DataBuffer
+	}
+
+	public DataBuffer buffer() {
+		return buffer;
 	}
 }

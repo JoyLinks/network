@@ -6,8 +6,12 @@
 package com.joyzl.network.http;
 
 import java.io.File;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
+import com.joyzl.network.Utility;
 
 /**
  * 响应头是资源的特定版本的标识符。
@@ -22,15 +26,15 @@ import java.net.URLEncoder;
  */
 public final class ETag {
 
-	public final static String NAME = "ETag";
+	public final static String NAME = HTTP.ETag;
 
 	/**
 	 * 生成弱算法值
 	 * 
 	 * @return W/"[length][lastModified]"
 	 */
-	public final static String makeWTag(File file) {
-		return makeWTag(file.length(), file.lastModified());
+	public final static String makeWeak(File file) {
+		return makeWeak(file.length(), file.lastModified());
 	}
 
 	/**
@@ -38,46 +42,33 @@ public final class ETag {
 	 * 
 	 * @return W/"[length][lastModified]"
 	 */
-	public final static String makeWTag(long length, long lastModified) {
+	public final static String makeWeak(long length, long lastModified) {
 		return "W/\"" + Long.toString(length, Character.MAX_RADIX) + Long.toString(lastModified, Character.MAX_RADIX) + "\"";
 	}
 
 	/**
-	 * 生成可逆的弱算法值
+	 * 生成强算法值 MD5
 	 * 
 	 * @param file
-	 * @param key
-	 * @return length-lastModified-name.ext-key...
+	 * @return "******"
 	 */
-	public final static String makeMTag(File file, String... keys) {
-		final StringBuilder sb = new StringBuilder();
-		sb.append(Long.toString(file.length(), Character.MAX_RADIX));
-		sb.append("-");
-		sb.append(Long.toString(file.lastModified(), Character.MAX_RADIX));
-		sb.append("-");
-		sb.append(URLEncoder.encode(file.getName(), HTTPCoder.URL_CHARSET));
-		for (int index = 0; index < keys.length; index++) {
-			sb.append("-");
-			sb.append(keys[index]);
-		}
-		return sb.toString();
-	}
-
-	/**
-	 * 拆分可逆的弱算法值
-	 * 
-	 * @param tag
-	 * @return length,lastModified,name.ext,key...
-	 */
-	public final static String[] parseMTag(String tag) {
-		if (tag == null || tag.length() < 3) {
+	public static String makeStorng(File file) {
+		final byte[] buffer = new byte[2048];
+		final MessageDigest md;
+		int i;
+		try (FileInputStream input = new FileInputStream(file)) {
+			md = MessageDigest.getInstance("MD5");
+			do {
+				i = input.read(buffer);
+				if (i > 0) {
+					md.update(buffer, 0, i);
+				}
+			} while (i > 0);
+		} catch (IOException e) {
 			return null;
+		} catch (NoSuchAlgorithmException e) {
+			throw new RuntimeException(e);
 		}
-		final String[] texts = tag.split("-");
-		if (texts.length == 4) {
-			texts[2] = URLDecoder.decode(texts[2], HTTPCoder.URL_CHARSET);
-			return texts;
-		}
-		return null;
+		return Utility.hex(md.digest(), "\"", "\"");
 	}
 }

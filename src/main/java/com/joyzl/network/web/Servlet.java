@@ -18,15 +18,5 @@ import com.joyzl.network.http.Response;
  */
 public abstract class Servlet {
 
-	// METHODS
-	public final static String GET = "GET";
-	public final static String HEAD = "HEAD";
-	public final static String POST = "POST";
-	public final static String PUT = "PUT";
-	public final static String DELETE = "DELETE";
-	public final static String CONNECT = "CONNECT";
-	public final static String OPTIONS = "OPTIONS";
-	public final static String TRACE = "TRACE";
-
 	public abstract void service(ChainChannel<Message> chain, Request request, Response response) throws Exception;
 }

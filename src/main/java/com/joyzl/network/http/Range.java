@@ -31,15 +31,14 @@ import com.joyzl.network.Utility;
  */
 public final class Range extends Header {
 
-	public final static String NAME = "Range";
-
+	public final static String NAME = HTTP.Range;
 	public final static String UNIT = "bytes";
 
 	private final List<ByteRange> ranges = new ArrayList<>();
 
 	@Override
 	public String getHeaderName() {
-		return NAME;
+		return HTTP.Range;
 	}
 
 	@Override
@@ -71,30 +70,48 @@ public final class Range extends Header {
 
 	@Override
 	public void setHeaderValue(String value) {
-		int start = value.indexOf(HTTPCoder.EQUAL);
-		if (start > 0) {
-			String name = null;
-			for (int end = 0, index = ++start; index <= value.length(); index++) {
-				if (index >= value.length() || value.charAt(index) == HTTPCoder.COMMA) {
-					if (name == null) {
-						break;
-					} else if (start < end) {
-						add(new ByteRange(Long.parseUnsignedLong(name), Long.parseUnsignedLong(value, start, end, 10)));
+		// bytes=100-
+		// bytes=-100
+		// bytes=100-200
+		// bytes=100-200, 201-300
+
+		if (value.startsWith(UNIT)) {
+			int start = value.indexOf(HTTPCoder.EQUAL, UNIT.length());
+			if (start > 0) {
+				int minus, end;
+				do {
+					minus = value.indexOf(HTTPCoder.MINUS, ++start);
+					if (minus > 0) {
+						end = value.indexOf(HTTPCoder.COMMA, minus + 1);
+						if (end < 0) {
+							end = value.length();
+						}
+						if (start < minus) {
+							if (minus + 1 < end) {
+								add(new ByteRange(//
+									Long.parseUnsignedLong(value, start, minus, 10), //
+									Long.parseUnsignedLong(value, minus + 1, end, 10)//
+								));
+							} else {
+								add(new ByteRange(Long.parseUnsignedLong(value, start, minus, 10)));
+							}
+						} else if (minus + 1 < end) {
+							add(new ByteRange(-1, Long.parseUnsignedLong(value, minus + 1, end, 10)));
+						} else {
+							break;
+						}
+						start = end + 1;
+						while (start < value.length()) {
+							if (Character.isWhitespace(value.charAt(start))) {
+								start++;
+							} else {
+								break;
+							}
+						}
 					} else {
-						add(new ByteRange(Long.parseUnsignedLong(name)));
+						break;
 					}
-					name = null;
-					end = start = index + 1;
-				} else if (value.charAt(index) == HTTPCoder.MINUS) {
-					name = value.substring(start, end);
-					end = start = index + 1;
-				} else if (Character.isWhitespace(value.charAt(index))) {
-					if (end <= start) {
-						start = index + 1;
-					}
-				} else {
-					end = index + 1;
-				}
+				} while (start < value.length());
 			}
 		}
 	}

@@ -18,13 +18,13 @@ public class LastModified extends Header {
 	 * 包含有 If-Modified-Since 或 If-Unmodified-Since 首部的条件请求会使用这个字段。
 	 */
 
-	public final static String NAME = "Last-Modified";
+	public final static String NAME = HTTP.Last_Modified;
 
 	private ZonedDateTime value;
 
 	@Override
 	public String getHeaderName() {
-		return NAME;
+		return HTTP.Last_Modified;
 	}
 
 	@Override

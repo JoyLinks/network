@@ -23,7 +23,7 @@ import com.joyzl.network.web.MIMEType;
  */
 public final class ContentType extends Header {
 
-	public final static String NAME = "Content-Type";
+	public final static String NAME = HTTP.Content_Type;
 
 	final static String CHARSET = "charset";
 	final static String BOUNDARY = "boundary";
@@ -46,7 +46,7 @@ public final class ContentType extends Header {
 
 	@Override
 	public String getHeaderName() {
-		return NAME;
+		return HTTP.Content_Type;
 	}
 
 	@Override
@@ -66,18 +66,23 @@ public final class ContentType extends Header {
 
 	@Override
 	public void setHeaderValue(String value) {
-		int index;
-		if ((index = value.indexOf(HTTPCoder.SEMI)) > 0) {
-			type = value.substring(0, index);
-			int start = index + 1;
-			for (; start < value.length() && Character.isWhitespace(value.charAt(start)); start++) {
+		int start = value.indexOf(HTTPCoder.SEMI);
+		if (start > 0) {
+			type = value.substring(0, start);
+			start = start + 1;
+			while (start < value.length()) {
+				if (Character.isWhitespace(value.charAt(start))) {
+					start++;
+				} else {
+					break;
+				}
 			}
-			if ((index = value.indexOf(HTTPCoder.EQUAL, start)) > 0) {
-				String name = value.substring(start, index);
-				if (CHARSET.equalsIgnoreCase(name)) {
-					charset = value.substring(index + 1);
-				} else if (BOUNDARY.equalsIgnoreCase(name)) {
-					boundary = value.substring(index + 1);
+			int equal = value.indexOf(HTTPCoder.EQUAL, start);
+			if (equal > 0) {
+				if (Utility.same(CHARSET, value, start, equal)) {
+					charset = value.substring(equal + 1);
+				} else if (Utility.same(BOUNDARY, value, start, equal)) {
+					boundary = value.substring(equal + 1);
 				} else {
 					// 忽略无法识别的附加参数
 				}

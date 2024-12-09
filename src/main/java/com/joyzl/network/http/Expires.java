@@ -10,13 +10,13 @@ import java.time.format.DateTimeFormatter;
  */
 public class Expires extends Header {
 
-	public final static String NAME = "Expires";
+	public final static String NAME = HTTP.Expires;
 
 	private ZonedDateTime value;
 
 	@Override
 	public String getHeaderName() {
-		return NAME;
+		return HTTP.Expires;
 	}
 
 	@Override

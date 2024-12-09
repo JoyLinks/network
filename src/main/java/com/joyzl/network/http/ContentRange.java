@@ -27,7 +27,7 @@ import com.joyzl.network.Utility;
  */
 public class ContentRange extends Header {
 
-	public final static String NAME = "Content-Range";
+	public final static String NAME = HTTP.Content_Range;
 
 	final static String UNIT = "bytes";
 
@@ -51,7 +51,7 @@ public class ContentRange extends Header {
 
 	@Override
 	public String getHeaderName() {
-		return NAME;
+		return HTTP.Content_Range;
 	}
 
 	@Override

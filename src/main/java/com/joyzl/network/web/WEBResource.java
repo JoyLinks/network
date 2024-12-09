@@ -19,6 +19,16 @@ public abstract class WEBResource {
 	public abstract String getContentType();
 
 	/**
+	 * 获取资源语言
+	 */
+	public abstract String getContentLanguage();
+
+	/**
+	 * 获取资源位置
+	 */
+	public abstract String getContentLocation();
+
+	/**
 	 * 获取最后修改日期
 	 */
 	public abstract String getLastModified();

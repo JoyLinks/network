@@ -6,23 +6,28 @@
 package com.joyzl.network.http.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
 import com.joyzl.network.http.Accept;
 import com.joyzl.network.http.AcceptEncoding;
-import com.joyzl.network.http.Authorization;
 import com.joyzl.network.http.CacheControl;
 import com.joyzl.network.http.ContentDisposition;
 import com.joyzl.network.http.ContentLength;
 import com.joyzl.network.http.ContentRange;
 import com.joyzl.network.http.ContentType;
 import com.joyzl.network.http.Cookie;
+import com.joyzl.network.http.HTTP;
 import com.joyzl.network.http.Range;
 import com.joyzl.network.http.SetCookie;
-import com.joyzl.network.http.WWWAuthenticate;
 
 /**
  * HTTP Header 相关测试
@@ -31,6 +36,109 @@ import com.joyzl.network.http.WWWAuthenticate;
  * @date 2021年5月25日
  */
 class TestHTTPHeaders {
+
+	@Test
+	void testAa() {
+		// a(97) - A(65) = 32
+		// [a(97) + A(65)] / 2 = 81
+		// [z(122) + Z(90)] / 2 = 82
+		// 大小写字母异或为32
+		assertEquals('a' ^ 'A', 32);
+		assertEquals('z' ^ 'Z', 32);
+
+		assertNotEquals('a' ^ 'B', 32);
+		assertNotEquals('z' ^ 'Y', 32);
+
+		System.out.println('a' ^ 'A');// 32
+		System.out.println('b' ^ 'A');// 35
+		System.out.println('c' ^ 'A');// 34
+	}
+
+	@Test
+	void testIfString() {
+		final List<StringBuilder> samples = new ArrayList<>();
+		for (int i = 0; i < HTTP.HEADERS.size(); i++) {
+			samples.add(new StringBuilder(HTTP.HEADERS.constants()[i]));
+		}
+
+		String name;
+		// 二分法
+		for (int i = 0; i < samples.size(); i++) {
+			name = HTTP.HEADERS.get(samples.get(i));
+			assertTrue(name == HTTP.HEADERS.constants()[i]);
+		}
+		for (int i = 0; i < samples.size(); i++) {
+			name = HTTP.HEADERS.get(samples.get(i).toString().toLowerCase());
+			assertTrue(name == HTTP.HEADERS.constants()[i]);
+		}
+		for (int i = 0; i < samples.size(); i++) {
+			name = HTTP.HEADERS.get(samples.get(i).toString().toUpperCase());
+			assertTrue(name == HTTP.HEADERS.constants()[i]);
+		}
+		for (int i = 0; i < samples.size(); i++) {
+			name = HTTP.HEADERS.get(samples.get(i).substring(0, samples.get(i).length() - 1));
+			assertTrue(name != HTTP.HEADERS.constants()[i]);
+		}
+		// 朴素法
+		for (int i = 0; i < samples.size(); i++) {
+			name = HTTP.HEADERS.get1(samples.get(i));
+			assertTrue(name == HTTP.HEADERS.constants()[i]);
+		}
+		for (int i = 0; i < samples.size(); i++) {
+			name = HTTP.HEADERS.get1(samples.get(i).toString().toLowerCase());
+			assertTrue(name == HTTP.HEADERS.constants()[i]);
+		}
+		for (int i = 0; i < samples.size(); i++) {
+			name = HTTP.HEADERS.get1(samples.get(i).toString().toUpperCase());
+			assertTrue(name == HTTP.HEADERS.constants()[i]);
+		}
+		for (int i = 0; i < samples.size(); i++) {
+			name = HTTP.HEADERS.get1(samples.get(i).substring(0, samples.get(i).length() - 1));
+			assertTrue(name != HTTP.HEADERS.constants()[i]);
+		}
+		// 无匹配情形
+		name = HTTP.HEADERS.get("X");
+		assertTrue(name.equals("X"));
+		name = HTTP.HEADERS.get("XX");
+		assertTrue(name.equals("XX"));
+
+		// MAP
+		final Map<String, String> map = new HashMap<>();
+		for (int i = 0; i < HTTP.HEADERS.size(); i++) {
+			map.put(HTTP.HEADERS.constants()[i], HTTP.HEADERS.constants()[i]);
+		}
+
+		// 效率比较
+		int size = 10000;
+		long time = System.currentTimeMillis();
+		while (size-- > 0) {
+			for (int i = 0; i < samples.size(); i++) {
+				name = map.get(samples.get(i).toString().toUpperCase());
+			}
+		}
+		time = System.currentTimeMillis() - time;
+		System.out.println("MAP:" + time);
+
+		size = 10000;
+		time = System.currentTimeMillis();
+		while (size-- > 0) {
+			for (int i = 0; i < samples.size(); i++) {
+				name = HTTP.HEADERS.get(samples.get(i));
+			}
+		}
+		time = System.currentTimeMillis() - time;
+		System.out.println("二分法:" + time);
+
+		size = 10000;
+		time = System.currentTimeMillis();
+		while (size-- > 0) {
+			for (int i = 0; i < samples.size(); i++) {
+				name = HTTP.HEADERS.get1(samples.get(i));
+			}
+		}
+		time = System.currentTimeMillis() - time;
+		System.out.println("朴素法:" + time);
+	}
 
 	/**
 	 * <pre>
@@ -155,52 +263,6 @@ class TestHTTPHeaders {
 	}
 
 	@Test
-	void testWWWAuthenticate() {
-		WWWAuthenticate a1 = WWWAuthenticate.parse(" Basic");
-		assertEquals(a1.getType(), "Basic");
-		assertEquals(a1.getHeaderValue(), "Basic");
-		System.out.println(a1);
-
-		WWWAuthenticate a2 = WWWAuthenticate.parse("Basic realm=\"Access to the staging site\"");
-		assertEquals(a2.getType(), "Basic");
-		assertEquals(a2.getValue("realm"), "Access to the staging site");
-		assertEquals(a2.getHeaderValue(), "Basic realm=\"Access to the staging site\"");
-		System.out.println(a2);
-
-		WWWAuthenticate a3 = WWWAuthenticate.parse("Digest qop=\"auth\", realm=\"DS-2CD2310FD-I\", nonce=\"4e555130516a6b304e546f784e7a49334e7a417a59513d3d\"");
-		assertEquals(a3.getType(), "Digest");
-		assertEquals(a3.getValue("qop"), "auth");
-		assertEquals(a3.getValue("realm"), "DS-2CD2310FD-I");
-		assertEquals(a3.getValue("nonce"), "4e555130516a6b304e546f784e7a49334e7a417a59513d3d");
-		assertEquals(a3.getHeaderValue(), "Digest qop=\"auth\", realm=\"DS-2CD2310FD-I\", nonce=\"4e555130516a6b304e546f784e7a49334e7a417a59513d3d\"");
-		System.out.println(a3);
-	}
-
-	@Test
-	void testAuthorization() {
-		Authorization a1 = Authorization.parse(" Basic YWxhZGRpbjpvcGVuc2VzYW1l");
-		assertEquals(a1.getType(), "Basic");
-		assertEquals(a1.getCredentials(), "YWxhZGRpbjpvcGVuc2VzYW1l");
-		assertEquals(a1.getHeaderValue(), "Basic YWxhZGRpbjpvcGVuc2VzYW1l");
-		System.out.println(a1);
-
-		Authorization a3 = Authorization.parse("Digest username=\"admin\", realm=\"DS-2CD2310FD-I\", qop=\"auth\", algorithm=\"MD5\", uri=\"/onvif/device_service\", nonce=\"4e555130516a6b304e546f784e7a49334e7a417a59513d3d\", nc=00000001, cnonce=\"0EE3ED23BFD9A00B2AB542E3BAB85BDB\", response=\"518fd6d1666f9f00a5c5097359188c4e\"");
-		assertEquals(a3.getType(), "Digest");
-		assertEquals(a3.getValue("username"), "admin");
-		assertEquals(a3.getValue("realm"), "DS-2CD2310FD-I");
-		assertEquals(a3.getValue("qop"), "auth");
-		assertEquals(a3.getValue("algorithm"), "MD5");
-		assertEquals(a3.getValue("uri"), "/onvif/device_service");
-		assertEquals(a3.getValue("qop"), "auth");
-		assertEquals(a3.getValue("nonce"), "4e555130516a6b304e546f784e7a49334e7a417a59513d3d");
-		assertEquals(a3.getValue("nc"), "00000001");
-		assertEquals(a3.getValue("cnonce"), "0EE3ED23BFD9A00B2AB542E3BAB85BDB");
-		assertEquals(a3.getValue("response"), "518fd6d1666f9f00a5c5097359188c4e");
-		assertEquals(a3.getHeaderValue(), "Digest username=\"admin\", realm=\"DS-2CD2310FD-I\", qop=\"auth\", algorithm=\"MD5\", uri=\"/onvif/device_service\", nonce=\"4e555130516a6b304e546f784e7a49334e7a417a59513d3d\", nc=00000001, cnonce=\"0EE3ED23BFD9A00B2AB542E3BAB85BDB\", response=\"518fd6d1666f9f00a5c5097359188c4e\"");
-		System.out.println(a3);
-	}
-
-	@Test
 	void testCacheControl() {
 		CacheControl c1 = CacheControl.parse("no-cache");
 		assertEquals(c1.getControl(), CacheControl.NO_CACHE);
@@ -293,11 +355,11 @@ class TestHTTPHeaders {
 
 	@Test
 	void testRange() {
-		Range c1 = Range.parse("Range: bytes=200-1000");
+		Range c1 = Range.parse("bytes=200-1000");
 		assertEquals(c1.getRanges().size(), 1);
 		System.out.println(c1);
 
-		Range c2 = Range.parse("Range: bytes=200-1000, 2000-6576, 19000-");
+		Range c2 = Range.parse("bytes=200-1000, 2000-6576, 19000-");
 		assertEquals(c2.getRanges().size(), 3);
 		System.out.println(c2);
 	}

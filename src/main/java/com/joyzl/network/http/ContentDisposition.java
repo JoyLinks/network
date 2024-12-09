@@ -8,6 +8,7 @@ package com.joyzl.network.http;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import com.joyzl.network.Utility;
 
@@ -59,7 +60,7 @@ public final class ContentDisposition extends Header {
 	public final static String FORM_DATA = "form-data";
 
 	// 常量
-	final static String NAME_ = "name";
+	final static String FIELD = "name";
 	final static String FILENAME = "filename";
 	/**
 	 * RFC5987 Character Set and Language Encoding for Hypertext Transfer
@@ -109,9 +110,9 @@ public final class ContentDisposition extends Header {
 					builder.append(FILENAME_);
 					builder.append(HTTPCoder.EQUAL);
 					builder.append(HTTPCoder.QUOTE);
-					builder.append(HTTPCoder.URL_CHARSET_NAME);
+					builder.append("UTF-8");
 					builder.append(SEPARATER);
-					builder.append(URLEncoder.encode(filename, HTTPCoder.URL_CHARSET));
+					builder.append(URLEncoder.encode(filename, StandardCharsets.UTF_8));
 					builder.append(HTTPCoder.QUOTE);
 				} else {
 					builder.append(FILENAME);
@@ -131,7 +132,7 @@ public final class ContentDisposition extends Header {
 				builder.append(disposition);
 				builder.append(HTTPCoder.SEMI);
 				builder.append(HTTPCoder.SPACE);
-				builder.append(NAME_);
+				builder.append(FIELD);
 				builder.append(HTTPCoder.EQUAL);
 				builder.append(HTTPCoder.QUOTE);
 				builder.append(field);
@@ -143,9 +144,9 @@ public final class ContentDisposition extends Header {
 						builder.append(FILENAME_);
 						builder.append(HTTPCoder.EQUAL);
 						builder.append(HTTPCoder.QUOTE);
-						builder.append(HTTPCoder.URL_CHARSET_NAME);
+						builder.append("UTF-8");
 						builder.append(SEPARATER);
-						builder.append(URLEncoder.encode(filename, HTTPCoder.URL_CHARSET));
+						builder.append(URLEncoder.encode(filename, StandardCharsets.UTF_8));
 						builder.append(HTTPCoder.QUOTE);
 					} else {
 						builder.append(FILENAME);
@@ -172,7 +173,7 @@ public final class ContentDisposition extends Header {
 				if (index >= value.length() || value.charAt(index) == HTTPCoder.SEMI) {
 					if (name == null) {
 						break;
-					} else if (NAME_.equalsIgnoreCase(name)) {
+					} else if (FIELD.equalsIgnoreCase(name)) {
 						field = value.substring(start, end);
 					} else if (FILENAME.equalsIgnoreCase(name)) {
 						filename = value.substring(start, end);

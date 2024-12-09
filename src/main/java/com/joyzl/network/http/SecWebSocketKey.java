@@ -13,5 +13,5 @@ package com.joyzl.network.http;
  */
 public final class SecWebSocketKey {
 
-	public final static String NAME = "Sec-WebSocket-Key";
+	public final static String NAME = HTTP.Sec_WebSocket_Key;
 }

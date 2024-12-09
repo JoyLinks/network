@@ -5,6 +5,7 @@
  */
 package com.joyzl.network.http;
 
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -17,7 +18,7 @@ import java.util.Base64;
  */
 public final class SecWebSocketAccept extends Header {
 
-	public final static String NAME = "Sec-WebSocket-Accept";
+	public final static String NAME = HTTP.Sec_WebSocket_Accept;
 	public final static String GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
 	private String key;
@@ -32,7 +33,7 @@ public final class SecWebSocketAccept extends Header {
 
 	@Override
 	public String getHeaderName() {
-		return NAME;
+		return HTTP.Sec_WebSocket_Accept;
 	}
 
 	@Override
@@ -40,7 +41,7 @@ public final class SecWebSocketAccept extends Header {
 		if (value == null) {
 			// base64( SHA1( Sec-WebSocket-Key + GUID ) )
 			final byte[] bytes = SHA1(key + GUID);
-			value = new String(Base64.getEncoder().encode(bytes), HTTPCoder.URL_CHARSET);
+			value = new String(Base64.getEncoder().encode(bytes), StandardCharsets.UTF_8);
 		}
 		return value;
 	}

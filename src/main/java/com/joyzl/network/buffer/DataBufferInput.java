@@ -69,4 +69,8 @@ public class DataBufferInput extends InputStream {
 	public boolean markSupported() {
 		return true;
 	}
+
+	public DataBuffer buffer() {
+		return buffer;
+	}
 }

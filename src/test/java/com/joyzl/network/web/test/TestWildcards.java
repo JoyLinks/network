@@ -100,6 +100,8 @@ class TestWildcards {
 			value = text + Wildcards.ANY + text;
 			assertEquals(WILDCARDS.find(text + "A" + text), value);
 		}
+		// 空字符
+		assertEquals(WILDCARDS.find(""), "*");
 	}
 
 	@RepeatedTest(10000)

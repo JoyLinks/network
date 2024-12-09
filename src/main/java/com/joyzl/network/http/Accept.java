@@ -28,7 +28,7 @@ import com.joyzl.network.Utility;
  */
 public final class Accept extends QualityValueHeader {
 
-	public final static String NAME = "Accept";
+	public final static String NAME = HTTP.Accept;
 
 	public Accept() {
 	}
@@ -39,7 +39,7 @@ public final class Accept extends QualityValueHeader {
 
 	@Override
 	public String getHeaderName() {
-		return NAME;
+		return HTTP.Accept;
 	}
 
 	public final static Accept parse(String value) {

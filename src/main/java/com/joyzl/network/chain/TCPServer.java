@@ -23,6 +23,7 @@ import com.joyzl.network.Point;
  */
 public class TCPServer<M> extends Server<M> {
 
+	/** MAX pending connections */
 	private final static int BACKLOG = 512;
 
 	private final SocketAddress address;

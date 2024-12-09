@@ -24,10 +24,13 @@ import com.joyzl.network.http.ContentRange;
 import com.joyzl.network.http.ContentType;
 import com.joyzl.network.http.Date;
 import com.joyzl.network.http.ETag;
+import com.joyzl.network.http.HTTPCoder;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.Message;
 import com.joyzl.network.http.Range;
 import com.joyzl.network.http.Range.ByteRange;
+import com.joyzl.network.http.Request;
+import com.joyzl.network.http.Response;
 import com.joyzl.network.http.TransferEncoding;
 
 /**
@@ -109,18 +112,20 @@ public abstract class FileServlet extends WEBServlet {
 	final static String IF_UNMODIFIED_SINCE = "If-Unmodified-Since";
 	final static String IF_RANGE = "If-Range";
 
+	final static int MAX = HTTPCoder.BLOCK_BYTES * 64;
+
 	@Override
-	protected void head(WEBRequest request, WEBResponse response) throws Exception {
+	protected void head(Request request, Response response) throws Exception {
 		todo(request, response, false);
 	}
 
 	@Override
-	protected void get(WEBRequest request, WEBResponse response) throws Exception {
+	protected void get(Request request, Response response) throws Exception {
 		todo(request, response, true);
 	}
 
-	private final void todo(WEBRequest request, WEBResponse response, boolean content) throws Exception {
-		final File file = find(request.getURI());
+	private final void todo(Request request, Response response, boolean content) throws Exception {
+		final File file = find(request.getPath());
 		if (file == null) {
 			// 文件未找到
 			response.setStatus(HTTPStatus.NOT_FOUND);
@@ -129,11 +134,11 @@ public abstract class FileServlet extends WEBServlet {
 
 		if (file.exists() && file.isFile()) {
 			final long last_modified = file.lastModified() / 1000;
-			final String etag = ETag.makeWTag(file);
+			final String etag = ETag.makeWeak(file);
 
 			// 公共头部分
 			// Cache-Control、Content-Location、Date、ETag、Expires 和 Vary
-			response.addHeader(CONTENT_LOCATION, request.getURI());
+			response.addHeader(CONTENT_LOCATION, request.getPath());
 			response.addHeader(CacheControl.NAME, CacheControl.NO_CACHE);
 			response.addHeader(LAST_MODIFIED, DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(LocalDateTime.ofEpochSecond(last_modified, 0, ZoneOffset.UTC), Date.GMT)));
 			response.addHeader(ACCEPT_RANGES, Range.UNIT);
@@ -142,7 +147,7 @@ public abstract class FileServlet extends WEBServlet {
 			// ETAG不同则返回资源 RFC7232
 			String code = request.getHeader(IF_NONE_MATCH);
 			if (Utility.noEmpty(code)) {
-				if (Utility.equals(code, etag, false)) {
+				if (Utility.equal(code, etag)) {
 					response.setStatus(HTTPStatus.NOT_MODIFIED);
 				} else {
 					response.setStatus(HTTPStatus.OK);
@@ -153,7 +158,7 @@ public abstract class FileServlet extends WEBServlet {
 			// ETAG相同则返回资源 RFC7232
 			code = request.getHeader(IF_MATCH);
 			if (Utility.noEmpty(code)) {
-				if (Utility.equals(code, etag, false)) {
+				if (Utility.equal(code, etag)) {
 					response.setStatus(HTTPStatus.OK);
 					whole(request, response, file, content);
 				} else {
@@ -193,7 +198,7 @@ public abstract class FileServlet extends WEBServlet {
 				code = request.getHeader(IF_RANGE);
 				if (Utility.noEmpty(code)) {
 					// Last-Modified/ETag相同时Range生效
-					if (Utility.equals(code, etag, false)) {
+					if (Utility.equal(code, etag)) {
 						response.setStatus(HTTPStatus.PARTIAL_CONTENT);
 						parts(range, response, file, content);
 					} else {
@@ -228,9 +233,9 @@ public abstract class FileServlet extends WEBServlet {
 	/**
 	 * 响应全部内容
 	 */
-	private final void whole(WEBRequest request, WEBResponse response, File file, boolean content) throws IOException {
+	private final void whole(Request request, Response response, File file, boolean content) throws IOException {
 		// Content-Type: text/html
-		response.addHeader(new ContentType(MIMEType.getMIMEType(file)));
+		response.addHeader(new ContentType(MIMEType.getByFile(file)));
 
 		long length = file.length();
 		final AcceptEncoding acceptEncoding = AcceptEncoding.parse(request.getHeader(AcceptEncoding.NAME));
@@ -263,7 +268,7 @@ public abstract class FileServlet extends WEBServlet {
 				}
 			}
 		}
-		if (length < WEBContentCoder.BLOCK) {
+		if (length < HTTPCoder.BLOCK_BYTES) {
 			response.addHeader(ContentLength.NAME, Long.toString(length));
 		} else {
 			response.addHeader(TransferEncoding.NAME, TransferEncoding.CHUNKED);
@@ -276,13 +281,13 @@ public abstract class FileServlet extends WEBServlet {
 	/**
 	 * 响应部分内容
 	 */
-	private final void parts(Range range, WEBResponse response, File file, boolean content) throws Exception {
+	private final void parts(Range range, Response response, File file, boolean content) throws Exception {
 		long length = file.length();
 		// 单块请求
 		if (range.getRanges().size() == 1) {
 			ByteRange byterange = range.getRanges().get(0);
-			if (byterange.valid(length, WEBContentCoder.BLOCK, WEBContentCoder.MAX)) {
-				response.addHeader(new ContentType(MIMEType.getMIMEType(file)));
+			if (byterange.valid(length, HTTPCoder.BLOCK_BYTES, MAX)) {
+				response.addHeader(new ContentType(MIMEType.getByFile(file)));
 				response.addHeader(new ContentRange(byterange.getStart(), byterange.getEnd(), length));
 				response.addHeader(ContentLength.NAME, Long.toString(byterange.getSize()));
 				if (content) {
@@ -293,11 +298,11 @@ public abstract class FileServlet extends WEBServlet {
 			}
 		} else // 多块请求
 		if (range.getRanges().size() > 1) {
-			final String contentType = MIMEType.getMIMEType(file);
+			final String contentType = MIMEType.getByFile(file);
 			final List<Part> parts = new ArrayList<>(range.getRanges().size());
 			for (int index = 0; index < range.getRanges().size(); index++) {
 				ByteRange byterange = range.getRanges().get(index);
-				if (byterange.valid(length, WEBContentCoder.BLOCK, WEBContentCoder.MAX)) {
+				if (byterange.valid(length, HTTPCoder.BLOCK_BYTES, MAX)) {
 					final Part part = new Part();
 					part.addHeader(ContentType.NAME, contentType);
 					part.addHeader(new ContentRange(byterange.getStart(), byterange.getEnd(), length));

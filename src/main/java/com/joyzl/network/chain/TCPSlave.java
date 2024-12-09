@@ -95,7 +95,7 @@ public class TCPSlave<M> extends Slave<M> {
 
 	////////////////////////////////////////////////////////////////////////////////
 
-	private M receive_message;
+	private boolean receiving;
 	private DataBuffer read;
 
 	/**
@@ -107,7 +107,8 @@ public class TCPSlave<M> extends Slave<M> {
 	@Override
 	public void receive() {
 		// 读取
-		if (receive_message == null) {
+		if (!receiving) {
+			receiving = true;
 			if (read == null) {
 				read = DataBuffer.instance();
 			}
@@ -126,13 +127,14 @@ public class TCPSlave<M> extends Slave<M> {
 		if (size > 0) {
 			read.written(size);
 			try {
+				M message;
 				// 多次请求解包直到没有对象返回
 				while (true) {
 					size = read.readable();
 					// 在数据包粘连的情况下，可能会接收到两个数据包的数据
-					receive_message = handler().decode(this, read);
-					if (receive_message == null) {
-						// 未能解析消息对象,继续接收数据
+					message = handler().decode(this, read);
+					if (message == null) {
+						// 已有数据未能解析消息对象,继续接收数据
 						socket_channel.read(//
 							read.write(), // ByteBuffer
 							handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
@@ -142,18 +144,17 @@ public class TCPSlave<M> extends Slave<M> {
 					} else {
 						// 已解析消息对象
 						if (read.readable() >= size) {
+							receiving = false;
 							// 解析数据应减少
 							throw new IllegalStateException("已解析消息但字节数据未减少");
 						}
 						if (read.readable() > 0) {
 							// 注意:以下方法中可能会调用receive()
-							handler().received(this, receive_message);
-							receive_message = null;
+							handler().received(this, message);
 							// 有剩余数据,继续尝试解包
 							continue;
 						} else {
-							final M message = receive_message;
-							receive_message = null;
+							receiving = false;
 							handler().received(this, message);
 							// 没有剩余数据,停止尝试解包
 							break;
@@ -161,7 +162,7 @@ public class TCPSlave<M> extends Slave<M> {
 					}
 				}
 			} catch (Exception e) {
-				receive_message = null;
+				receiving = false;
 				read.release();
 				read = null;
 				handler().error(this, e);
@@ -319,8 +320,8 @@ public class TCPSlave<M> extends Slave<M> {
 		if (socket_channel.isOpen()) {
 			server().offSlave(this);
 			try {
-				socket_channel.shutdownInput();
 				socket_channel.shutdownOutput();
+				socket_channel.shutdownInput();
 				socket_channel.close();
 			} catch (Exception e) {
 				server().handler().error(this, e);

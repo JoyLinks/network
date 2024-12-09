@@ -27,7 +27,7 @@ package com.joyzl.network.http;
  */
 public final class ContentEncoding {
 
-	public final static String NAME = "Content-Encoding";
+	public final static String NAME = HTTP.Content_Encoding;
 
 	/**
 	 * 表示采用Lempel-Ziv coding(LZ77)压缩算法，以及32位CRC校验的编码方式。

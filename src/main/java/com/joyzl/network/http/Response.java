@@ -5,6 +5,8 @@
  */
 package com.joyzl.network.http;
 
+import com.joyzl.network.Utility;
+
 /**
  * HTTP 响应
  * 
@@ -13,9 +15,11 @@ package com.joyzl.network.http;
  */
 public class Response extends HTTPMessage {
 
-	private int status;
-	private String text;
-	private String version;
+	private String version = HTTP.V11;
+	private int status = HTTPStatus.OK.code();
+	private String text = HTTPStatus.OK.text();
+
+	private boolean close;
 
 	public int getStatus() {
 		return status;
@@ -49,5 +53,26 @@ public class Response extends HTTPMessage {
 	@Override
 	public String toString() {
 		return status + " " + version + HTTPCoder.SPACE + text;
+	}
+
+	/**
+	 * 响应后是否关闭链路
+	 */
+	public boolean needClose() {
+		return close;
+	}
+
+	/**
+	 * 设置响应后是否关闭链路，默认由请求时设置
+	 */
+	public void setClose(boolean value) {
+		close = value;
+	}
+
+	/**
+	 * 获取响应内容是否分块发送
+	 */
+	public boolean isChunked() {
+		return Utility.same(TransferEncoding.CHUNKED, getHeader(TransferEncoding.NAME));
 	}
 }

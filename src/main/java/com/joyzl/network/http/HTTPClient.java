@@ -3,11 +3,10 @@
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
  */
-package com.joyzl.network.web;
+package com.joyzl.network.http;
 
 import com.joyzl.network.chain.ChainType;
 import com.joyzl.network.chain.TCPLink;
-import com.joyzl.network.http.Message;
 
 /**
  * WEB HTTP 客户端
@@ -15,9 +14,9 @@ import com.joyzl.network.http.Message;
  * @author ZhangXi
  * @date 2020年6月26日
  */
-public class WEBClient extends TCPLink<Message> {
+public class HTTPClient extends TCPLink<Message> {
 
-	public WEBClient(WEBClientHandler handler, String host, int port) {
+	public HTTPClient(HTTPClientHandler handler, String host, int port) {
 		super(handler, host, port);
 	}
 
@@ -39,9 +38,9 @@ public class WEBClient extends TCPLink<Message> {
 
 	// 客户端提供响应消息暂存以支持消息解码
 	// 在网络传输中可能需要多次接收数据才能完成解码
-	private final WEBResponse response = new WEBResponse();
+	private final Response response = new Response();
 
-	protected WEBResponse getResponse() {
+	protected Response getResponse() {
 		return response;
 	}
 }

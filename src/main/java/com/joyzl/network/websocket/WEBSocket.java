@@ -9,6 +9,7 @@ import com.joyzl.network.Utility;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.http.Connection;
 import com.joyzl.network.http.Date;
+import com.joyzl.network.http.HTTP;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.Message;
 import com.joyzl.network.http.Origin;
@@ -19,7 +20,6 @@ import com.joyzl.network.http.SecWebSocketKey;
 import com.joyzl.network.http.SecWebSocketVersion;
 import com.joyzl.network.http.Upgrade;
 import com.joyzl.network.web.Servlet;
-import com.joyzl.network.web.WEBServlet;
 import com.joyzl.network.web.WEBSlave;
 
 /**
@@ -58,7 +58,7 @@ public abstract class WEBSocket extends Servlet {
 
 	@Override
 	public void service(ChainChannel<Message> chain, Request request, Response response) throws Exception {
-		if (Utility.equals(request.getMethod(), WEBServlet.GET, false)) {
+		if (Utility.equals(request.getMethod(), HTTP.GET, false)) {
 			// Connection: Upgrade
 			final String connection = request.getHeader(Connection.NAME);
 			if (Utility.isEmpty(connection)) {

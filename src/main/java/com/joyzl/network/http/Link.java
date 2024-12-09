@@ -23,14 +23,14 @@ import com.joyzl.network.Utility;
  */
 public final class Link extends Header {
 
-	public final static String NAME = "Link";
+	public final static String NAME = HTTP.Link;
 
 	private final Map<String, String> arguments = new HashMap<>();
 	private String reference;
 
 	@Override
 	public String getHeaderName() {
-		return NAME;
+		return HTTP.Link;
 	}
 
 	@Override

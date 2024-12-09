@@ -3,24 +3,23 @@
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
  */
-package com.joyzl.network.web;
+package com.joyzl.network.http;
 
 import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
 
 import com.joyzl.network.chain.ChainType;
 import com.joyzl.network.chain.TCPServer;
-import com.joyzl.network.http.Message;
 
 /**
- * WEB HTTP服务端
+ * HTTP Server
  *
  * @author ZhangXi
  * @date 2020年6月26日
  */
-public class WEBServer extends TCPServer<Message> {
+public class HTTPServer extends TCPServer<Message> {
 
-	public WEBServer(WEBServerHandler handler, String host, int port) throws IOException {
+	public HTTPServer(HTTPServerHandler handler, String host, int port) throws IOException {
 		super(handler, host, port);
 	}
 
@@ -30,7 +29,7 @@ public class WEBServer extends TCPServer<Message> {
 	}
 
 	@Override
-	protected WEBSlave create(AsynchronousSocketChannel socket_channel) throws IOException {
-		return new WEBSlave(this, socket_channel);
+	protected HTTPSlave create(AsynchronousSocketChannel socket_channel) throws IOException {
+		return new HTTPSlave(this, socket_channel);
 	}
 }

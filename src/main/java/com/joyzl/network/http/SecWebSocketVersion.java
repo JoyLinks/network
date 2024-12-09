@@ -13,7 +13,7 @@ package com.joyzl.network.http;
  */
 public final class SecWebSocketVersion {
 
-	public final static String NAME = "Sec-WebSocket-Version";
+	public final static String NAME = HTTP.Sec_WebSocket_Version;
 
 	public final static String VERSION = "13";
 }

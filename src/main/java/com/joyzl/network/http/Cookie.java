@@ -7,6 +7,7 @@ package com.joyzl.network.http;
 
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,13 +35,13 @@ import com.joyzl.network.Utility;
  */
 public class Cookie extends Header {
 
-	public final static String NAME = "Cookie";
+	public final static String NAME = HTTP.Cookie;
 
 	private final Map<String, String> arguments = new HashMap<>();
 
 	@Override
 	public final String getHeaderName() {
-		return NAME;
+		return HTTP.Cookie;
 	}
 
 	@Override
@@ -61,7 +62,7 @@ public class Cookie extends Header {
 			}
 			sb.append(item.getKey());
 			sb.append(HTTPCoder.EQUAL);
-			sb.append(URLEncoder.encode(item.getValue(), HTTPCoder.URL_CHARSET));
+			sb.append(URLEncoder.encode(item.getValue(), StandardCharsets.UTF_8));
 		}
 		return sb.toString();
 	}
@@ -74,7 +75,7 @@ public class Cookie extends Header {
 				if (name == null) {
 					break;
 				} else {
-					setValue(name, URLDecoder.decode(value.substring(start, end), HTTPCoder.URL_CHARSET));
+					setValue(name, URLDecoder.decode(value.substring(start, end), StandardCharsets.UTF_8));
 				}
 				name = null;
 				end = start = index + 1;

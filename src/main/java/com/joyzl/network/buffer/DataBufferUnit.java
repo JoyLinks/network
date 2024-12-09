@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  */
 public final class DataBufferUnit {
 
-	public final static int UNIT_SIZE = 1024;
+	public final static int BYTES = 1024;
 	private final static ConcurrentLinkedQueue<DataBufferUnit> BYTE_BUFFER_UNITS = new ConcurrentLinkedQueue<>();
 
 	public final static DataBufferUnit get() {
@@ -41,7 +41,7 @@ public final class DataBufferUnit {
 
 		// 为了确保缓冲即可读亦可写必须确保 ByteBuffer的position < limit <= capacity
 		// position表示缓存读位置,limit表示缓存写位置，capacity为容量
-		buffer = ByteBuffer.allocateDirect(UNIT_SIZE);
+		buffer = ByteBuffer.allocateDirect(BYTES);
 		// 新建ByteBufferUnit默认状态为java.nio.DirectByteBuffer[pos=0,lim=2048,cap=2048]
 		buffer.limit(0);
 	}

@@ -5,8 +5,6 @@
  */
 package com.joyzl.network.http;
 
-import com.joyzl.network.Utility;
-
 /**
  * 具有多个权重值的消息头
  * 
@@ -21,7 +19,7 @@ public abstract class QualityValueHeader extends Header {
 	@Override
 	public String getHeaderValue() {
 		if (values == EMPTY) {
-			return Utility.EMPTY_STRIN;
+			return "";
 		}
 		if (values.length == 1) {
 			return getValue();
@@ -42,10 +40,10 @@ public abstract class QualityValueHeader extends Header {
 		return builder.toString();
 	}
 
-	// text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
-
 	@Override
 	public void setHeaderValue(String value) {
+		// text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+
 		char c;
 		for (int begin = 0, end = 0, semi = 0, equal = 0, index = 0; index <= value.length(); index++) {
 			if (index >= value.length() || (c = value.charAt(index)) == HTTPCoder.COMMA) {

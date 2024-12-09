@@ -29,8 +29,12 @@ package com.joyzl.network.http;
  */
 public final class TransferEncoding {
 
-	public final static String NAME = "Transfer-Encoding";
+	public final static String NAME = HTTP.Transfer_Encoding;
 
+	/**
+	 * 用于指代自身（例如：未经过压缩和修改）。除非特别指明，这个标记始终可以被接受。
+	 */
+	public final static String IDENTITY = "identity";
 	/**
 	 * 数据以一系列分块的形式进行发送。Content-Length首部在这种情况下不被发送。
 	 * 在每一个分块的开头需要添加当前分块的长度，以十六进制的形式表示，后面紧跟着'\r\n'，之后是分块本身，后面也是'\r\n'。
@@ -51,10 +55,6 @@ public final class TransferEncoding {
 	 * 这个编码方式最初由UNIX平台上的gzip程序采用。处于兼容性的考虑，HTTP/1.1标准提议支持这种编码方式的服务器应该识别作为别名的x-gzip指令。
 	 */
 	public final static String GZIP = "gzip";
-	/**
-	 * 用于指代自身（例如：未经过压缩和修改）。除非特别指明，这个标记始终可以被接受。
-	 */
-	public final static String IDENTITY = "identity";
 
 	public static String combine(String a) {
 		if (GZIP.equals(a)) {

@@ -623,10 +623,10 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 			size = 1;
 		} else {
 			size -= write.writeable();
-			if (size % DataBufferUnit.UNIT_SIZE > 0) {
-				size = size / DataBufferUnit.UNIT_SIZE + 2;
+			if (size % DataBufferUnit.BYTES > 0) {
+				size = size / DataBufferUnit.BYTES + 2;
 			} else {
-				size = size / DataBufferUnit.UNIT_SIZE + 1;
+				size = size / DataBufferUnit.BYTES + 1;
 			}
 		}
 		// 构建ByteBuffer数组

@@ -5,9 +5,8 @@
  */
 package com.joyzl.network.http;
 
+import java.util.HashMap;
 import java.util.Map;
-
-import com.joyzl.network.CaseInsensitiveMap;
 
 /**
  * Request和Response的父类 提供HTTP Header支持
@@ -15,9 +14,9 @@ import com.joyzl.network.CaseInsensitiveMap;
  * @author ZhangXi
  * @date 2021年10月8日
  */
-public abstract class HTTPMessage extends Message {
+public class HTTPMessage extends Message {
 
-	private final Map<String, String> headers = new CaseInsensitiveMap<>();
+	private final Map<String, String> headers = new HashMap<>();
 
 	public void addHeader(String name, String value) {
 		headers.put(name, value);

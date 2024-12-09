@@ -3,15 +3,11 @@
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
  */
-package com.joyzl.network.web;
+package com.joyzl.network.http;
 
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.chain.ChainHandler;
-import com.joyzl.network.http.HTTPCoder;
-import com.joyzl.network.http.HTTPReader;
-import com.joyzl.network.http.HTTPWriter;
-import com.joyzl.network.http.Message;
 
 /**
  * HTTP CLIENT
@@ -19,7 +15,7 @@ import com.joyzl.network.http.Message;
  * @author ZhangXi
  * @date 2020年6月26日
  */
-public abstract class WEBClientHandler extends WEBContentCoder implements ChainHandler<Message> {
+public abstract class HTTPClientHandler implements ChainHandler<Message> {
 
 	@Override
 	public void connected(ChainChannel<Message> chain) throws Exception {
@@ -29,20 +25,12 @@ public abstract class WEBClientHandler extends WEBContentCoder implements ChainH
 
 	@Override
 	public Message decode(ChainChannel<Message> chain, DataBuffer buffer) throws Exception {
-		final WEBClient client = (WEBClient) chain;
-
-		// 阻止超过最大限制的数据帧
-		if (buffer.readable() > WEBContentCoder.MAX) {
-			buffer.clear();
-			return null;
-		}
-
-		final WEBResponse response = client.getResponse();
+		final HTTPClient client = (HTTPClient) chain;
+		final Response response = client.getResponse();
 
 		// 消息逐段解码
-		final HTTPReader reader = new HTTPReader(buffer);
 		if (response.state() == Message.COMMAND) {
-			if (HTTPCoder.readCommand(reader, response)) {
+			if (HTTPCoder.readCommand(buffer, response)) {
 				response.state(Message.HEADERS);
 				response.clearHeaders();
 			} else {
@@ -50,14 +38,14 @@ public abstract class WEBClientHandler extends WEBContentCoder implements ChainH
 			}
 		}
 		if (response.state() == Message.HEADERS) {
-			if (HTTPCoder.readHeaders(reader, response)) {
+			if (HTTPCoder.readHeaders(buffer, response)) {
 				response.state(Message.CONTENT);
 			} else {
 				return null;
 			}
 		}
 		if (response.state() == Message.CONTENT) {
-			if (WEBContentCoder.read(reader, response)) {
+			if (HTTPCoder.readContent(buffer, response)) {
 				response.state(Message.COMPLETE);
 			} else {
 				return null;
@@ -78,28 +66,26 @@ public abstract class WEBClientHandler extends WEBContentCoder implements ChainH
 
 	@Override
 	public DataBuffer encode(ChainChannel<Message> chain, Message message) throws Exception {
-		final WEBRequest request = (WEBRequest) message;
+		final Request request = (Request) message;
 		final DataBuffer buffer = DataBuffer.instance();
-		final HTTPWriter writer = new HTTPWriter(buffer);
 
 		// 消息逐段编码
 		if (request.state() == Message.COMMAND) {
-			WEBContentCoder.prepare(request);
-			if (HTTPCoder.writeCommand(writer, request)) {
+			if (HTTPCoder.writeCommand(buffer, request)) {
 				request.state(Message.HEADERS);
 			} else {
 				return buffer;
 			}
 		}
 		if (request.state() == Message.HEADERS) {
-			if (HTTPCoder.writeHeaders(writer, request)) {
+			if (HTTPCoder.writeHeaders(buffer, request)) {
 				request.state(Message.CONTENT);
 			} else {
 				return buffer;
 			}
 		}
 		if (request.state() == Message.CONTENT) {
-			if (WEBContentCoder.write(writer, request)) {
+			if (HTTPCoder.writeContent(buffer, request)) {
 				request.state(Message.COMPLETE);
 			} else {
 				return buffer;
@@ -108,7 +94,7 @@ public abstract class WEBClientHandler extends WEBContentCoder implements ChainH
 		if (request.state() == Message.COMPLETE) {
 			request.clearParameters();
 			request.clearHeaders();
-			request.setContent(null);
+			request.clearContent();
 			return buffer;
 		}
 
@@ -127,6 +113,10 @@ public abstract class WEBClientHandler extends WEBContentCoder implements ChainH
 			// 再次发送当前消息直至完成
 			chain.send(message);
 		}
+	}
+
+	@Override
+	public void disconnected(ChainChannel<Message> chain) throws Exception {
 	}
 
 	@Override

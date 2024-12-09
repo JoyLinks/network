@@ -10,7 +10,6 @@ import java.io.FileInputStream;
 
 import com.joyzl.network.http.ContentDisposition;
 import com.joyzl.network.http.ContentType;
-import com.joyzl.network.http.HTTPCoder;
 import com.joyzl.network.http.HTTPMessage;
 
 /**
@@ -20,10 +19,11 @@ import com.joyzl.network.http.HTTPMessage;
  * @author ZhangXi
  * @date 2021年10月13日
  */
+@Deprecated
 public final class Part extends HTTPMessage {
 
 	/** 默认内容类型 */
-	public final static ContentType CONTENT_TYPE = new ContentType(MIMEType.TEXT_PLAIN, HTTPCoder.URL_CHARSET_NAME);
+	public final static ContentType CONTENT_TYPE = new ContentType(MIMEType.TEXT_PLAIN, "UTF-8");
 
 	public Part() {
 	}

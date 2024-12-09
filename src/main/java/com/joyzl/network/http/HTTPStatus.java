@@ -86,7 +86,8 @@ public enum HTTPStatus {
 	 */
 	MOVED_PERMANENTLY(301, "Moved Permanently"),
 	/**
-	 * 302 请求的资源现在临时从不同的URI响应请求。 由于这样的重定向是临时的，客户端应当继续向原有地址发送以后的请求。
+	 * 302 请求的资源现在临时从不同的URI响应请求。<br>
+	 * 由于这样的重定向是临时的，客户端应当继续向原有地址发送以后的请求。<br>
 	 * 只有在Cache-Control或Expires中进行了指定的情况下，这个响应才是可缓存的。
 	 */
 	FOUND(302, "Found"),
@@ -108,17 +109,21 @@ public enum HTTPStatus {
 	 */
 	USE_PROXY(305, "Use Proxy"),
 
-	// 306 unused 在最新版的规范中，306 状态码已经不再被使用。
+	/**
+	 * 306 unused 在最新版的规范中，306 状态码已经不再被使用。
+	 */
+	UNUSED(305, "Unused"),
 
 	/**
-	 * 307 请求的资源现在临时从不同的URI
-	 * 响应请求。由于这样的重定向是临时的，客户端应当继续向原有地址发送以后的请求。只有在Cache-Control或Expires中进行了指定的情况下，这个响应才是可缓存的。
+	 * 307 请求的资源现在临时从不同的 URI 响应请求。<br>
+	 * 由于这样的重定向是临时的，客户端应当继续向原有地址发送以后的请求。<br>
+	 * 只有在Cache-Control或Expires中进行了指定的情况下，这个响应才是可缓存的。
 	 */
 	TEMPORARY_REDIRECT(307, "Temporary Redirect"),
 	/**
-	 * 308 这意味着资源现在永久位于由Location: HTTP Response标头指定的另一个URI。 这与301 Moved
-	 * Permanently HTTP
-	 * 响应代码具有相同的语义，但用户代理不能更改所使用的HTTP方法：如果在第一个请求中使用POST，则必须在第二个请求中使用POST。
+	 * 308 这意味着资源现在永久位于由 Location: HTTP Response 标头指定的另一个URI。<br>
+	 * 这与 301 Moved Permanently HTTP 响应代码具有相同的语义，但用户代理不能更改所使用的HTTP方法：
+	 * 如果在第一个请求中使用POST，则必须在第二个请求中使用POST。
 	 */
 	PERMANENT_REDIRECT(308, "Permanent Redirect"),
 
@@ -179,18 +184,18 @@ public enum HTTPStatus {
 	 */
 	GONE(410, "Gone"),
 	/**
-	 * 411
-	 * 服务器拒绝在没有定义Content-Length头的情况下接受请求。在添加了表明请求消息体长度的有效Content-Length头之后，客户端可以再次提交该请求。
+	 * 411 服务器拒绝在没有定义Content-Length头的情况下接受请求。<br>
+	 * 在添加了表明请求消息体长度的有效Content-Length头之后，客户端可以再次提交该请求。
 	 */
 	LENGTH_REQUIRED(411, "Length Required"),
 	/**
-	 * 412
-	 * 服务器在验证在请求的头字段中给出先决条件时，没能满足其中的一个或多个。这个状态码允许客户端在获取资源时在请求的元信息（请求头字段数据）中设置先决条件，以此避免该请求方法被应用到其希望的内容以外的资源上。
+	 * 412 服务器在验证在请求的头字段中给出先决条件时，没能满足其中的一个或多个。<br>
+	 * 这个状态码允许客户端在获取资源时在请求的元信息（请求头字段数据）中设置先决条件，以此避免该请求方法被应用到其希望的内容以外的资源上。
 	 */
 	PRECONDITION_FAILED(412, "Precondition Failed"),
 	/**
-	 * 413
-	 * 服务器拒绝处理当前请求，因为该请求提交的实体数据大小超过了服务器愿意或者能够处理的范围。此种情况下，服务器可以关闭连接以免客户端继续发送此请求。
+	 * 413 服务器拒绝处理当前请求，因为该请求提交的实体数据大小超过了服务器愿意或者能够处理的范围。<br>
+	 * 此种情况下，服务器可以关闭连接以免客户端继续发送此请求。<br>
 	 * 如果这个状况是临时的，服务器应当返回一个Retry-After的响应头，以告知客户端可以在多少时间以后重新尝试。
 	 */
 	PAYLOAD_TOO_LARGE(413, "Payload Too Large"),
@@ -225,7 +230,8 @@ public enum HTTPStatus {
 	 */
 	TOO_EARLY(425, "Too Early"),
 	/**
-	 * 426 服务器拒绝使用当前协议执行请求，但可能在客户机升级到其他协议后愿意这样做。 服务器在426响应中发送Upgrade头以指示所需的协议。
+	 * 426 服务器拒绝使用当前协议执行请求，但可能在客户机升级到其他协议后愿意这样做。<br>
+	 * 服务器在426响应中发送Upgrade头以指示所需的协议。
 	 */
 	UPGRADE_REQUIRED(426, "Upgrade Required"),
 	/**
@@ -238,7 +244,8 @@ public enum HTTPStatus {
 	 */
 	TOO_MANY_REQUESTS(429, "Too Many Requests"),
 	/**
-	 * 431 服务器不愿意处理请求，因为它的请求头字段太大。 请求可以在减小请求头字段的大小后重新提交。
+	 * 431 服务器不愿意处理请求，因为它的请求头字段太大。<br>
+	 * 请求可以在减小请求头字段的大小后重新提交。
 	 */
 	REQUEST_HEADER_FIELDS_TOO_LARGE(431, "Request Header Fields Too Large"),
 	/**
@@ -261,7 +268,9 @@ public enum HTTPStatus {
 	 */
 	BAD_GATEWAY(502, "Bad Gateway"),
 	/**
-	 * 503 服务器没有准备好处理请求。 常见原因是服务器因维护或重载而停机。 请注意，与此响应一起，应发送解释问题的用户友好页面。
+	 * 503 服务器没有准备好处理请求。<br>
+	 * 常见原因是服务器因维护或重载而停机。<br>
+	 * 请注意，与此响应一起，应发送解释问题的用户友好页面。
 	 * 这个响应应该用于临时条件和Retry-After：如果可能的话，HTTP头应该包含恢复服务之前的估计时间。
 	 * 网站管理员还必须注意与此响应一起发送的与缓存相关的标头，因为这些临时条件响应通常不应被缓存。
 	 */
@@ -350,7 +359,9 @@ public enum HTTPStatus {
 	 */
 	TLS_HANDSHAKE(1015, "TLS Handshake"),
 
-	/** 链路关闭 */
+	/** 链路等待，这是特殊状态 */
+	WAIT(Integer.MIN_VALUE, "WAIT"),
+	/** 链路关闭，这是特殊状态 */
 	CLOSE(Integer.MAX_VALUE, "CLOSE");
 
 	////////////////////////////////////////////////////////////////////////////////

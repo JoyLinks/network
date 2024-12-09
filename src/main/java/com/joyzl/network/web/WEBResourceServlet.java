@@ -6,8 +6,6 @@
 package com.joyzl.network.web;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import com.joyzl.network.Utility;
 import com.joyzl.network.http.AcceptEncoding;
@@ -17,10 +15,15 @@ import com.joyzl.network.http.ContentLength;
 import com.joyzl.network.http.ContentRange;
 import com.joyzl.network.http.ContentType;
 import com.joyzl.network.http.ETag;
+import com.joyzl.network.http.HTTP;
+import com.joyzl.network.http.HTTPCoder;
 import com.joyzl.network.http.HTTPStatus;
-import com.joyzl.network.http.Message;
+import com.joyzl.network.http.MultipartRange;
+import com.joyzl.network.http.MultipartRange.MultipartRanges;
 import com.joyzl.network.http.Range;
 import com.joyzl.network.http.Range.ByteRange;
+import com.joyzl.network.http.Request;
+import com.joyzl.network.http.Response;
 import com.joyzl.network.http.TransferEncoding;
 
 /**
@@ -91,52 +94,246 @@ public abstract class WEBResourceServlet extends WEBServlet {
 	// Accept-Encoding: deflate, gzip;q=1.0, *;q=0.5
 	// Content-Encoding
 
-	final static String LAST_MODIFIED = "Last-Modified";
-	final static String ACCEPT_RANGES = "Accept-Ranges";
-	final static String CONTENT_LOCATION = "Content-Location";
+	// Location
+	// 如果请求资源需要重定向，例如请求目录 /eno 将其重定向为 /eno/
 
-	final static String IF_MATCH = "If-Match";
-	final static String IF_NONE_MATCH = "If-None-Match";
-	final static String IF_MODIFIED_SINCE = "If-Modified-Since";
-	final static String IF_UNMODIFIED_SINCE = "If-Unmodified-Since";
-	final static String IF_RANGE = "If-Range";
+	// 建议分块大小
+	private int BLOCK_BYTES = HTTPCoder.BLOCK_BYTES;
+	// 最大请求大小
+	private int MAX_BYTES = HTTPCoder.BLOCK_BYTES * 1024;
+	// 最多请求分块
+	private int PART_MAX = MAX_BYTES / BLOCK_BYTES;
+	// 强制分块请求
+	private boolean RANGE_MUST = true;
 
 	@Override
-	protected void head(WEBRequest request, WEBResponse response) throws Exception {
-		execute(request, response, false);
+	protected void options(Request request, Response response) throws Exception {
+		response.addHeader(HTTP.Allow, "OPTIONS, GET, HEAD, TRACE");
+		response.setStatus(HTTPStatus.OK);
 	}
 
 	@Override
-	protected void get(WEBRequest request, WEBResponse response) throws Exception {
-		execute(request, response, true);
+	protected void delete(Request request, Response response) throws Exception {
+		response.addHeader(HTTP.Allow, "OPTIONS, GET, HEAD, TRACE");
+		response.setStatus(HTTPStatus.METHOD_NOT_ALLOWED);
 	}
 
-	private final void execute(WEBRequest request, WEBResponse response, boolean content) throws Exception {
-		final WEBResource resource = find(request.getURI());
+	@Override
+	protected void head(Request request, Response response) throws Exception {
+		// execute(request, response, false);
+		locate(request, response, false);
+	}
+
+	@Override
+	protected void get(Request request, Response response) throws Exception {
+		// execute(request, response, true);
+		locate(request, response, true);
+	}
+
+	@Override
+	protected void put(Request request, Response response) throws Exception {
+		response.addHeader(HTTP.Allow, "OPTIONS, GET, HEAD, TRACE");
+		response.setStatus(HTTPStatus.METHOD_NOT_ALLOWED);
+	}
+
+	@Override
+	protected void patch(Request request, Response response) throws Exception {
+		response.addHeader(HTTP.Allow, "OPTIONS, GET, HEAD, TRACE");
+		response.setStatus(HTTPStatus.METHOD_NOT_ALLOWED);
+	}
+
+	/**
+	 * 资源定位
+	 */
+	protected void locate(Request request, Response response, boolean content) throws IOException {
+		WEBResource resource = find(request.getPath());
 		if (resource == null) {
 			// 资源未找到
 			response.setStatus(HTTPStatus.NOT_FOUND);
+			// 查找错误页面
+			resource = find(HTTPStatus.NOT_FOUND);
+			if (resource != null) {
+				whole(request, response, resource, content);
+			}
+		} else if (resource.getETag() == null) {
+			// 缺失ETag则认为无法定位资源或为目录
+			if (resource.getContentLocation() == null) {
+				// Multiple Files
+				response.setStatus(HTTPStatus.MULTIPLE_CHOICE);
+				response.addHeader(ContentType.NAME, MIMEType.TEXT_HTML);
+				response.addHeader(HTTP.Alternates, resource.getContentType());
+				response.addHeader(TransferEncoding.NAME, TransferEncoding.CHUNKED);
+			} else {
+				// DIR / DIR Browse
+				if (request.pathLength() != resource.getContentLocation().length()) {
+					// 目录重定向 /dir 且存在 重定向 /dir/
+					response.setStatus(HTTPStatus.MOVED_PERMANENTLY);
+					response.addHeader(HTTP.Location, resource.getContentLocation());
+				} else {
+					// 列出子目录和文件
+					response.setStatus(HTTPStatus.OK);
+					whole(request, response, resource, content);
+				}
+			}
 		} else {
+			// 资源正常处理
+			output(request, response, resource, content);
+		}
+	}
+
+	/**
+	 * 资源输出，将根据请求头处理资源输出方式；设置响应状态和响应头
+	 */
+	protected void output(Request request, Response response, WEBResource resource, boolean content) throws IOException {
+
+		// 公共头部分
+		response.addHeader(CacheControl.NAME, CacheControl.NO_CACHE);
+		response.addHeader(HTTP.Content_Language, resource.getContentLanguage());
+		response.addHeader(HTTP.Content_Location, resource.getContentLocation());
+		response.addHeader(HTTP.Last_Modified, resource.getLastModified());
+		response.addHeader(ETag.NAME, resource.getETag());
+
+		// ETAG不同则返回资源 RFC7232
+		String value = request.getHeader(HTTP.If_None_Match);
+		if (Utility.noEmpty(value)) {
+			if (Utility.equal(value, resource.getETag())) {
+				response.setStatus(HTTPStatus.NOT_MODIFIED);
+			} else {
+				response.setStatus(HTTPStatus.OK);
+				whole(request, response, resource, content);
+			}
+			return;
+		}
+
+		// ETAG相同则返回资源 RFC7232
+		value = request.getHeader(HTTP.If_Match);
+		if (Utility.noEmpty(value)) {
+			if (Utility.equal(value, resource.getETag())) {
+				response.setStatus(HTTPStatus.OK);
+				whole(request, response, resource, content);
+			} else {
+				response.setStatus(HTTPStatus.PRECONDITION_FAILED);
+			}
+			return;
+		}
+
+		// 修改时间有更新返回文件内容
+		value = request.getHeader(HTTP.If_Modified_Since);
+		if (Utility.noEmpty(value)) {
+			if (Utility.equal(value, resource.getLastModified())) {
+				response.setStatus(HTTPStatus.NOT_MODIFIED);
+			} else {
+				response.setStatus(HTTPStatus.OK);
+				whole(request, response, resource, content);
+			}
+			return;
+		}
+
+		// 修改时间未更新返回文件内容
+		value = request.getHeader(HTTP.If_Unmodified_Since);
+		if (Utility.noEmpty(value)) {
+			if (Utility.equal(value, resource.getLastModified())) {
+				response.setStatus(HTTPStatus.OK);
+				whole(request, response, resource, content);
+			} else {
+				response.setStatus(HTTPStatus.PRECONDITION_FAILED);
+			}
+			return;
+		}
+
+		// RANGE部分请求
+		final Range range = Range.parse(request.getHeader(Range.NAME));
+		if (range != null) {
+			value = request.getHeader(HTTP.If_Range);
+			if (Utility.noEmpty(value)) {
+				// Last-Modified/ETag相同时Range生效
+				if (Utility.equal(value, resource.getETag())) {
+					parts(request, response, resource, range, content);
+				} else
+				// Last-Modified/ETag相同时Range生效
+				if (Utility.equal(value, resource.getLastModified())) {
+					parts(request, response, resource, range, content);
+				} else {
+					response.setStatus(HTTPStatus.OK);
+					whole(request, response, resource, content);
+				}
+			} else {
+				parts(request, response, resource, range, content);
+			}
+			return;
+		}
+
+		// 其它情况
+		response.setStatus(HTTPStatus.OK);
+		whole(request, response, resource, content);
+	}
+
+	/**
+	 * 此方法已被拆分为 locate 和 output 方法
+	 */
+	@Deprecated
+	protected void execute(Request request, Response response, boolean content) throws IOException {
+		final String path = request.getPath();
+		WEBResource resource = find(path);
+		if (resource == null) {
+			// 资源未找到
+			response.setStatus(HTTPStatus.NOT_FOUND);
+			// 查找错误页面
+			resource = find(HTTPStatus.NOT_FOUND);
+			if (resource != null) {
+				response.addHeader(ContentType.NAME, resource.getContentType());
+				whole(request, response, resource, content);
+			}
+		} else {
+			if (resource.getETag() == null) {
+				// 缺失ETag则认为无法定位资源或为目录
+				if (resource.getContentLocation() == null) {
+					// Multiple Files
+					response.setStatus(HTTPStatus.MULTIPLE_CHOICE);
+					response.addHeader(ContentType.NAME, MIMEType.TEXT_HTML);
+					response.addHeader(HTTP.Alternates, resource.getContentType());
+					response.addHeader(TransferEncoding.NAME, TransferEncoding.CHUNKED);
+				} else {
+					// DIR / DIR Browse
+					if (path.length() != resource.getContentLocation().length()) {
+						// 目录重定向 /dir 且存在 重定向 /dir/
+						response.setStatus(HTTPStatus.MOVED_PERMANENTLY);
+						response.addHeader(HTTP.Location, resource.getContentLocation());
+					} else {
+						// 列出子目录和文件
+						response.setStatus(HTTPStatus.OK);
+						response.addHeader(ContentType.NAME, resource.getContentType());
+						whole(request, response, resource, content);
+					}
+				}
+				return;
+			}
+
 			// 公共头部分
+			response.addHeader(ContentType.NAME, resource.getContentType());
+			response.addHeader(HTTP.Content_Language, resource.getContentLanguage());
+			response.addHeader(HTTP.Content_Location, resource.getContentLocation());
 			response.addHeader(CacheControl.NAME, CacheControl.NO_CACHE);
-			response.addHeader(LAST_MODIFIED, resource.getLastModified());
+			response.addHeader(HTTP.Last_Modified, resource.getLastModified());
 			response.addHeader(ETag.NAME, resource.getETag());
 
 			// ETAG不同则返回资源 RFC7232
-			String value = request.getHeader(IF_NONE_MATCH);
+			String value = request.getHeader(HTTP.If_None_Match);
 			if (Utility.noEmpty(value)) {
-				if (Utility.equals(value, resource.getETag(), false)) {
+				if (Utility.equal(value, resource.getETag())) {
 					response.setStatus(HTTPStatus.NOT_MODIFIED);
 				} else {
+					response.setStatus(HTTPStatus.OK);
 					whole(request, response, resource, content);
 				}
 				return;
 			}
 
 			// ETAG相同则返回资源 RFC7232
-			value = request.getHeader(IF_MATCH);
+			value = request.getHeader(HTTP.If_Match);
 			if (Utility.noEmpty(value)) {
-				if (Utility.equals(value, resource.getETag(), false)) {
+				if (Utility.equal(value, resource.getETag())) {
+					response.setStatus(HTTPStatus.OK);
 					whole(request, response, resource, content);
 				} else {
 					response.setStatus(HTTPStatus.PRECONDITION_FAILED);
@@ -145,20 +342,22 @@ public abstract class WEBResourceServlet extends WEBServlet {
 			}
 
 			// 修改时间有更新返回文件内容
-			value = request.getHeader(IF_MODIFIED_SINCE);
+			value = request.getHeader(HTTP.If_Modified_Since);
 			if (Utility.noEmpty(value)) {
-				if (Utility.equals(value, resource.getLastModified(), false)) {
-					whole(request, response, resource, content);
-				} else {
+				if (Utility.equal(value, resource.getLastModified())) {
 					response.setStatus(HTTPStatus.NOT_MODIFIED);
+				} else {
+					response.setStatus(HTTPStatus.OK);
+					whole(request, response, resource, content);
 				}
 				return;
 			}
 
 			// 修改时间未更新返回文件内容
-			value = request.getHeader(IF_UNMODIFIED_SINCE);
+			value = request.getHeader(HTTP.If_Unmodified_Since);
 			if (Utility.noEmpty(value)) {
-				if (Utility.equals(value, resource.getLastModified(), false)) {
+				if (Utility.equal(value, resource.getLastModified())) {
+					response.setStatus(HTTPStatus.OK);
 					whole(request, response, resource, content);
 				} else {
 					response.setStatus(HTTPStatus.PRECONDITION_FAILED);
@@ -169,16 +368,17 @@ public abstract class WEBResourceServlet extends WEBServlet {
 			// RANGE部分请求
 			final Range range = Range.parse(request.getHeader(Range.NAME));
 			if (range != null) {
-				value = request.getHeader(IF_RANGE);
+				value = request.getHeader(HTTP.If_Range);
 				if (Utility.noEmpty(value)) {
 					// Last-Modified/ETag相同时Range生效
-					if (Utility.equals(value, resource.getETag(), false)) {
+					if (Utility.equal(value, resource.getETag())) {
 						parts(request, response, resource, range, content);
 					} else
 					// Last-Modified/ETag相同时Range生效
-					if (Utility.equals(value, resource.getLastModified(), false)) {
+					if (Utility.equal(value, resource.getLastModified())) {
 						parts(request, response, resource, range, content);
 					} else {
+						response.setStatus(HTTPStatus.OK);
 						whole(request, response, resource, content);
 					}
 				} else {
@@ -188,96 +388,135 @@ public abstract class WEBResourceServlet extends WEBServlet {
 			}
 
 			// 其它情况
+			response.setStatus(HTTPStatus.OK);
 			whole(request, response, resource, content);
 		}
 	}
 
 	/**
-	 * 响应全部内容
+	 * 响应全部内容，并设定与内容相关 HTTP Header；
+	 * 
+	 * <pre>
+	 * Accept-Ranges: bytes
+	 * Content-Type: text/html
+	 * Content-Encoding: br/gzip/deflate
+	 * Content-Length: 9
+	 * Transfer-Encoding: chunked
+	 * </pre>
 	 */
-	private final void whole(WEBRequest request, WEBResponse response, WEBResource resource, boolean content) throws IOException {
+	private final void whole(Request request, Response response, WEBResource resource, boolean content) throws IOException {
 		final AcceptEncoding acceptEncoding = AcceptEncoding.parse(request.getHeader(AcceptEncoding.NAME));
 		final String encoding = resource.fitEncoding(acceptEncoding);
 		final long length = resource.getLength(encoding);
 
-		// Content-Type: text/html
-		response.addHeader(ContentType.NAME, resource.getContentType());
 		// Content-Encoding: br/gzip/deflate
 		response.addHeader(ContentEncoding.NAME, encoding);
+		// Content-Type: text/html
+		response.addHeader(ContentType.NAME, resource.getContentType());
 
-		if (length < WEBContentCoder.BLOCK) {
+		if (length < HTTPCoder.BLOCK_BYTES) {
 			// Content-Length:9
 			response.addHeader(ContentLength.NAME, Long.toString(length));
 		} else {
 			// Transfer-Encoding: chunked
 			response.addHeader(TransferEncoding.NAME, TransferEncoding.CHUNKED);
 			// Accept-Ranges: bytes
-			response.addHeader(ACCEPT_RANGES, Range.UNIT);
+			response.addHeader(HTTP.Accept_Ranges, Range.UNIT);
 		}
-
-		response.setStatus(HTTPStatus.OK);
 		if (content) {
 			response.setContent(resource.getData(encoding));
 		}
 	}
 
 	/**
-	 * 响应部分内容
+	 * 响应部分内容，并设定与内容相关 HTTP Header；
+	 * 
+	 * <pre>
+	 * 206
+	 * Accept-Ranges: bytes
+	 * Content-Type: text/html
+	 * Content-Encoding: br/gzip/deflate
+	 * Content-Range: bytes 200-1000/67589
+	 * Content-Length: 9
+	 * </pre>
+	 * 
+	 * <pre>
+	 * 206
+	 * Accept-Ranges: bytes
+	 * Content-Type: multipart/byteranges; boundary=something
+	 * Content-Encoding: br/gzip/deflate
+	 * Content-Length: 9
+	 * </pre>
 	 */
-	private final void parts(WEBRequest request, WEBResponse response, WEBResource resource, Range range, boolean content) throws Exception {
+	private final void parts(Request request, Response response, WEBResource resource, Range range, boolean content) throws IOException {
 		final AcceptEncoding acceptEncoding = AcceptEncoding.parse(request.getHeader(AcceptEncoding.NAME));
 		final String encoding = resource.fitEncoding(acceptEncoding);
 		final long length = resource.getLength(encoding);
 
-		if (length > WEBContentCoder.BLOCK) {
+		if (RANGE_MUST || length > BLOCK_BYTES) {
 			// 单块请求
 			if (range.getRanges().size() == 1) {
 				final ByteRange byterange = range.getRanges().get(0);
-				if (byterange.valid(length, WEBContentCoder.BLOCK, WEBContentCoder.MAX)) {
+				if (byterange.valid(length, BLOCK_BYTES, MAX_BYTES)) {
+					// Accept-Ranges: bytes
+					response.addHeader(HTTP.Accept_Ranges, Range.UNIT);
 					// Content-Type: text/html
 					response.addHeader(ContentType.NAME, resource.getContentType());
+					// Content-Length:9
+					response.addHeader(ContentLength.NAME, Long.toString(byterange.getSize()));
 					// Content-Encoding: br/gzip/deflate
 					response.addHeader(ContentEncoding.NAME, encoding);
 					// Content-Range: bytes 200-1000/67589
 					response.addHeader(new ContentRange(byterange.getStart(), byterange.getEnd(), length));
+					// 206
 					response.setStatus(HTTPStatus.PARTIAL_CONTENT);
 					if (content) {
 						response.setContent(resource.getData(encoding, byterange));
 					}
 				} else {
+					// 416
 					response.setStatus(HTTPStatus.RANGE_NOT_SATISFIABLE);
 				}
 			} else
 			// 多块请求
-			if (range.getRanges().size() > 1 && range.getRanges().size() < WEBContentCoder.PART_SIZE) {
-				Part part;
-				ByteRange byterange;
-				final List<Part> parts = new ArrayList<>(range.getRanges().size());
+			if (range.getRanges().size() > 1 && range.getRanges().size() < PART_MAX) {
+				final ContentType contentType = new ContentType();
+				contentType.setType(MIMEType.MULTIPART_BYTERANGES);
+				contentType.setBoundary(ContentType.boundary());
+
+				ByteRange bange;
+				MultipartRange part;
+				final MultipartRanges parts = new MultipartRanges(contentType.getBoundary());
 				for (int index = 0; index < range.getRanges().size(); index++) {
-					byterange = range.getRanges().get(index);
-					if (byterange.valid(length, WEBContentCoder.BLOCK, WEBContentCoder.MAX)) {
-						part = new Part();
-						// Content-Type: text/html
-						part.addHeader(ContentType.NAME, resource.getContentType());
-						// Content-Encoding: br/gzip/deflate
-						response.addHeader(ContentEncoding.NAME, encoding);
+					bange = range.getRanges().get(index);
+					if (bange.valid(length, BLOCK_BYTES, MAX_BYTES)) {
 						// Content-Range: bytes 200-1000/67589
-						part.addHeader(new ContentRange(byterange.getStart(), byterange.getEnd(), length));
-						parts.add(part);
+						part = new MultipartRange(length, bange.getStart(), bange.getEnd());
+						// Content-Type: text/html
+						part.setContentType(resource.getContentType());
+						// Content-Encoding: br/gzip/deflate
+						part.setContentEncoding(encoding);
 						if (content) {
-							part.setContent(resource.getData(encoding, byterange));
+							part.setContent(resource.getData(encoding, bange));
 						}
+						parts.add(part);
 					} else {
-						Message.close(parts);
+						// 416
 						response.setStatus(HTTPStatus.RANGE_NOT_SATISFIABLE);
 						return;
 					}
 				}
-				response.addHeader(ContentType.NAME, MIMEType.MULTIPART_BYTERANGES);
+				// 206
 				response.setStatus(HTTPStatus.PARTIAL_CONTENT);
+				// Accept-Ranges: bytes
+				response.addHeader(HTTP.Accept_Ranges, Range.UNIT);
+				// Content-Length:9
+				response.addHeader(ContentLength.NAME, Integer.toString(parts.length()));
+				// Content-Type: multipart/byteranges;
+				response.addHeader(contentType);
 				response.setContent(parts);
 			} else {
-				// 无效分部请求
+				// 416 无效分部请求
 				response.setStatus(HTTPStatus.RANGE_NOT_SATISFIABLE);
 			}
 		} else {
@@ -288,7 +527,6 @@ public abstract class WEBResourceServlet extends WEBServlet {
 			response.addHeader(ContentLength.NAME, Long.toString(length));
 			// Content-Encoding: br/gzip/deflate
 			response.addHeader(ContentEncoding.NAME, encoding);
-
 			// 200 OK
 			response.setStatus(HTTPStatus.OK);
 			if (content) {
@@ -299,4 +537,5 @@ public abstract class WEBResourceServlet extends WEBServlet {
 
 	protected abstract WEBResource find(String uri);
 
+	protected abstract WEBResource find(HTTPStatus status);
 }

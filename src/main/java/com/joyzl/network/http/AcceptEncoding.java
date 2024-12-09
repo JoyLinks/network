@@ -15,7 +15,7 @@ import com.joyzl.network.Utility;
  */
 public final class AcceptEncoding extends QualityValueHeader {
 
-	public final static String NAME = "Accept-Encoding";
+	public final static String NAME = HTTP.Accept_Encoding;
 
 	public final static String GZIP = TransferEncoding.GZIP;
 	public final static String COMPRESS = TransferEncoding.COMPRESS;
@@ -25,7 +25,7 @@ public final class AcceptEncoding extends QualityValueHeader {
 
 	@Override
 	public String getHeaderName() {
-		return NAME;
+		return HTTP.Accept_Encoding;
 	}
 
 	public final static AcceptEncoding parse(String value) {

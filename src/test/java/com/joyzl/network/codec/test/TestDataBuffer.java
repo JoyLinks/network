@@ -46,9 +46,9 @@ class TestDataBuffer {
 	void testEmpty() {
 		final DataBuffer buffer = DataBuffer.instance();
 		assertEquals(buffer.units(), 1);
-		assertEquals(buffer.capacity(), DataBufferUnit.UNIT_SIZE);
+		assertEquals(buffer.capacity(), DataBufferUnit.BYTES);
 		assertEquals(buffer.readable(), 0);
-		assertEquals(buffer.writeable(), DataBufferUnit.UNIT_SIZE);
+		assertEquals(buffer.writeable(), DataBufferUnit.BYTES);
 
 		buffer.release();
 		assertEquals(buffer.units(), 1);
@@ -62,10 +62,10 @@ class TestDataBuffer {
 			buffer.writeByte((byte) index);
 		}
 
-		assertEquals(buffer.units(), 65536 / DataBufferUnit.UNIT_SIZE);
+		assertEquals(buffer.units(), 65536 / DataBufferUnit.BYTES);
 		assertEquals(buffer.capacity(), 65536);
 		assertEquals(buffer.readable(), 65536);
-		assertEquals(buffer.writeable(), 65536 % DataBufferUnit.UNIT_SIZE);
+		assertEquals(buffer.writeable(), 65536 % DataBufferUnit.BYTES);
 
 		// READ 65536
 		for (int index = 0; index < 65536; index++) {
@@ -73,7 +73,7 @@ class TestDataBuffer {
 		}
 
 		assertEquals(buffer.units(), 1);
-		assertEquals(buffer.capacity(), DataBufferUnit.UNIT_SIZE);
+		assertEquals(buffer.capacity(), DataBufferUnit.BYTES);
 		assertEquals(buffer.readable(), 0);
 		assertEquals(buffer.writeable(), 0);
 		buffer.release();
@@ -96,10 +96,10 @@ class TestDataBuffer {
 			assertEquals(buffer.get(index), (byte) index);
 		}
 
-		assertEquals(buffer.units(), 65536 / DataBufferUnit.UNIT_SIZE);
+		assertEquals(buffer.units(), 65536 / DataBufferUnit.BYTES);
 		assertEquals(buffer.capacity(), 65536);
 		assertEquals(buffer.readable(), 65536);
-		assertEquals(buffer.writeable(), 65536 % DataBufferUnit.UNIT_SIZE);
+		assertEquals(buffer.writeable(), 65536 % DataBufferUnit.BYTES);
 		buffer.release();
 		assertEquals(buffer.units(), 1);
 	}
@@ -123,7 +123,7 @@ class TestDataBuffer {
 		}
 
 		assertEquals(buffer.units(), 1);
-		assertEquals(buffer.capacity(), DataBufferUnit.UNIT_SIZE);
+		assertEquals(buffer.capacity(), DataBufferUnit.BYTES);
 		assertEquals(buffer.readable(), 0);
 		assertEquals(buffer.writeable(), 0);
 		buffer.release();
@@ -148,7 +148,7 @@ class TestDataBuffer {
 		}
 
 		assertEquals(buffer.units(), 1);
-		assertEquals(buffer.capacity(), DataBufferUnit.UNIT_SIZE);
+		assertEquals(buffer.capacity(), DataBufferUnit.BYTES);
 		assertEquals(buffer.readable(), 0);
 		assertEquals(buffer.writeable(), 0);
 		buffer.release();
@@ -194,13 +194,13 @@ class TestDataBuffer {
 		}
 
 		assertEquals(source.units(), 1);
-		assertEquals(source.capacity(), DataBufferUnit.UNIT_SIZE);
+		assertEquals(source.capacity(), DataBufferUnit.BYTES);
 		assertEquals(source.readable(), 0);
 		assertEquals(source.writeable(), 0);
 		source.release();
 
 		assertEquals(target.units(), 1);
-		assertEquals(target.capacity(), DataBufferUnit.UNIT_SIZE);
+		assertEquals(target.capacity(), DataBufferUnit.BYTES);
 		assertEquals(target.readable(), 0);
 		assertEquals(target.writeable(), 0);
 		target.release();
@@ -223,13 +223,13 @@ class TestDataBuffer {
 		}
 
 		assertEquals(source.units(), 1);
-		assertEquals(source.capacity(), DataBufferUnit.UNIT_SIZE);
+		assertEquals(source.capacity(), DataBufferUnit.BYTES);
 		assertEquals(source.readable(), 0);
 		assertEquals(source.writeable(), 0);
 		source.release();
 
 		assertEquals(target.units(), 1);
-		assertEquals(target.capacity(), DataBufferUnit.UNIT_SIZE);
+		assertEquals(target.capacity(), DataBufferUnit.BYTES);
 		assertEquals(target.readable(), 0);
 		assertEquals(target.writeable(), 0);
 		target.release();
@@ -263,13 +263,13 @@ class TestDataBuffer {
 		}
 
 		assertEquals(source.units(), 1);
-		assertEquals(source.capacity(), DataBufferUnit.UNIT_SIZE);
+		assertEquals(source.capacity(), DataBufferUnit.BYTES);
 		assertEquals(source.readable(), 0);
 		assertEquals(source.writeable(), 0);
 		source.release();
 
 		assertEquals(target.units(), 1);
-		assertEquals(target.capacity(), DataBufferUnit.UNIT_SIZE);
+		assertEquals(target.capacity(), DataBufferUnit.BYTES);
 		assertEquals(target.readable(), 0);
 		assertEquals(target.writeable(), 0);
 		target.release();

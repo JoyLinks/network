@@ -227,6 +227,9 @@ public class FTPClientHandler implements ChainHandler<FTPMessage> {
 			case NOOP:
 				// 空操作 NOOP CRLF */
 				break;
+			default:
+				//
+				break;
 		}
 		buffer.writeASCIIs(FTP.CRLF);
 		return buffer;

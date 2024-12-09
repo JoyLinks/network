@@ -19,18 +19,10 @@ import com.joyzl.network.http.Range.ByteRange;
  * 
  * @author ZhangXi 2023年9月15日
  */
-public class DiskFileServlet extends WEBResourceServlet {
+public class DiskFileServlet extends FileResourceServlet {
 
-	/** 资源目录 */
-	private final File root;
 	/** 缓存目录 */
 	private final File cache;
-
-	/** 默认文件名 */
-	private String[] DEFAULTS = new String[] { "default.html", "index.html" };
-	/** 压缩的文件扩展名 */
-	private String[] COMPRESSES = new String[] { ".html", ".htm", ".css", ".js", ".json", ".xml", ".svg" };
-	/** 资源对象缓存 */
 	private final Map<String, WEBResource> resources = new ConcurrentHashMap<>();
 
 	public DiskFileServlet(String path) {
@@ -42,83 +34,74 @@ public class DiskFileServlet extends WEBResourceServlet {
 	}
 
 	public DiskFileServlet(File root, File cache) {
-		this.root = root;
+		super(root);
+		if (cache != null) {
+			if (!cache.exists()) {
+				if (!cache.mkdirs()) {
+					cache = null;
+				}
+			}
+		}
 		this.cache = cache;
 	}
 
 	@Override
-	protected WEBResource find(String uri) {
+	protected WEBResource find(String path) {
 		// URL "http://192.168.0.1" URI "/"
 		// URL http://192.168.0.1/content/main.html URI /content/main.html
+		// URL http://192.168.0.1/eno URI /eno/index.html
 
-		if (uri == null || uri.length() == 0) {
-			uri = "/";
-		}
-		WEBResource resource = resources.get(uri);
+		WEBResource resource = resources.get(path);
 		if (resource == null) {
-			File file = new File(root, uri);
+			File file = new File(getRoot(), path);
 			if (file.exists()) {
 				if (file.isDirectory()) {
-					// 查找默认页面
-					file = findDefault(file);
-					if (file != null) {
-						synchronized (this) {
-							resource = resources.get(uri);
-							if (resource == null) {
-								if (canCompress(file)) {
-									resource = new CompressResource(file);
-								} else {
-									resource = new FileResource(file);
+					if (path.charAt(path.length()) == '/') {
+						// 查找默认页面
+						final File page = findDefault(file);
+						if (page != null) {
+							synchronized (this) {
+								resource = resources.get(path);
+								if (resource == null) {
+									if (canCompress(page)) {
+										resource = new CompressResource(getRoot(), page);
+									} else {
+										resource = new FileResource(getRoot(), page, isWeak());
+									}
+									resources.put(resource.getContentLocation(), resource);
+									resources.put(path, resource);
 								}
-								resources.put(uri + file.getName(), resource);
-								resources.put(uri, resource);
 							}
+						} else {
+							// 返回目录资源
+							// 可用于重定向或返回目录列表
+							resource = new DirResource(getRoot(), file, isBrowse());
 						}
+					} else {
+						// 返回目录资源
+						// 可用于重定向或返回目录列表
+						resource = new DirResource(getRoot(), file, isBrowse());
 					}
 				} else {
 					synchronized (this) {
-						resource = resources.get(uri);
+						resource = resources.get(path);
 						if (resource == null) {
 							if (canCompress(file)) {
-								resource = new CompressResource(file);
+								resource = new CompressResource(getRoot(), file);
 							} else {
-								resource = new FileResource(file);
+								resource = new FileResource(getRoot(), file, isWeak());
 							}
-							resources.put(uri, resource);
+							resources.put(resource.getContentLocation(), resource);
+							// resources.put(uri, resource);
 						}
 					}
 				}
+			} else {
+				// 尝试查找
+				resource = FileMultiple.find(file);
 			}
 		}
 		return resource;
-	}
-
-	File findDefault(File path) {
-		File file;
-		for (int index = 0; index < DEFAULTS.length; index++) {
-			file = new File(path, DEFAULTS[index]);
-			if (file.exists() && file.isFile()) {
-				return file;
-			}
-		}
-		return null;
-	}
-
-	/**
-	 * 检查文件是否应压缩；<br>
-	 * jpg和png图像文件本身已经过压缩，再次压缩已难以缩小，因此无须再压缩；<br>
-	 * 音频和视频这类太大的文件也没有必要压缩，这会占用过多磁盘空间和运算资源，客户端应分块获取；<br>
-	 * zip等已经压缩的文件当然也没有必要再次压缩。
-	 */
-	boolean canCompress(File file) {
-		if (file.length() < WEBContentCoder.MAX) {
-			for (int index = 0; index < COMPRESSES.length; index++) {
-				if (Utility.ends(file.getPath(), COMPRESSES[index], true)) {
-					return true;
-				}
-			}
-		}
-		return false;
 	}
 
 	/**
@@ -131,44 +114,8 @@ public class DiskFileServlet extends WEBResourceServlet {
 		} else {
 			// Linux文件名的长度限制是255个字符
 			// windows文件名必须少于260个字符
-			final long name = Utility.toLong(file.getPath(), root.getPath().length(), file.getPath().length() - root.getPath().length());
+			final long name = Utility.toLong(file.getPath(), getRoot().getPath().length(), file.getPath().length() - getRoot().getPath().length());
 			return new File(cache, Long.toString(name, Character.MAX_RADIX) + extension);
-		}
-	}
-
-	/**
-	 * 获取默认文件名，当访问网站地址未指定文件名时按默认文件名顺序查询默认文件资源
-	 */
-	public String[] getDefaults() {
-		return DEFAULTS;
-	}
-
-	/**
-	 * 设置默认文件名，当访问网站地址未指定文件名时按默认文件名顺序查询默认文件资源
-	 */
-	public void setDefaults(String[] values) {
-		if (values == null) {
-			DEFAULTS = new String[0];
-		} else {
-			DEFAULTS = values;
-		}
-	}
-
-	/**
-	 * 获取应压缩的文件扩展名，当浏览器支持内容压缩时，这些扩展名的文件将被压缩以减少字节数量
-	 */
-	public String[] getCompresses() {
-		return COMPRESSES;
-	}
-
-	/**
-	 * 设置应压缩的文件扩展名，当浏览器支持内容压缩时，这些扩展名的文件将被压缩以减少字节数量
-	 */
-	public void setCompresses(String[] values) {
-		if (values == null) {
-			COMPRESSES = new String[0];
-		} else {
-			COMPRESSES = values;
 		}
 	}
 
@@ -177,8 +124,8 @@ public class DiskFileServlet extends WEBResourceServlet {
 		private File gzip, deflate;
 		private long gzipLength, deflateLength;
 
-		public CompressResource(File file) {
-			super(file);
+		public CompressResource(File root, File file) {
+			super(root, file, isWeak());
 		}
 
 		void deflate() throws IOException {

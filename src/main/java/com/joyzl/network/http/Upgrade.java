@@ -13,7 +13,7 @@ package com.joyzl.network.http;
  */
 public final class Upgrade {
 
-	public final static String NAME = "Upgrade";
+	public final static String NAME = HTTP.Upgrade;
 
 	public final static String WEBSOCKET = "websocket";
 }

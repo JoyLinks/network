@@ -18,7 +18,7 @@ import com.joyzl.network.Utility;
  */
 public final class Server extends Header {
 
-	public final static String NAME = "Server";
+	public final static String NAME = HTTP.Server;
 
 	private String value;
 
@@ -32,7 +32,7 @@ public final class Server extends Header {
 
 	@Override
 	public String getHeaderName() {
-		return NAME;
+		return HTTP.Server;
 	}
 
 	@Override
