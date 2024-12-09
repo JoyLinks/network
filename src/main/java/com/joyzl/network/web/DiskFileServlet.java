@@ -10,7 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.GZIPOutputStream;
 
-import com.joyzl.network.Utility;
 import com.joyzl.network.http.AcceptEncoding;
 import com.joyzl.network.http.Range.ByteRange;
 
@@ -21,8 +20,6 @@ import com.joyzl.network.http.Range.ByteRange;
  */
 public class DiskFileServlet extends FileResourceServlet {
 
-	/** 缓存目录 */
-	private final File cache;
 	private final Map<String, WEBResource> resources = new ConcurrentHashMap<>();
 
 	public DiskFileServlet(String path) {
@@ -42,7 +39,6 @@ public class DiskFileServlet extends FileResourceServlet {
 				}
 			}
 		}
-		this.cache = cache;
 	}
 
 	@Override
@@ -102,21 +98,6 @@ public class DiskFileServlet extends FileResourceServlet {
 			}
 		}
 		return resource;
-	}
-
-	/**
-	 * 获取用于缓存的文件；未指定缓存目录则创建临时文件；
-	 * 有指定缓存目录则在指定目录生成缓存文件，缓存文件是对源文件经过压缩后的文件，无须压缩的文件也无须缓存。
-	 */
-	File cacheFile(File file, String extension) throws IOException {
-		if (cache == null) {
-			return File.createTempFile(file.getName(), extension);
-		} else {
-			// Linux文件名的长度限制是255个字符
-			// windows文件名必须少于260个字符
-			final long name = Utility.toLong(file.getPath(), getRoot().getPath().length(), file.getPath().length() - getRoot().getPath().length());
-			return new File(cache, Long.toString(name, Character.MAX_RADIX) + extension);
-		}
 	}
 
 	class CompressResource extends FileResource {
