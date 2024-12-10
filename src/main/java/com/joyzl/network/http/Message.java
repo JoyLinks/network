@@ -35,7 +35,15 @@ public abstract class Message {
 
 	////////////////////////////////////////////////////////////////////////////////
 
+	private long timestamp = System.currentTimeMillis();
 	private Object content;
+
+	/**
+	 * 获取消息时间戳
+	 */
+	public long getTimestamp() {
+		return timestamp;
+	}
 
 	/**
 	 * 消息是否携带内容实体

@@ -9,6 +9,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.joyzl.network.http.MultipartFile.MultipartFiles;
+
 /**
  * HTTP 请求
  * 
@@ -322,5 +324,19 @@ public class Request extends HTTPMessage {
 		if (parameters != null) {
 			parameters.clear();
 		}
+	}
+
+	/**
+	 * 获取请求的文件，如果请不包含文件将返回空集合
+	 * 
+	 * @return 包含文件的集合或空的集合
+	 */
+	public MultipartFiles getMultipartFiles() {
+		if (getContent() != null) {
+			if (getContent() instanceof MultipartFiles) {
+				return (MultipartFiles) getContent();
+			}
+		}
+		return MultipartFiles.EMPTY;
 	}
 }

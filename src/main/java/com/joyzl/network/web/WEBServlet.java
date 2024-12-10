@@ -38,8 +38,8 @@ public abstract class WEBServlet extends Servlet {
 		} else {
 			// 将查询参数合并到请求参数中
 			QueryCoder.parse(request);
-
-			response.setStatus(HTTPStatus.OK);
+			// 将响应状态默认为 200
+			// response.setStatus(HTTPStatus.OK);
 			switch (request.getMethod()) {
 				case HTTP.GET:
 					get((Request) request, (Response) response);
@@ -77,13 +77,12 @@ public abstract class WEBServlet extends Servlet {
 	}
 
 	protected void response(ChainChannel<Message> chain, Response response) {
-		if (response.getStatus() <= 0) {
-			// 请求被挂起
-		} else {
+		if (response.getStatus() > 0) {
 			// 以下默认处理回复发送消息头
 			response.addHeader(SERVER);
 			response.addHeader(DATE);
-			chain.send(response);
+		} else {
+			// 请求被挂起
 		}
 	}
 

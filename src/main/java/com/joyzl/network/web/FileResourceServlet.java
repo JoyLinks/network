@@ -14,7 +14,7 @@ import com.joyzl.network.http.HTTPStatus;
  * 
  * @author ZhangXi 2024年11月26日
  */
-public abstract class FileResourceServlet extends WEBResourceServlet {
+public class FileResourceServlet extends WEBResourceServlet {
 
 	/** 文件大小阈值，超过此限制的文件无须压缩或缓存 */
 	public final static int MAX = 1024 * 1024 * 16;
@@ -415,7 +415,7 @@ public abstract class FileResourceServlet extends WEBResourceServlet {
 	 * 设置错误页面所在目录，其中文件按 404.html 匹配
 	 */
 	public void setErrorPages(String value) {
-		if (value == null) {
+		if (value == null || value.isEmpty() || value.isBlank()) {
 			error = null;
 		} else {
 			error = new File(value);

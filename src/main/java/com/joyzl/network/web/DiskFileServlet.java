@@ -18,6 +18,7 @@ import com.joyzl.network.http.Range.ByteRange;
  * 
  * @author ZhangXi 2023年9月15日
  */
+@Deprecated
 public class DiskFileServlet extends FileResourceServlet {
 
 	private final Map<String, WEBResource> resources = new ConcurrentHashMap<>();

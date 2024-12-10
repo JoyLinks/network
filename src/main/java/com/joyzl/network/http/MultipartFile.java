@@ -55,5 +55,15 @@ public class MultipartFile {
 
 	public static class MultipartFiles extends ArrayList<MultipartFile> {
 		private static final long serialVersionUID = 1L;
+
+		public MultipartFiles() {
+			super();
+		}
+
+		public MultipartFiles(int i) {
+			super(i);
+		}
+
+		public final static MultipartFiles EMPTY = new MultipartFiles(0);
 	}
 }

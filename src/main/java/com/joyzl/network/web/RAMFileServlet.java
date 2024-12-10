@@ -22,6 +22,7 @@ import com.joyzl.network.http.Range.ByteRange;
  * 
  * @author ZhangXi 2023年9月15日
  */
+@Deprecated
 public class RAMFileServlet extends FileResourceServlet {
 
 	/** 缓存的文件扩展名 */
