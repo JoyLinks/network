@@ -39,9 +39,7 @@ public final class SecWebSocketAccept extends Header {
 	@Override
 	public String getHeaderValue() {
 		if (value == null) {
-			// base64( SHA1( Sec-WebSocket-Key + GUID ) )
-			final byte[] bytes = SHA1(key + GUID);
-			value = new String(Base64.getEncoder().encode(bytes), StandardCharsets.UTF_8);
+			value = hash(key);
 		}
 		return value;
 	}
@@ -52,13 +50,14 @@ public final class SecWebSocketAccept extends Header {
 	}
 
 	/**
-	 * SHA1(安全哈希算法)
+	 * base64( SHA1( Sec-WebSocket-Key + GUID ) )
 	 */
-	final static byte[] SHA1(String value) {
+	public static String hash(String key) {
+		key = key + GUID;
 		try {
 			final MessageDigest messageDigest = MessageDigest.getInstance("SHA1");
-			messageDigest.update(value.getBytes());
-			return messageDigest.digest();
+			messageDigest.update(key.getBytes(StandardCharsets.US_ASCII));
+			return new String(Base64.getEncoder().encode(messageDigest.digest()), StandardCharsets.US_ASCII);
 		} catch (NoSuchAlgorithmException e) {
 			throw new RuntimeException(e);
 		}
@@ -70,5 +69,6 @@ public final class SecWebSocketAccept extends Header {
 
 	public void setKey(String value) {
 		key = value;
+		value = null;
 	}
 }

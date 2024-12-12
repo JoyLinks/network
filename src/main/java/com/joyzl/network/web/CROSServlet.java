@@ -6,10 +6,9 @@
 package com.joyzl.network.web;
 
 import com.joyzl.network.Utility;
-import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.http.HTTP;
+import com.joyzl.network.http.HTTPSlave;
 import com.joyzl.network.http.HTTPStatus;
-import com.joyzl.network.http.Message;
 import com.joyzl.network.http.Request;
 import com.joyzl.network.http.Response;
 
@@ -24,7 +23,7 @@ public abstract class CROSServlet extends WEBServlet {
 	public final static String ANY = "*";
 
 	@Override
-	public void service(ChainChannel<Message> chain, Request request, Response response) throws Exception {
+	public void service(HTTPSlave chain, Request request, Response response) throws Exception {
 		checkOrigin(request, response);
 		super.service(chain, request, response);
 	}

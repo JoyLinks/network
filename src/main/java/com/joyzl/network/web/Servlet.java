@@ -5,8 +5,7 @@
  */
 package com.joyzl.network.web;
 
-import com.joyzl.network.chain.ChainChannel;
-import com.joyzl.network.http.Message;
+import com.joyzl.network.http.HTTPSlave;
 import com.joyzl.network.http.Request;
 import com.joyzl.network.http.Response;
 
@@ -18,5 +17,5 @@ import com.joyzl.network.http.Response;
  */
 public abstract class Servlet {
 
-	public abstract void service(ChainChannel<Message> chain, Request request, Response response) throws Exception;
+	public abstract void service(HTTPSlave chain, Request request, Response response) throws Exception;
 }

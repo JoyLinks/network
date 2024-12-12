@@ -23,27 +23,50 @@ public abstract class Message {
 	public final static int CONTENT = 3;
 	public final static int COMPLETE = 100;
 
-	private int state = COMMAND;
+	public final static int CLOSE = 101;
+	public final static int UPGRADE = 102;
 
+	private int state = COMMAND;
+	private int after;
+
+	/**
+	 * 获取当前消息状态
+	 */
 	public int state() {
 		return state;
 	}
 
+	/**
+	 * 设置消息状态
+	 */
 	public void state(int value) {
 		state = value;
 	}
 
-	////////////////////////////////////////////////////////////////////////////////
-
-	private long timestamp = System.currentTimeMillis();
-	private Object content;
+	/**
+	 * 响应后关闭链路
+	 */
+	public void needClose() {
+		after = CLOSE;
+	}
 
 	/**
-	 * 获取消息时间戳
+	 * 响应后升级链路
 	 */
-	public long getTimestamp() {
-		return timestamp;
+	public void needUpgrade() {
+		after = UPGRADE;
 	}
+
+	/**
+	 * 获取响应后动作标识
+	 */
+	public int after() {
+		return after;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
+
+	private Object content;
 
 	/**
 	 * 消息是否携带内容实体
@@ -94,5 +117,11 @@ public abstract class Message {
 				close(item);
 			}
 		}
+	}
+
+	public void reset() throws Exception {
+		close(content);
+		state = COMMAND;
+		after = 0;
 	}
 }

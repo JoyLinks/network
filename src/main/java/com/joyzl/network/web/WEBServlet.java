@@ -12,6 +12,7 @@ import com.joyzl.network.http.Date;
 import com.joyzl.network.http.FormDataCoder;
 import com.joyzl.network.http.HTTP;
 import com.joyzl.network.http.HTTPCoder;
+import com.joyzl.network.http.HTTPSlave;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.Message;
 import com.joyzl.network.http.QueryCoder;
@@ -32,7 +33,7 @@ public abstract class WEBServlet extends Servlet {
 	public final static Server SERVER = new Server();
 
 	@Override
-	public void service(ChainChannel<Message> chain, Request request, Response response) throws Exception {
+	public void service(HTTPSlave chain, Request request, Response response) throws Exception {
 		if (request.getVersion() != HTTP.V11 && request.getVersion() != HTTP.V10) {
 			response.setStatus(HTTPStatus.VERSION_NOT_SUPPORTED);
 		} else {
@@ -78,6 +79,7 @@ public abstract class WEBServlet extends Servlet {
 
 	protected void response(ChainChannel<Message> chain, Response response) {
 		if (response.getStatus() > 0) {
+
 			// 以下默认处理回复发送消息头
 			response.addHeader(SERVER);
 			response.addHeader(DATE);

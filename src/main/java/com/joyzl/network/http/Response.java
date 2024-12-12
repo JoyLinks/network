@@ -15,11 +15,18 @@ import com.joyzl.network.Utility;
  */
 public class Response extends HTTPMessage {
 
-	private String version = HTTP.V11;
 	private int status = HTTPStatus.OK.code();
 	private String text = HTTPStatus.OK.text();
 
-	private boolean close;
+	@Override
+	public void setVersion(String value) {
+		super.setVersion(value);
+		// HTTP/1.1 默认长连接
+		// HTTP/1.0 默认短连接
+		if (HTTP.V10 == value) {
+			needClose();
+		}
+	}
 
 	public int getStatus() {
 		return status;
@@ -42,31 +49,9 @@ public class Response extends HTTPMessage {
 		text = value;
 	}
 
-	public String getVersion() {
-		return version;
-	}
-
-	public void setVersion(String value) {
-		version = value;
-	}
-
 	@Override
 	public String toString() {
-		return status + " " + version + HTTPCoder.SPACE + text;
-	}
-
-	/**
-	 * 响应后是否关闭链路
-	 */
-	public boolean needClose() {
-		return close;
-	}
-
-	/**
-	 * 设置响应后是否关闭链路，默认由请求时设置
-	 */
-	public void setClose(boolean value) {
-		close = value;
+		return status + " " + getVersion() + HTTPCoder.SPACE + text;
 	}
 
 	/**

@@ -6,7 +6,8 @@
 package com.joyzl.network.http;
 
 /**
- * Upgrade
+ * Upgrade<br>
+ * HTTP/2 明确禁止使用此机制；这个机制只属于 HTTP/1.1
  * 
  * @author ZhangXi
  * @date 2021年10月18日
@@ -15,5 +16,4 @@ public final class Upgrade {
 
 	public final static String NAME = HTTP.Upgrade;
 
-	public final static String WEBSOCKET = "websocket";
 }

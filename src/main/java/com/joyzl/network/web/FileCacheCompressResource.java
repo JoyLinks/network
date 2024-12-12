@@ -20,8 +20,8 @@ public class FileCacheCompressResource extends FileCacheResource {
 
 	private ByteBuffer deflate, gzip;
 
-	public FileCacheCompressResource(File root, File file, boolean weak) {
-		super(root, file, weak);
+	public FileCacheCompressResource(String path, File file, boolean weak) {
+		super(path, file, weak);
 	}
 
 	void deflate() throws IOException {

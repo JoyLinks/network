@@ -19,7 +19,6 @@ import com.joyzl.network.http.MultipartFile.MultipartFiles;
  */
 public class Request extends HTTPMessage {
 
-	private String version = HTTP.V11;
 	private String method = HTTP.GET;
 
 	private String url;
@@ -33,17 +32,9 @@ public class Request extends HTTPMessage {
 		method = value;
 	}
 
-	public String getVersion() {
-		return version;
-	}
-
-	public void setVersion(String value) {
-		version = value;
-	}
-
 	@Override
 	public String toString() {
-		return method + HTTPCoder.SPACE + version + HTTPCoder.SPACE + url;
+		return method + HTTPCoder.SPACE + getVersion() + HTTPCoder.SPACE + url;
 	}
 
 	/**

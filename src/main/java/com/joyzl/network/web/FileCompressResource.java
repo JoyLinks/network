@@ -22,8 +22,8 @@ public class FileCompressResource extends FileResource {
 	private File gzip, deflate;
 	private long gzipLength, deflateLength;
 
-	public FileCompressResource(File root, File file, File cache, boolean weak) {
-		super(root, file, weak);
+	public FileCompressResource(String path, File file, File cache, boolean weak) {
+		super(path, file, weak);
 		this.cache = cache;
 	}
 

@@ -18,7 +18,11 @@ public abstract class Authenticate {
 	private String realm;
 
 	public Authenticate(String path) {
-		this.path = path;
+		if (path == null) {
+			this.path = "";
+		} else {
+			this.path = path;
+		}
 	}
 
 	/**

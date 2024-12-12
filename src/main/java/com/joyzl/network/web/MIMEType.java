@@ -117,7 +117,7 @@ public final class MIMEType {
 				return TEXT_HTML;
 			case "xml":
 				return TEXT_XML;
-			case "txt":
+			case "txt", "log":
 				return TEXT_PLAIN;
 			case "js":
 				return APPLICATION_JAVA_SCRIPT;

@@ -71,7 +71,7 @@ public class AuthenticateDigest extends Authenticate {
 		if (a != null && a.length() > 64) {
 			if (a.startsWith(TYPE)) {
 				String respons = null, username = null, cnonce = null, nc = null;
-				String qop = null, nonce = null, opaque = null;
+				String realm = null, qop = null, nonce = null, opaque = null;
 				// 解析参数
 				int end, equal, start = TYPE.length() + 1;
 				do {
@@ -81,7 +81,9 @@ public class AuthenticateDigest extends Authenticate {
 						if (end < 0) {
 							end = a.length();
 						}
-						if (equal("response", a, start, equal)) {
+						if (equal("realm", a, start, equal)) {
+							realm = a.substring(equal + 2, end - 1);
+						} else if (equal("response", a, start, equal)) {
 							respons = a.substring(equal + 2, end - 1);
 						} else if (equal("username", a, start, equal)) {
 							username = a.substring(equal + 2, end - 1);
@@ -109,6 +111,7 @@ public class AuthenticateDigest extends Authenticate {
 					}
 				} while (start < a.length());
 
+				// System.out.println("realm=" + realm);
 				// System.out.println("response=" + respons);
 				// System.out.println("username=" + username);
 				// System.out.println("cnonce=" + cnonce);
@@ -117,69 +120,51 @@ public class AuthenticateDigest extends Authenticate {
 				// System.out.println("qop=" + qop);
 				// System.out.println("nc=" + nc);
 
-				if (username != null && respons != null && cnonce != null && nonce != null && nc != null) {
-					// 校验随机数
-					if (check(nonce, opaque)) {
-						// 校验参数 auth+md5
-						if (qop == null || AUTH.equalsIgnoreCase(qop)) {
+				if (realm != null && username != null && respons != null && cnonce != null && nonce != null && nc != null) {
+					// 校验提示信息
+					if (realm.equals(getRealm())) {
+						// 校验随机数
+						if (check(nonce, opaque)) {
+							// 校验参数 auth+md5
+							if (qop == null || AUTH.equalsIgnoreCase(qop)) {
 
-							// response=MD5(MD5(A1):nonce:nc:cnonce:qop:MD5(A2))
-							// A1=username:realm:passwd
-							// A2=Method:request-uri
+								// response=MD5(MD5(A1):nonce:nc:cnonce:qop:MD5(A2))
+								// A1=username:realm:passwd
+								// A2=Method:request-uri
 
-							String A1, A2;
-							// 此时A1为存储的密码
-							A1 = USERS.get(username);
-							if (A1 != null) {
-								try {
-									final MessageDigest md;
-									// A1
-									if (getAlgorithm() == null) {
-										// 未指定加密算法，密码明文存储
-										// 其余验证采用默认 MD5
-										md = MessageDigest.getInstance("MD5");
+								String A1, A2;
+								// 此时A1为存储的密码
+								A1 = USERS.get(username);
+								if (A1 != null) {
+									try {
+										final MessageDigest md;
+										// A1
+										if (getAlgorithm() == null) {
+											// 未指定加密算法，密码明文存储
+											// 其余验证采用默认 MD5
+											md = MessageDigest.getInstance("MD5");
 
-										md.update(username.getBytes(StandardCharsets.UTF_8));
-										md.update(COLON);
-										md.update(getRealm().getBytes(StandardCharsets.UTF_8));
-										md.update(COLON);
-										md.update(A1.getBytes(StandardCharsets.UTF_8));
-										A1 = Utility.hex(md.digest());
-									} else {
-										// 指定加密算法，密码加密存储
-										md = MessageDigest.getInstance(getAlgorithm());
+											md.update(username.getBytes(StandardCharsets.UTF_8));
+											md.update(COLON);
+											md.update(getRealm().getBytes(StandardCharsets.UTF_8));
+											md.update(COLON);
+											md.update(A1.getBytes(StandardCharsets.UTF_8));
+											A1 = Utility.hex(md.digest());
+										} else {
+											// 指定加密算法，密码加密存储
+											md = MessageDigest.getInstance(getAlgorithm());
 
-										// 由于机制限制密码必须连同 name:realm:password 加密
-										// 存储的密码已经是 A1 值，此处无须额外加密
-									}
-									// A2
-									md.reset();
-									md.update(request.getMethod().getBytes(StandardCharsets.UTF_8));
-									md.update(COLON);
-									md.update(request.getURL().getBytes(StandardCharsets.UTF_8));
-									A2 = Utility.hex(md.digest());
-									// RESPONSE
-									md.reset();
-									md.update(A1.getBytes(StandardCharsets.UTF_8));
-									md.update(COLON);
-									md.update(nonce.getBytes(StandardCharsets.UTF_8));
-									md.update(COLON);
-									md.update(nc.getBytes(StandardCharsets.UTF_8));
-									md.update(COLON);
-									md.update(cnonce.getBytes(StandardCharsets.UTF_8));
-									md.update(COLON);
-									md.update(AUTH.getBytes(StandardCharsets.UTF_8));
-									md.update(COLON);
-									md.update(A2.getBytes(StandardCharsets.UTF_8));
-									a = Utility.hex(md.digest());
-
-									if (Utility.same(a, respons)) {
+											// 由于机制限制密码必须连同 name:realm:password
+											// 加密
+											// 存储的密码已经是 A1 值，此处无须额外加密
+										}
 										// A2
 										md.reset();
+										md.update(request.getMethod().getBytes(StandardCharsets.UTF_8));
 										md.update(COLON);
 										md.update(request.getURL().getBytes(StandardCharsets.UTF_8));
 										A2 = Utility.hex(md.digest());
-										// RSPAUTH
+										// RESPONSE
 										md.reset();
 										md.update(A1.getBytes(StandardCharsets.UTF_8));
 										md.update(COLON);
@@ -194,15 +179,37 @@ public class AuthenticateDigest extends Authenticate {
 										md.update(A2.getBytes(StandardCharsets.UTF_8));
 										a = Utility.hex(md.digest());
 
-										authenticationInfo(request, response, a, cnonce, nc);
-										return true;
+										if (Utility.same(a, respons)) {
+											// A2
+											md.reset();
+											md.update(COLON);
+											md.update(request.getURL().getBytes(StandardCharsets.UTF_8));
+											A2 = Utility.hex(md.digest());
+											// RSPAUTH
+											md.reset();
+											md.update(A1.getBytes(StandardCharsets.UTF_8));
+											md.update(COLON);
+											md.update(nonce.getBytes(StandardCharsets.UTF_8));
+											md.update(COLON);
+											md.update(nc.getBytes(StandardCharsets.UTF_8));
+											md.update(COLON);
+											md.update(cnonce.getBytes(StandardCharsets.UTF_8));
+											md.update(COLON);
+											md.update(AUTH.getBytes(StandardCharsets.UTF_8));
+											md.update(COLON);
+											md.update(A2.getBytes(StandardCharsets.UTF_8));
+											a = Utility.hex(md.digest());
+
+											authenticationInfo(request, response, a, cnonce, nc);
+											return true;
+										}
+									} catch (NoSuchAlgorithmException e) {
+										throw new RuntimeException(e);
 									}
-								} catch (NoSuchAlgorithmException e) {
-									throw new RuntimeException(e);
+								} else {
+									// 暂未支持 auth-int
+									// response=MD5(H(username:realm:passwd):nonce:nc:cnonce:qop:H(Method:request-uri:H(entity-body)))
 								}
-							} else {
-								// 暂未支持 auth-int
-								// response=MD5(H(username:realm:passwd):nonce:nc:cnonce:qop:H(Method:request-uri:H(entity-body)))
 							}
 						}
 					}

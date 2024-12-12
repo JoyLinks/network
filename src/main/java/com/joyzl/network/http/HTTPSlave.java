@@ -25,13 +25,12 @@ public class HTTPSlave extends TCPSlave<Message> {
 
 	@Override
 	public ChainType type() {
-		return ChainType.TCP_HTTP_SLAVE;
+		return handler.type();
 	}
 
 	@Override
 	public void close() {
 		try {
-			response.clearContent();
 			request.clearContent();
 		} catch (Exception e) {
 			throw new RuntimeException(e);
@@ -43,13 +42,31 @@ public class HTTPSlave extends TCPSlave<Message> {
 	// 服务端提供请求消息暂存以支持消息解码
 	// 在网络传输中可能需要多次接收数据才能完成解码
 	private final Request request = new Request();
-	private final Response response = new Response();
 
 	protected Request getRequest() {
 		return request;
 	}
 
-	protected Response getResponse() {
-		return response;
+	// WEB Socket
+
+	private WEBSocketHandler handler = WEBSocketHandler.DEFAULT_SLAVE;
+
+	/**
+	 * 升级链路为WebSocket，绑定消息处理对象
+	 */
+	public void upgrade(WEBSocketHandler handler) {
+		if (handler == null) {
+			this.handler = WEBSocketHandler.DEFAULT_SLAVE;
+		} else {
+			this.handler = handler;
+		}
+	}
+
+	public boolean isUpgraded() {
+		return handler != WEBSocketHandler.DEFAULT_SLAVE;
+	}
+
+	public WEBSocketHandler getUpgradedHandler() {
+		return handler;
 	}
 }

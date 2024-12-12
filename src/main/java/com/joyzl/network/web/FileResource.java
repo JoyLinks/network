@@ -17,7 +17,7 @@ import com.joyzl.network.http.Range.ByteRange;
  */
 public class FileResource extends WEBResource {
 
-	/** URI */
+	/** URL-PATH */
 	private String contentLocation;
 	/** "Wed, 21 Oct 2015 07:28:00 GMT" */
 	private String lastModified;
@@ -32,12 +32,12 @@ public class FileResource extends WEBResource {
 	private long modified;
 	private long length;
 
-	public FileResource(File root, File file, boolean weak) {
+	public FileResource(String path, File file, boolean weak) {
 		this.file = file;
 		length = file.length();
 		modified = file.lastModified();
 
-		contentLocation = uri(root, file);
+		contentLocation = path;
 		lastModified = Date.toText(modified);
 
 		// index.html.en
@@ -56,7 +56,8 @@ public class FileResource extends WEBResource {
 				}
 				index = name.lastIndexOf('.', end = index - 1);
 			} while (index > 0);
-		} else {
+		}
+		if (contentType == null) {
 			contentType = MIMEType.APPLICATION_OCTET_STREAM;
 		}
 
@@ -65,10 +66,6 @@ public class FileResource extends WEBResource {
 		} else {
 			eTag = ETag.makeStorng(file);
 		}
-	}
-
-	String uri(File root, File file) {
-		return file.getPath().substring(root.getPath().length()).replace('\\', '/');
 	}
 
 	@Override

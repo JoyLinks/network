@@ -24,6 +24,10 @@ public final class FileMultiple extends WEBResource {
 		// Alternates 未得到广泛应用
 		// Alternates: {"index.html" 1.0 {type text/html} {language en}},{}
 
+		// Accept: image/*; q=1.0
+		// Accept-Encoding: compress; q=0.0, gzip; q=0.0, deflate; q=0.5
+		// TODO 根据Accept/Accept-Encoding优选资源
+
 		final String name = path.getName();
 		if (name != null && name.length() > 0) {
 			final StringBuilder builder = Utility.getStringBuilder();

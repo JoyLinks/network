@@ -19,8 +19,8 @@ public class FileCacheResource extends FileResource {
 
 	private ByteBuffer identity;
 
-	public FileCacheResource(File root, File file, boolean weak) {
-		super(root, file, weak);
+	public FileCacheResource(String path, File file, boolean weak) {
+		super(path, file, weak);
 	}
 
 	ByteBuffer identity() throws IOException {

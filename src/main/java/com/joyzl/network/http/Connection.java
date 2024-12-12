@@ -16,7 +16,6 @@ public final class Connection extends Header {
 	public final static String NAME = HTTP.Connection;
 	public final static String CLOSE = "close";
 	public final static String KEEP_ALIVE = "keep-alive";
-	public final static String UPGRADE = "Upgrade";
 
 	private String value;
 

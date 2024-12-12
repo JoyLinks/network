@@ -16,7 +16,22 @@ import java.util.Map;
  */
 public class HTTPMessage extends Message {
 
+	private String version = HTTP.V11;
 	private final Map<String, String> headers = new HashMap<>();
+
+	@Override
+	public void reset() throws Exception {
+		super.reset();
+		headers.clear();
+	}
+
+	public String getVersion() {
+		return version;
+	}
+
+	public void setVersion(String value) {
+		version = value;
+	}
 
 	public void addHeader(String name, String value) {
 		headers.put(name, value);

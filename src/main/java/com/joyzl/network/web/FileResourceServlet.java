@@ -71,7 +71,7 @@ public class FileResourceServlet extends WEBResourceServlet {
 	protected WEBResource find(String path) {
 		WEBResource resource = resources.get(path);
 		if (resource == null) {
-			final File file = resolveFile(getRoot(), path, base);
+			final File file = resolveFile(path);
 			if (file.exists()) {
 				if (file.isDirectory()) {
 					// DIR
@@ -82,7 +82,7 @@ public class FileResourceServlet extends WEBResourceServlet {
 							synchronized (this) {
 								resource = resources.get(path);
 								if (resource == null) {
-									resource = makeResource(file);
+									resource = makeResource(page);
 									resources.put(resource.getContentLocation(), resource);
 									resources.put(path, resource);
 								}
@@ -123,13 +123,13 @@ public class FileResourceServlet extends WEBResourceServlet {
 			// 查找指定目录
 			final File file = new File(error, status.code() + ".html");
 			if (file.exists()) {
-				return new FileResource(root, file, false);
+				return new FileResource(resolvePath(file), file, false);
 			}
 		}
 		// 查找根目录
 		final File file = new File(root, status.code() + ".html");
 		if (file.exists()) {
-			return new FileResource(root, file, false);
+			return new FileResource(resolvePath(file), file, false);
 		}
 		return null;
 	}
@@ -144,15 +144,15 @@ public class FileResourceServlet extends WEBResourceServlet {
 		// 要缓存 要压缩
 		if (canCache(file)) {
 			if (canCompress(file)) {
-				return new FileCacheCompressResource(getRoot(), file, isWeak());
+				return new FileCacheCompressResource(resolvePath(file), file, isWeak());
 			} else {
-				return new FileCacheResource(getRoot(), file, isWeak());
+				return new FileCacheResource(resolvePath(file), file, isWeak());
 			}
 		} else {
 			if (canCompress(file)) {
-				return new FileCompressResource(getRoot(), file, cache, isWeak());
+				return new FileCompressResource(resolvePath(file), file, cache, isWeak());
 			} else {
-				return new FileResource(getRoot(), file, isWeak());
+				return new FileResource(resolvePath(file), file, isWeak());
 			}
 		}
 	}
@@ -183,11 +183,11 @@ public class FileResourceServlet extends WEBResourceServlet {
 	 * 请求路径转换为实际文件（或目录）；<br>
 	 * 调用此方法之前意味着path已经与含有通配符的base匹配，此方法不会重复检查path是否匹配base。
 	 * 
-	 * @param root 根目录
+	 * @param root 资源根目录
 	 * @param path 请求的完整路径
 	 * @param base 请求的资源路径前缀
 	 */
-	protected File resolveFile(File root, String path, String base) {
+	protected File resolveFile(String path) {
 		// "/" *
 		// URL "http://192.168.0.1"
 		// - URI "/"
@@ -234,6 +234,24 @@ public class FileResourceServlet extends WEBResourceServlet {
 
 		// "/image/" * ".png"
 		// 视为"/image/" *
+	}
+
+	/**
+	 * 资源文件转换为资源路径<br>
+	 * 调用此方法意味着已经在资源根目录定位到文件，此方法不会检查file是否位于root目录中
+	 * 
+	 * @param file 资源文件
+	 * @return 资源路径 URL 的 PATH 部
+	 */
+	protected String resolvePath(File file) {
+		String path = file.getPath().substring(root.getPath().length()).replace('\\', '/');
+		if (base == null || base.length() == 0) {
+			return path;
+		}
+		if (base.charAt(base.length() - 1) == '/') {
+			return base + path;
+		}
+		return base + '/' + path;
 	}
 
 	/**

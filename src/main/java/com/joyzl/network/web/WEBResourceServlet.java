@@ -183,10 +183,20 @@ public abstract class WEBResourceServlet extends WEBServlet {
 
 	/**
 	 * 资源输出，将根据请求头处理资源输出方式；设置响应状态和响应头
+	 * 
+	 * <pre>
+	 * Content-Type: text/html
+	 * Cache-Control: no-cache
+	 * Content-Language: *
+	 * Content-Location: *
+	 * Last-Modified: *
+	 * ETag: *
+	 * </pre>
 	 */
 	protected void output(Request request, Response response, WEBResource resource, boolean content) throws IOException {
 
 		// 公共头部分
+		response.addHeader(ContentType.NAME, resource.getContentType());
 		response.addHeader(CacheControl.NAME, CacheControl.NO_CACHE);
 		response.addHeader(HTTP.Content_Language, resource.getContentLanguage());
 		response.addHeader(HTTP.Content_Location, resource.getContentLocation());
@@ -411,8 +421,6 @@ public abstract class WEBResourceServlet extends WEBServlet {
 
 		// Content-Encoding: br/gzip/deflate
 		response.addHeader(ContentEncoding.NAME, encoding);
-		// Content-Type: text/html
-		response.addHeader(ContentType.NAME, resource.getContentType());
 
 		if (length < HTTPCoder.BLOCK_BYTES) {
 			// Content-Length:9
@@ -434,7 +442,6 @@ public abstract class WEBResourceServlet extends WEBServlet {
 	 * <pre>
 	 * 206
 	 * Accept-Ranges: bytes
-	 * Content-Type: text/html
 	 * Content-Encoding: br/gzip/deflate
 	 * Content-Range: bytes 200-1000/67589
 	 * Content-Length: 9
@@ -460,8 +467,6 @@ public abstract class WEBResourceServlet extends WEBServlet {
 				if (byterange.valid(length, BLOCK_BYTES, MAX_BYTES)) {
 					// Accept-Ranges: bytes
 					response.addHeader(HTTP.Accept_Ranges, Range.UNIT);
-					// Content-Type: text/html
-					response.addHeader(ContentType.NAME, resource.getContentType());
 					// Content-Length:9
 					response.addHeader(ContentLength.NAME, Long.toString(byterange.getSize()));
 					// Content-Encoding: br/gzip/deflate
@@ -521,8 +526,6 @@ public abstract class WEBResourceServlet extends WEBServlet {
 			}
 		} else {
 			// 资源无须分部请求
-			// Content-Type: text/html
-			response.addHeader(ContentType.NAME, resource.getContentType());
 			// Content-Length:9
 			response.addHeader(ContentLength.NAME, Long.toString(length));
 			// Content-Encoding: br/gzip/deflate
