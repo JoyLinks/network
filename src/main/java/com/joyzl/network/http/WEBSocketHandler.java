@@ -27,6 +27,6 @@ public interface WEBSocketHandler {
 		return ChainType.TCP_HTTP_SLAVE_WEB_SOCKET;
 	};
 
-	void received(HTTPSlave slave, WEBSocketMessage message);
+	void received(HTTPSlave slave, WEBSocketMessage message) throws Exception;
 
 }

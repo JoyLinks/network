@@ -18,12 +18,12 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ServletURI {
+public @interface ServletPath {
 
 	/**
 	 * 完全匹配 "/action.html"<br>
 	 * 部分匹配 "/action/*","/action/*.do"<br>
 	 * 后缀匹配 "*.do"
 	 */
-	String uri();
+	String path();
 }

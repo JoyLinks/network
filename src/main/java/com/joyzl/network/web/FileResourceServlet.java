@@ -90,12 +90,12 @@ public class FileResourceServlet extends WEBResourceServlet {
 						} else {
 							// 返回目录资源
 							// 可用于重定向或返回目录列表
-							resource = new DirResource(getRoot(), file, isBrowse());
+							resource = new DirectoryResource(path, file, isBrowse());
 						}
 					} else {
 						// 返回目录资源
 						// 可用于重定向或返回目录列表
-						resource = new DirResource(getRoot(), file, isBrowse());
+						resource = new DirectoryResource(path + '/', file, isBrowse());
 					}
 				} else {
 					// FILE

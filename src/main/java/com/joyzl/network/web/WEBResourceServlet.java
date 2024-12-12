@@ -170,9 +170,15 @@ public abstract class WEBResourceServlet extends WEBServlet {
 					response.setStatus(HTTPStatus.MOVED_PERMANENTLY);
 					response.addHeader(HTTP.Location, resource.getContentLocation());
 				} else {
-					// 列出子目录和文件
-					response.setStatus(HTTPStatus.OK);
-					whole(request, response, resource, content);
+					if (resource.getContentType() == null) {
+						// 不允许浏览目录
+						response.setStatus(HTTPStatus.NOT_FOUND);
+					} else {
+						// 列出子目录和文件
+						response.setStatus(HTTPStatus.OK);
+						response.addHeader(ContentType.NAME, resource.getContentType());
+						whole(request, response, resource, content);
+					}
 				}
 			}
 		} else {

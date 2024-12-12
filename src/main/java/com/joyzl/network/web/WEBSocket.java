@@ -17,7 +17,6 @@ import com.joyzl.network.http.Response;
 import com.joyzl.network.http.SecWebSocketAccept;
 import com.joyzl.network.http.Upgrade;
 import com.joyzl.network.http.WEBSocketHandler;
-import com.joyzl.network.http.WEBSocketMessage;
 
 /**
  * WEB Socket handshake<br>
@@ -136,32 +135,6 @@ public abstract class WEBSocket extends Servlet {
 		response.addHeader(HTTP.Sec_WebSocket_Accept, SecWebSocketAccept.hash(value));
 		response.addHeader(new Date());
 		return true;
-	}
-
-	public void received(HTTPSlave chain, WEBSocketMessage message) throws Exception {
-		// 控制帧可能被插入到分片消息的中间，控制帧不能被分片
-		// 消息片段必须在发送端按照顺序发送给接收端
-		// 一条消息分的片不能与另一条消息分的片嵌套传输
-
-		if (message.getType() == WEBSocketMessage.TEXT) {
-
-		} else//
-		if (message.getType() == WEBSocketMessage.BINARY) {
-
-		} else//
-		if (message.getType() == WEBSocketMessage.PING) {
-			message.setType(WEBSocketMessage.PONG);
-			// 如果有数据将原样回复
-			chain.send(message);
-		} else//
-		if (message.getType() == WEBSocketMessage.PONG) {
-
-		} else//
-		if (message.getType() == WEBSocketMessage.CLOSE) {
-			chain.send(message);
-		} else {
-
-		}
 	}
 
 	/**

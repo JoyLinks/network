@@ -14,35 +14,28 @@ import com.joyzl.network.http.Range.ByteRange;
  * 
  * @author ZhangXi 2024年11月21日
  */
-public class DirResource extends WEBResource {
+public class DirectoryResource extends WEBResource {
 
 	/** URI */
-	private String contentLocation;
+	private final String contentLocation;
+	private final String contentType;
 
 	private final File dir;
-	private final boolean browse;
 	private DataBuffer buffer;
 
-	public DirResource(File root, File dir, boolean browse) {
+	public DirectoryResource(String path, File dir, boolean browse) {
 		this.dir = dir;
-		this.browse = browse;
-		contentLocation = uri(root, dir);
-	}
-
-	String uri(File root, File file) {
-		String uri = file.getPath().substring(root.getPath().length()).replace('\\', '/');
-		if (uri.endsWith("/")) {
-			return uri;
+		contentLocation = path;
+		if (browse) {
+			contentType = MIMEType.TEXT_HTML;
+		} else {
+			contentType = null;
 		}
-		return uri + '/';
 	}
 
 	@Override
 	public String getContentType() {
-		if (browse) {
-			return MIMEType.TEXT_HTML;
-		}
-		return null;
+		return contentType;
 	}
 
 	@Override
@@ -72,7 +65,7 @@ public class DirResource extends WEBResource {
 
 	@Override
 	public long getLength(String encoding) throws IOException {
-		if (browse) {
+		if (contentType != null) {
 			return list();
 		}
 		return 0;
@@ -80,7 +73,7 @@ public class DirResource extends WEBResource {
 
 	@Override
 	public InputStream getData(String encoding) throws IOException {
-		if (browse) {
+		if (contentType != null) {
 			list();
 			return new DataBufferInput(buffer, true);
 		}
@@ -89,7 +82,7 @@ public class DirResource extends WEBResource {
 
 	@Override
 	public InputStream getData(String encoding, ByteRange range) throws IOException {
-		if (browse) {
+		if (contentType != null) {
 			list();
 			return new DataBufferInput(buffer, true);
 		}
