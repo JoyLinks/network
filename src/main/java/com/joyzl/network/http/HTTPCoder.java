@@ -521,14 +521,14 @@ public class HTTPCoder extends HTTP {
 	}
 
 	/**
-	 * 输出请求或响应标头，忽略空值
+	 * 输出请求标头，忽略空值
 	 * 
 	 * @param buffer
 	 * @param message
 	 * @return 始终返回 true
 	 * @throws IOException
 	 */
-	public static boolean writeHeaders(DataBuffer buffer, HTTPMessage message) throws IOException {
+	public static boolean writeHeaders(DataBuffer buffer, Request message) throws IOException {
 		for (Entry<String, String> header : message.getHeaders().entrySet()) {
 			if (header.getKey() != null && header.getValue() != null) {
 				buffer.writeASCIIs(header.getKey());
@@ -537,6 +537,43 @@ public class HTTPCoder extends HTTP {
 				buffer.writeASCIIs(header.getValue());
 				buffer.writeASCII(CR);
 				buffer.writeASCII(LF);
+			}
+		}
+		buffer.writeASCII(CR);
+		buffer.writeASCII(LF);
+		return true;
+	}
+
+	/**
+	 * 输出响应标头，忽略空值
+	 * 
+	 * @param buffer
+	 * @param message
+	 * @return 始终返回 true
+	 * @throws IOException
+	 */
+	public static boolean writeHeaders(DataBuffer buffer, Response message) throws IOException {
+		for (Entry<String, String> header : message.getHeaders().entrySet()) {
+			if (header.getKey() != null && header.getValue() != null) {
+				buffer.writeASCIIs(header.getKey());
+				buffer.writeASCII(COLON);
+				buffer.writeASCII(SPACE);
+				buffer.writeASCIIs(header.getValue());
+				buffer.writeASCII(CR);
+				buffer.writeASCII(LF);
+			}
+		}
+		// 这是特殊处理，输出服务端配置的附加信息头
+		if (message.getAttachHeaders() != null) {
+			for (Entry<String, String> header : message.getAttachHeaders().entrySet()) {
+				if (header.getKey() != null && header.getValue() != null) {
+					buffer.writeASCIIs(header.getKey());
+					buffer.writeASCII(COLON);
+					buffer.writeASCII(SPACE);
+					buffer.writeASCIIs(header.getValue());
+					buffer.writeASCII(CR);
+					buffer.writeASCII(LF);
+				}
 			}
 		}
 		buffer.writeASCII(CR);

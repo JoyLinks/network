@@ -110,15 +110,9 @@ public abstract class HTTPServerHandler implements ChainHandler<Message> {
 				// TIMEOUT
 				chain.close();
 			} else {
-				final WEBSocketMessage webSocketMessage = (WEBSocketMessage) message;
-				if (webSocketMessage.getType() == WEBSocketMessage.CLOSE) {
-					slave.getUpgradedHandler().received(slave, webSocketMessage);
-					chain.close();
-				} else {
-					slave.getUpgradedHandler().received(slave, webSocketMessage);
-					chain.receive();
-				}
+				slave.getUpgradedHandler().received(slave, (WEBSocketMessage) message);
 			}
+			return;
 		}
 		throw new IllegalStateException("链路状态异常:" + chain.type());
 	}
@@ -159,8 +153,6 @@ public abstract class HTTPServerHandler implements ChainHandler<Message> {
 				}
 			}
 			if (response.state() == Message.COMPLETE) {
-				response.clearContent();
-				response.clearHeaders();
 				return buffer;
 			}
 
@@ -183,14 +175,21 @@ public abstract class HTTPServerHandler implements ChainHandler<Message> {
 			// 超时
 		} else if (message.state() == Message.COMPLETE) {
 			if (message.after() == Message.CLOSE) {
+				message.reset();
 				chain.close();
 			} else {
 				if (message.after() == Message.UPGRADE) {
-					((HTTPSlave) chain).upgrade((WEBSocketHandler) message.getContent());
+					final WEBSocketHandler handler = (WEBSocketHandler) message.getContent();
+					((HTTPSlave) chain).upgrade(handler);
+					handler.connected((HTTPSlave) chain);
+					message.reset();
+					chain.receive();
+				} else if (chain.type() == ChainType.TCP_HTTP_SLAVE_WEB_SOCKET) {
+					((HTTPSlave) chain).getUpgradedHandler().sent((HTTPSlave) chain, (WEBSocketMessage) message);
+				} else {
+					message.reset();
+					chain.receive();
 				}
-				message.reset();
-				// 链路保持，继续接收消息
-				chain.receive();
 			}
 		} else {
 			// 再次发送当前消息直至完成
@@ -200,6 +199,7 @@ public abstract class HTTPServerHandler implements ChainHandler<Message> {
 
 	@Override
 	public void disconnected(ChainChannel<Message> chain) throws Exception {
+		((HTTPSlave) chain).getUpgradedHandler().disconnected((HTTPSlave) chain);
 	}
 
 	@Override

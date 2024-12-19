@@ -63,7 +63,7 @@ public class FileCompressResource extends FileResource {
 
 	@Override
 	public String fitEncoding(AcceptEncoding acceptEncoding) {
-		if (acceptEncoding != null) {
+		if (acceptEncoding != null && getLength() > 1024) {
 			for (int index = 0; index < acceptEncoding.size(); index++) {
 				if (AcceptEncoding.GZIP.equals(acceptEncoding.getValue(index))) {
 					return AcceptEncoding.GZIP;

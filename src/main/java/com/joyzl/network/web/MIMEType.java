@@ -20,6 +20,8 @@ import java.io.File;
  */
 public final class MIMEType {
 
+	// https://www.file-extensions.org/extensions/common-file-extension-list
+
 	/** 所有 */
 	public final static String ALL = "*/*";
 

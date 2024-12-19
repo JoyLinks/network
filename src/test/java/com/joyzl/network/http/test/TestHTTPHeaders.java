@@ -58,44 +58,27 @@ class TestHTTPHeaders {
 	void testIfString() {
 		final List<StringBuilder> samples = new ArrayList<>();
 		for (int i = 0; i < HTTP.HEADERS.size(); i++) {
-			samples.add(new StringBuilder(HTTP.HEADERS.constants()[i]));
+			samples.add(new StringBuilder(HEADERS[i]));
 		}
 
 		String name;
-		// 二分法
 		for (int i = 0; i < samples.size(); i++) {
 			name = HTTP.HEADERS.get(samples.get(i));
-			assertTrue(name == HTTP.HEADERS.constants()[i]);
+			assertTrue(name == HEADERS[i]);
 		}
 		for (int i = 0; i < samples.size(); i++) {
 			name = HTTP.HEADERS.get(samples.get(i).toString().toLowerCase());
-			assertTrue(name == HTTP.HEADERS.constants()[i]);
+			assertTrue(name == HEADERS[i]);
 		}
 		for (int i = 0; i < samples.size(); i++) {
 			name = HTTP.HEADERS.get(samples.get(i).toString().toUpperCase());
-			assertTrue(name == HTTP.HEADERS.constants()[i]);
+			assertTrue(name == HEADERS[i]);
 		}
 		for (int i = 0; i < samples.size(); i++) {
 			name = HTTP.HEADERS.get(samples.get(i).substring(0, samples.get(i).length() - 1));
-			assertTrue(name != HTTP.HEADERS.constants()[i]);
+			assertTrue(name != HEADERS[i]);
 		}
-		// 朴素法
-		for (int i = 0; i < samples.size(); i++) {
-			name = HTTP.HEADERS.get1(samples.get(i));
-			assertTrue(name == HTTP.HEADERS.constants()[i]);
-		}
-		for (int i = 0; i < samples.size(); i++) {
-			name = HTTP.HEADERS.get1(samples.get(i).toString().toLowerCase());
-			assertTrue(name == HTTP.HEADERS.constants()[i]);
-		}
-		for (int i = 0; i < samples.size(); i++) {
-			name = HTTP.HEADERS.get1(samples.get(i).toString().toUpperCase());
-			assertTrue(name == HTTP.HEADERS.constants()[i]);
-		}
-		for (int i = 0; i < samples.size(); i++) {
-			name = HTTP.HEADERS.get1(samples.get(i).substring(0, samples.get(i).length() - 1));
-			assertTrue(name != HTTP.HEADERS.constants()[i]);
-		}
+
 		// 无匹配情形
 		name = HTTP.HEADERS.get("X");
 		assertTrue(name.equals("X"));
@@ -105,7 +88,7 @@ class TestHTTPHeaders {
 		// MAP
 		final Map<String, String> map = new HashMap<>();
 		for (int i = 0; i < HTTP.HEADERS.size(); i++) {
-			map.put(HTTP.HEADERS.constants()[i], HTTP.HEADERS.constants()[i]);
+			map.put(HEADERS[i], HEADERS[i]);
 		}
 
 		// 效率比较
@@ -127,17 +110,7 @@ class TestHTTPHeaders {
 			}
 		}
 		time = System.currentTimeMillis() - time;
-		System.out.println("二分法:" + time);
-
-		size = 10000;
-		time = System.currentTimeMillis();
-		while (size-- > 0) {
-			for (int i = 0; i < samples.size(); i++) {
-				name = HTTP.HEADERS.get1(samples.get(i));
-			}
-		}
-		time = System.currentTimeMillis() - time;
-		System.out.println("朴素法:" + time);
+		System.out.println("SEK:" + time);
 	}
 
 	/**
@@ -382,4 +355,166 @@ class TestHTTPHeaders {
 		assertEquals(c2.getPath(), "/");
 		System.out.println(c2);
 	}
+
+	final static String[] HEADERS = new String[] { //
+			HTTP.Accept, //
+			HTTP.Accept_Additions, //
+			HTTP.Accept_Charset, //
+			HTTP.Accept_Encoding, //
+			HTTP.Accept_Features, //
+			HTTP.Accept_Language, //
+			HTTP.Accept_Ranges, //
+			HTTP.Access_Control_Allow_Credentials, //
+			HTTP.Access_Control_Allow_Headers, //
+			HTTP.Access_Control_Allow_Methods, //
+			HTTP.Access_Control_Allow_Origin, //
+			HTTP.Access_Control_Expose_Headers, //
+			HTTP.Access_Control_Max_Age, //
+			HTTP.Access_Control_Request_Headers, //
+			HTTP.Access_Control_Request_Method, //
+			HTTP.Age, //
+			HTTP.A_IM, //
+			HTTP.Allow, //
+			HTTP.Alternates, //
+			HTTP.Alt_Svc, //
+			HTTP.Authentication_Info, //
+			HTTP.Authorization, //
+			HTTP.Cache_Control, //
+			HTTP.C_Ext, //
+			HTTP.Clear_Site_Data, //
+			HTTP.C_Man, //
+			HTTP.Connection, //
+			HTTP.Content_Base, //
+			HTTP.Content_Disposition, //
+			HTTP.Content_Encoding, //
+			HTTP.Content_ID, //
+			HTTP.Content_Language, //
+			HTTP.Content_Length, //
+			HTTP.Content_Location, //
+			HTTP.Content_MD5, //
+			HTTP.Content_Range, //
+			HTTP.Content_Script_Type, //
+			HTTP.Content_Security_Policy, //
+			HTTP.Content_Security_Policy_Report_Only, //
+			HTTP.Content_Style_Type, //
+			HTTP.Content_Type, //
+			HTTP.Content_Version, //
+			HTTP.Cookie, //
+			HTTP.Cookie2, //
+			HTTP.C_Opt, //
+			HTTP.C_PEP, //
+			HTTP.C_PEP_Info, //
+			HTTP.Cross_Origin_Embedder_Policy, //
+			HTTP.Cross_Origin_Opener_Policy, //
+			HTTP.Cross_Origin_Resource_Policy, //
+			HTTP.Date, //
+			HTTP.DAV, //
+			HTTP.Default_Style, //
+			HTTP.Delta_Base, //
+			HTTP.Depth, //
+			HTTP.Derived_From, //
+			HTTP.Destination, //
+			HTTP.Differential_ID, //
+			HTTP.Digest, //
+			HTTP.Downlink, //
+			HTTP.ECT, //
+			HTTP.ETag, //
+			HTTP.Expect, //
+			HTTP.Expect_CT, //
+			HTTP.Expires, //
+			HTTP.Ext, //
+			HTTP.Forwarded, //
+			HTTP.From, //
+			HTTP.GetProfile, //
+			HTTP.Host, //
+			HTTP.If, //
+			HTTP.If_Match, //
+			HTTP.If_Modified_Since, //
+			HTTP.If_None_Match, //
+			HTTP.If_Range, //
+			HTTP.If_Unmodified_Since, //
+			HTTP.IM, //
+			HTTP.Keep_Alive, //
+			HTTP.Label, //
+			HTTP.Last_Event_ID, //
+			HTTP.Last_Modified, //
+			HTTP.Link, //
+			HTTP.Location, //
+			HTTP.Lock_Token, //
+			HTTP.Man, //
+			HTTP.Max_Forwards, //
+			HTTP.Meter, //
+			HTTP.MIME_Version, //
+			HTTP.Negotiate, //
+			HTTP.Opt, //
+			HTTP.Ordering_Type, //
+			HTTP.Origin, //
+			HTTP.Overwrite, //
+			HTTP.P3P, //
+			HTTP.PEP, //
+			HTTP.Pep_Info, //
+			HTTP.Permissions_Policy, //
+			HTTP.PICS_Label, //
+			HTTP.Ping_From, //
+			HTTP.Ping_To, //
+			HTTP.Position, //
+			HTTP.Pragma, //
+			HTTP.ProfileObject, //
+			HTTP.Protocol, //
+			HTTP.Protocol_Info, //
+			HTTP.Protocol_Query, //
+			HTTP.Protocol_Request, //
+			HTTP.Proxy_Authenticate, //
+			HTTP.Proxy_Authentication_Info, //
+			HTTP.Proxy_Authorization, //
+			HTTP.Proxy_Features, //
+			HTTP.Proxy_Instruction, //
+			HTTP.Public, //
+			HTTP.Range, //
+			HTTP.Referer, //
+			HTTP.Referrer_Policy, //
+			HTTP.Refresh, //
+			HTTP.Report_To, //
+			HTTP.Retry_After, //
+			HTTP.RTT, //
+			HTTP.Safe, //
+			HTTP.Sec_Fetch_Dest, //
+			HTTP.Sec_Fetch_Mode, //
+			HTTP.Sec_Fetch_Site, //
+			HTTP.Sec_Fetch_User, //
+			HTTP.Security_Scheme, //
+			HTTP.Sec_WebSocket_Accept, //
+			HTTP.Sec_WebSocket_Extensions, //
+			HTTP.Sec_WebSocket_Key, //
+			HTTP.Sec_WebSocket_Protocol, //
+			HTTP.Sec_WebSocket_Version, //
+			HTTP.Server, //
+			HTTP.Server_Timing, //
+			HTTP.Service_Worker_Navigation_Preload, //
+			HTTP.Set_Cookie, //
+			HTTP.Set_Cookie2, //
+			HTTP.SetProfile, //
+			HTTP.SoapAction, //
+			HTTP.SourceMap, //
+			HTTP.Status_URI, //
+			HTTP.Strict_Transport_Security, //
+			HTTP.Surrogate_Capability, //
+			HTTP.Surrogate_Control, //
+			HTTP.TCN, //
+			HTTP.TE, //
+			HTTP.Timeout, //
+			HTTP.Timing_Allow_Origin, //
+			HTTP.Trailer, //
+			HTTP.Transfer_Encoding, //
+			HTTP.Upgrade, //
+			HTTP.Upgrade_Insecure_Requests, //
+			HTTP.URI, //
+			HTTP.User_Agent, //
+			HTTP.Variant_Vary, //
+			HTTP.Vary, //
+			HTTP.Via, //
+			HTTP.Want_Digest, //
+			HTTP.Warning, //
+			HTTP.WWW_Authenticate,//
+	};
 }

@@ -7,7 +7,6 @@ package com.joyzl.network.web;
 
 import com.joyzl.network.Utility;
 import com.joyzl.network.http.Connection;
-import com.joyzl.network.http.Date;
 import com.joyzl.network.http.HTTP;
 import com.joyzl.network.http.HTTPSlave;
 import com.joyzl.network.http.HTTPStatus;
@@ -36,8 +35,6 @@ public abstract class WEBSocket extends Servlet {
 	public void service(HTTPSlave chain, Request request, Response response) throws Exception {
 		if (upgrade(request, response)) {
 			// 升级链路类型为WEBSOCKET
-			// WebSocket必须绑定Servlet实例
-			// 因为握手之后的收发不在具有URI无法通过URI获取Servlet
 			response.setContent(create(chain));
 			response.needUpgrade();
 		}
@@ -133,7 +130,6 @@ public abstract class WEBSocket extends Servlet {
 		response.addHeader(HTTP.Connection, HTTP.Upgrade);
 		response.addHeader(HTTP.Upgrade, WEBSOCKET);
 		response.addHeader(HTTP.Sec_WebSocket_Accept, SecWebSocketAccept.hash(value));
-		response.addHeader(new Date());
 		return true;
 	}
 
@@ -150,7 +146,7 @@ public abstract class WEBSocket extends Servlet {
 	 * </pre>
 	 */
 	protected String extensions(String value) {
-		return value;
+		return null;
 	}
 
 	/**
@@ -161,7 +157,7 @@ public abstract class WEBSocket extends Servlet {
 	 * </pre>
 	 */
 	protected String protocol(String value) {
-		return value;
+		return null;
 	}
 
 	/**

@@ -223,7 +223,7 @@ public class AuthenticateDigest extends Authenticate {
 	boolean check(String nonce, String opaque) {
 		if (opaque != null) {
 			int start = opaque.length() / 2;
-			long time = Long.parseUnsignedLong(nonce, start, nonce.length(), start);
+			long time = Long.parseUnsignedLong(nonce, start, nonce.length(), Character.MAX_RADIX);
 			long current = System.currentTimeMillis();
 			if (time < current && current - time < 60000) {
 				return true;

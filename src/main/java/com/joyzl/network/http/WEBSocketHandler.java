@@ -20,6 +20,22 @@ public interface WEBSocketHandler {
 
 		@Override
 		public void received(HTTPSlave slave, WEBSocketMessage message) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public void connected(HTTPSlave slave) throws Exception {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public void disconnected(HTTPSlave slave) throws Exception {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public void sent(HTTPSlave slave, WEBSocketMessage message) throws Exception {
+			throw new UnsupportedOperationException();
 		}
 	};
 
@@ -27,6 +43,11 @@ public interface WEBSocketHandler {
 		return ChainType.TCP_HTTP_SLAVE_WEB_SOCKET;
 	};
 
+	void connected(HTTPSlave slave) throws Exception;
+
 	void received(HTTPSlave slave, WEBSocketMessage message) throws Exception;
 
+	void sent(HTTPSlave slave, WEBSocketMessage message) throws Exception;
+
+	void disconnected(HTTPSlave slave) throws Exception;
 }

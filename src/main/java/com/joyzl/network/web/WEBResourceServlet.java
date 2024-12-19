@@ -154,6 +154,8 @@ public abstract class WEBResourceServlet extends WEBServlet {
 			resource = find(HTTPStatus.NOT_FOUND);
 			if (resource != null) {
 				whole(request, response, resource, content);
+			} else {
+				response.addHeader(ContentLength.NAME, "0");
 			}
 		} else if (resource.getETag() == null) {
 			// 缺失ETag则认为无法定位资源或为目录
@@ -169,10 +171,18 @@ public abstract class WEBResourceServlet extends WEBServlet {
 					// 目录重定向 /dir 且存在 重定向 /dir/
 					response.setStatus(HTTPStatus.MOVED_PERMANENTLY);
 					response.addHeader(HTTP.Location, resource.getContentLocation());
+					response.addHeader(ContentLength.NAME, "0");
 				} else {
 					if (resource.getContentType() == null) {
 						// 不允许浏览目录
 						response.setStatus(HTTPStatus.NOT_FOUND);
+						// 查找错误页面
+						resource = find(HTTPStatus.NOT_FOUND);
+						if (resource != null) {
+							whole(request, response, resource, content);
+						} else {
+							response.addHeader(ContentLength.NAME, "0");
+						}
 					} else {
 						// 列出子目录和文件
 						response.setStatus(HTTPStatus.OK);
@@ -282,131 +292,6 @@ public abstract class WEBResourceServlet extends WEBServlet {
 		// 其它情况
 		response.setStatus(HTTPStatus.OK);
 		whole(request, response, resource, content);
-	}
-
-	/**
-	 * 此方法已被拆分为 locate 和 output 方法
-	 */
-	@Deprecated
-	protected void execute(Request request, Response response, boolean content) throws IOException {
-		final String path = request.getPath();
-		WEBResource resource = find(path);
-		if (resource == null) {
-			// 资源未找到
-			response.setStatus(HTTPStatus.NOT_FOUND);
-			// 查找错误页面
-			resource = find(HTTPStatus.NOT_FOUND);
-			if (resource != null) {
-				response.addHeader(ContentType.NAME, resource.getContentType());
-				whole(request, response, resource, content);
-			}
-		} else {
-			if (resource.getETag() == null) {
-				// 缺失ETag则认为无法定位资源或为目录
-				if (resource.getContentLocation() == null) {
-					// Multiple Files
-					response.setStatus(HTTPStatus.MULTIPLE_CHOICE);
-					response.addHeader(ContentType.NAME, MIMEType.TEXT_HTML);
-					response.addHeader(HTTP.Alternates, resource.getContentType());
-					response.addHeader(TransferEncoding.NAME, TransferEncoding.CHUNKED);
-				} else {
-					// DIR / DIR Browse
-					if (path.length() != resource.getContentLocation().length()) {
-						// 目录重定向 /dir 且存在 重定向 /dir/
-						response.setStatus(HTTPStatus.MOVED_PERMANENTLY);
-						response.addHeader(HTTP.Location, resource.getContentLocation());
-					} else {
-						// 列出子目录和文件
-						response.setStatus(HTTPStatus.OK);
-						response.addHeader(ContentType.NAME, resource.getContentType());
-						whole(request, response, resource, content);
-					}
-				}
-				return;
-			}
-
-			// 公共头部分
-			response.addHeader(ContentType.NAME, resource.getContentType());
-			response.addHeader(HTTP.Content_Language, resource.getContentLanguage());
-			response.addHeader(HTTP.Content_Location, resource.getContentLocation());
-			response.addHeader(CacheControl.NAME, CacheControl.NO_CACHE);
-			response.addHeader(HTTP.Last_Modified, resource.getLastModified());
-			response.addHeader(ETag.NAME, resource.getETag());
-
-			// ETAG不同则返回资源 RFC7232
-			String value = request.getHeader(HTTP.If_None_Match);
-			if (Utility.noEmpty(value)) {
-				if (Utility.equal(value, resource.getETag())) {
-					response.setStatus(HTTPStatus.NOT_MODIFIED);
-				} else {
-					response.setStatus(HTTPStatus.OK);
-					whole(request, response, resource, content);
-				}
-				return;
-			}
-
-			// ETAG相同则返回资源 RFC7232
-			value = request.getHeader(HTTP.If_Match);
-			if (Utility.noEmpty(value)) {
-				if (Utility.equal(value, resource.getETag())) {
-					response.setStatus(HTTPStatus.OK);
-					whole(request, response, resource, content);
-				} else {
-					response.setStatus(HTTPStatus.PRECONDITION_FAILED);
-				}
-				return;
-			}
-
-			// 修改时间有更新返回文件内容
-			value = request.getHeader(HTTP.If_Modified_Since);
-			if (Utility.noEmpty(value)) {
-				if (Utility.equal(value, resource.getLastModified())) {
-					response.setStatus(HTTPStatus.NOT_MODIFIED);
-				} else {
-					response.setStatus(HTTPStatus.OK);
-					whole(request, response, resource, content);
-				}
-				return;
-			}
-
-			// 修改时间未更新返回文件内容
-			value = request.getHeader(HTTP.If_Unmodified_Since);
-			if (Utility.noEmpty(value)) {
-				if (Utility.equal(value, resource.getLastModified())) {
-					response.setStatus(HTTPStatus.OK);
-					whole(request, response, resource, content);
-				} else {
-					response.setStatus(HTTPStatus.PRECONDITION_FAILED);
-				}
-				return;
-			}
-
-			// RANGE部分请求
-			final Range range = Range.parse(request.getHeader(Range.NAME));
-			if (range != null) {
-				value = request.getHeader(HTTP.If_Range);
-				if (Utility.noEmpty(value)) {
-					// Last-Modified/ETag相同时Range生效
-					if (Utility.equal(value, resource.getETag())) {
-						parts(request, response, resource, range, content);
-					} else
-					// Last-Modified/ETag相同时Range生效
-					if (Utility.equal(value, resource.getLastModified())) {
-						parts(request, response, resource, range, content);
-					} else {
-						response.setStatus(HTTPStatus.OK);
-						whole(request, response, resource, content);
-					}
-				} else {
-					parts(request, response, resource, range, content);
-				}
-				return;
-			}
-
-			// 其它情况
-			response.setStatus(HTTPStatus.OK);
-			whole(request, response, resource, content);
-		}
 	}
 
 	/**

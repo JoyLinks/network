@@ -9,7 +9,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CoderResult;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import com.joyzl.codec.BigEndianDataInput;
@@ -202,7 +207,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 * 
 	 * @param channel 打开的文件通道
 	 * @param length 最多可写入数量
-	 * @return 写入数量
+	 * @return 写入字节数量
 	 */
 	public final int write(FileChannel channel, int len) throws IOException {
 		int l, wrotes = 0;
@@ -229,6 +234,65 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 			}
 		}
 		return wrotes;
+	}
+
+	/**
+	 * 写入指定编码的字符，不参与校验
+	 * 
+	 * @param chars 要写入的字符
+	 * @param charset 字符编码
+	 * @return 写入字节数量
+	 */
+	public final int write(final CharBuffer chars, Charset charset) {
+		final CharsetEncoder encoder = charset.newEncoder();
+		int wrote = 0;
+		CoderResult result;
+		while (chars.hasRemaining()) {
+			if (write.isFull()) {
+				// 防止用已满的ByteBuffer接收数据,将导致读零
+				write = write.link(DataBufferUnit.get());
+			}
+			result = encoder.encode(chars, write.receive(), true);
+			wrote += write.received();
+			length += wrote;
+			if (result == CoderResult.UNDERFLOW) {
+				break;
+			}
+			if (result == CoderResult.OVERFLOW) {
+				continue;
+			}
+		}
+		return wrote;
+	}
+
+	/**
+	 * 写入指定编码的字符，限制字节数量有可能导致字符错误的截断，不参与校验
+	 * 
+	 * @param chars 要写入的字符
+	 * @param charset 字符编码
+	 * @param len 最多可写入字节数
+	 * @return 写入字节数量
+	 */
+	public final int write(final CharBuffer chars, Charset charset, int len) {
+		final CharsetEncoder encoder = charset.newEncoder();
+		int wrote = 0;
+		CoderResult result;
+		while (wrote < len) {
+			if (write.isFull()) {
+				// 防止用已满的ByteBuffer接收数据,将导致读零
+				write = write.link(DataBufferUnit.get());
+			}
+			result = encoder.encode(chars, write.receive(), true);
+			wrote += write.received();
+			length += wrote;
+			if (result == CoderResult.UNDERFLOW) {
+				break;
+			}
+			if (result == CoderResult.OVERFLOW) {
+				continue;
+			}
+		}
+		return wrote;
 	}
 
 	/**
@@ -320,6 +384,29 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 			l = channel.write(read());
 			read(l);
 			length -= l;
+		}
+	}
+
+	/**
+	 * 读取指定编码字符，不参与校验
+	 * 
+	 * @param builder 字符序列
+	 * @param chaeset 字符编码
+	 * @param length 字节数量
+	 */
+	public final void read(CharBuffer buffer, Charset chaeset, int length) {
+		final CharsetDecoder decoder = chaeset.newDecoder();
+		CoderResult result;
+		while (length > 0) {
+			result = decoder.decode(read(), buffer, true);
+			read(result.length());
+			if (result == CoderResult.UNDERFLOW) {
+				break;
+			} else if (result == CoderResult.OVERFLOW) {
+				continue;
+			} else {
+
+			}
 		}
 	}
 

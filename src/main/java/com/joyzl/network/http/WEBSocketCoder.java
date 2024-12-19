@@ -7,6 +7,8 @@ package com.joyzl.network.http;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
 
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.codec.Binary;
@@ -140,7 +142,9 @@ public class WEBSocketCoder {
 				message.setStatus(buffer.readShort());
 				// UTF-8
 				if (length > 2) {
-
+					final CharBuffer chars = CharBuffer.allocate(length);
+					buffer.read(chars, StandardCharsets.UTF_8, length - 2);
+					message.setContent(chars.flip());
 				}
 			} else {
 				// 接收到足够的字节后转移给消息对象
@@ -356,6 +360,26 @@ public class WEBSocketCoder {
 				buffer.writeByte(value ^ masks[i % 4]);
 				i++;
 			}
+		} else //
+		if (message.getContent() instanceof CharSequence) {
+			final CharSequence content = (CharSequence) message.getContent();
+			if (content.length() > 0) {
+				CharBuffer chars;
+				if (content instanceof CharBuffer) {
+					chars = (CharBuffer) content;
+				} else {
+					message.setContent(chars = CharBuffer.wrap(content));
+				}
+				final int position = buffer.readable();
+				final int length = buffer.write(chars, StandardCharsets.UTF_8, max);
+				int i = 0;
+				while (i < length) {
+					buffer.set(position + i, (byte) (buffer.get(position + i) ^ masks[i % 4]));
+				}
+				if (length == max) {
+					return false;
+				}
+			}
 		}
 		return false;
 	}
@@ -380,6 +404,21 @@ public class WEBSocketCoder {
 			int length = buffer.write(content, max);
 			if (length == max) {
 				return false;
+			}
+		} else //
+		if (message.getContent() instanceof CharSequence) {
+			final CharSequence content = (CharSequence) message.getContent();
+			if (content.length() > 0) {
+				CharBuffer chars;
+				if (content instanceof CharBuffer) {
+					chars = (CharBuffer) content;
+				} else {
+					message.setContent(chars = CharBuffer.wrap(content));
+				}
+				int length = buffer.write(chars, StandardCharsets.UTF_8, max);
+				if (length == max) {
+					return false;
+				}
 			}
 		}
 		return true;

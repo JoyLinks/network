@@ -171,7 +171,7 @@ public class HTTP {
 	public final static String Sec_WebSocket_Version = "Sec-WebSocket-Version";
 	public final static String Server = "Server";
 	public final static String Server_Timing = "Server-Timing";
-	public final static String Service_Worker_Navigation_Preload = "Service-Worker-Navigation-Preload ";
+	public final static String Service_Worker_Navigation_Preload = "Service-Worker-Navigation-Preload";
 	public final static String Set_Cookie = "Set-Cookie";
 	public final static String Set_Cookie2 = "Set-Cookie2";
 	public final static String SetProfile = "SetProfile";

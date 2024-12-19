@@ -5,6 +5,8 @@
  */
 package com.joyzl.network.http;
 
+import java.util.Map;
+
 import com.joyzl.network.Utility;
 
 /**
@@ -17,6 +19,7 @@ public class Response extends HTTPMessage {
 
 	private int status = HTTPStatus.OK.code();
 	private String text = HTTPStatus.OK.text();
+	private Map<String, String> attachHeaders;
 
 	@Override
 	public void setVersion(String value) {
@@ -59,5 +62,19 @@ public class Response extends HTTPMessage {
 	 */
 	public boolean isChunked() {
 		return Utility.same(TransferEncoding.CHUNKED, getHeader(TransferEncoding.NAME));
+	}
+
+	/**
+	 * 获取附加头信息，这些头信息不会影响输出内容，仅原样输出到客户端
+	 */
+	public Map<String, String> getAttachHeaders() {
+		return attachHeaders;
+	}
+
+	/**
+	 * 设置附加头信息，这些头信息不会影响输出内容，仅原样输出到客户端
+	 */
+	public void setAttachHeaders(Map<String, String> value) {
+		attachHeaders = value;
 	}
 }
