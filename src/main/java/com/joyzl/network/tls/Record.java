@@ -23,16 +23,9 @@ package com.joyzl.network.tls;
  */
 public abstract class Record {
 
-	private ContentType type;
 	private short version = TLS.V12;
 
-	public final ContentType getType() {
-		return type;
-	}
-
-	public final void setType(ContentType value) {
-		type = value;
-	}
+	public abstract ContentType contentType();
 
 	public final short getProtocolVersion() {
 		return version;

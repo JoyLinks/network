@@ -18,6 +18,13 @@ public class SignatureAlgorithms extends Extension {
 	private final static SignatureScheme[] EMPTY = new SignatureScheme[0];
 	private SignatureScheme[] items = EMPTY;
 
+	public SignatureAlgorithms() {
+	}
+
+	public SignatureAlgorithms(SignatureScheme... value) {
+		set(value);
+	}
+
 	@Override
 	public ExtensionType type() {
 		return ExtensionType.SIGNATURE_ALGORITHMS;

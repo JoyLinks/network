@@ -2,22 +2,9 @@ package com.joyzl.network.tls;
 
 /**
  * <pre>
- * finished_key =
- *       HKDF-Expand-Label(BaseKey, "finished", "", Hash.length)
- * 
- * Structure of this message:
- *      struct {
- *            opaque verify_data[Hash.length];
- *      } Finished;
- * 
- * The verify_data value is computed as follows:
- * 
- *      verify_data =
- *            HMAC(finished_key,
- *                     Transcript-Hash(Handshake Context,
- *                                               Certificate*, CertificateVerify*))
- * 
- *      * Only included if present.
+ * struct {
+ *       opaque verify_data[Hash.length];
+ * } Finished;
  * </pre>
  * 
  * @author ZhangXi 2024年12月19日

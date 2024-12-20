@@ -29,4 +29,8 @@ public class KeyUpdate extends Handshake {
 	public void setRequest(KeyUpdateRequest value) {
 		request = value;
 	}
+
+	public void setRequest(int value) {
+		request = KeyUpdateRequest.code(value);
+	}
 }

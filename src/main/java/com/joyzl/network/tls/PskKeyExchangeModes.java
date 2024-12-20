@@ -20,6 +20,13 @@ public class PskKeyExchangeModes extends Extension {
 	private final static PskKeyExchangeMode[] EMPTY = new PskKeyExchangeMode[0];
 	private PskKeyExchangeMode[] items = EMPTY;
 
+	public PskKeyExchangeModes() {
+	}
+
+	public PskKeyExchangeModes(PskKeyExchangeMode... modes) {
+		set(modes);
+	}
+
 	@Override
 	public ExtensionType type() {
 		return ExtensionType.PSK_KEY_EXCHANGE_MODES;

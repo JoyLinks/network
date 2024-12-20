@@ -12,10 +12,15 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class HeartbeatMessage {
+public class HeartbeatMessage extends TLSPlaintext {
 
-	private HeartbeatMessageType type;
-	private byte[] payload;
+	private HeartbeatMessageType type = HeartbeatMessageType.HEARTBEAT_REQUEST;
+	private byte[] payload = TLS.EMPTY_BYTES;
+
+	@Override
+	public ContentType contentType() {
+		return ContentType.HEARTBEAT;
+	}
 
 	public byte[] getPayload() {
 		return payload;
@@ -25,12 +30,16 @@ public class HeartbeatMessage {
 		payload = value;
 	}
 
-	public HeartbeatMessageType getType() {
+	public HeartbeatMessageType getMessageType() {
 		return type;
 	}
 
-	public void setType(HeartbeatMessageType value) {
+	public void setMessageType(HeartbeatMessageType value) {
 		type = value;
+	}
+
+	public void setMessageType(int value) {
+		type = HeartbeatMessageType.code(value);
 	}
 
 	/**

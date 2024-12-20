@@ -1,10 +1,19 @@
 package com.joyzl.network.tls;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * <pre>
+ * RFC 2246 TLSv1.0
+ * RFC 4336 TLSv1.1
+ * RFC 5246 TLSv1.2
+ * 
+ * opaque ASN.1Cert<1..2^24-1>;
+ * 
+ * struct {
+ *     ASN.1Cert certificate_list<0..2^24-1>;
+ * } Certificate;
+ * 
+ * RFC 8446 TLSv1.3
+ * 
  * enum {
  *     X509(0),
  *     RawPublicKey(2),
@@ -30,29 +39,34 @@ import java.util.List;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class Certificate extends Handshake {
+public class Certificate extends HandshakeExtensions {
 
-	private final List<Extension> extensions = new ArrayList<>();
-	private CertificateEntry[] certificates;
-	private byte[] context;
+	private final static CertificateEntry[] EMPTY = new CertificateEntry[0];
+	private CertificateEntry[] certificates = EMPTY;
+	private byte[] context = null;
 
 	@Override
 	public HandshakeType getMsgType() {
 		return HandshakeType.CERTIFICATE;
 	}
 
-	public List<Extension> getExtensions() {
-		return extensions;
+	public byte[] getContext() {
+		return context;
 	}
 
-	public void setExtensions(List<Extension> value) {
-		if (value != extensions) {
-			extensions.clear();
-			extensions.addAll(value);
+	public void setContext(byte[] value) {
+		context = value;
+	}
+
+	public CertificateEntry[] getCertificates() {
+		return certificates;
+	}
+
+	public void setCertificates(CertificateEntry[] value) {
+		if (value == null) {
+			certificates = EMPTY;
+		} else {
+			certificates = value;
 		}
-	}
-
-	public void addExtension(Extension value) {
-		extensions.add(value);
 	}
 }

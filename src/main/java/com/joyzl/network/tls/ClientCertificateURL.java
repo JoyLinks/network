@@ -8,9 +8,9 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class ClientCertificateUrl extends Extension {
+public class ClientCertificateURL extends Extension {
 
-	public final static ClientCertificateUrl INSTANCE = new ClientCertificateUrl();
+	public final static ClientCertificateURL INSTANCE = new ClientCertificateURL();
 
 	@Override
 	public ExtensionType type() {

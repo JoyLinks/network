@@ -29,6 +29,13 @@ public class StatusRequest extends Extension {
 
 	private CertificateStatusRequest request;
 
+	public StatusRequest() {
+	}
+
+	public StatusRequest(CertificateStatusRequest r) {
+		request = r;
+	}
+
 	@Override
 	public ExtensionType type() {
 		return ExtensionType.STATUS_REQUEST;

@@ -1,8 +1,5 @@
 package com.joyzl.network.tls;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * <pre>
  * struct {
@@ -16,9 +13,7 @@ import java.util.List;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class NewSessionTicket extends Handshake {
-
-	private final List<Extension> extensions = new ArrayList<>();
+public class NewSessionTicket extends HandshakeExtensions {
 
 	private int lifetime;
 	private int age_add;
@@ -28,10 +23,6 @@ public class NewSessionTicket extends Handshake {
 	@Override
 	public HandshakeType getMsgType() {
 		return HandshakeType.NEW_SESSION_TICKET;
-	}
-
-	public List<Extension> extensions() {
-		return extensions;
 	}
 
 	public byte[] getTicket() {

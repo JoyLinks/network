@@ -1,16 +1,12 @@
 package com.joyzl.network.tls;
 
-public enum ChangeCipherSpec {
+public class ChangeCipherSpec extends TLSPlaintext {
 
-	CHANGE_CIPHER_SPEC(1);
+	public final static ChangeCipherSpec INSTANCE = new ChangeCipherSpec();
+	public final static byte ONE = 0x01;
 
-	private final int code;
-
-	private ChangeCipherSpec(int code) {
-		this.code = code;
-	}
-
-	public int code() {
-		return code;
+	@Override
+	public ContentType contentType() {
+		return ContentType.CHANGE_CIPHER_SPEC;
 	}
 }

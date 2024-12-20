@@ -16,8 +16,12 @@ package com.joyzl.network.tls;
  * } TLSCiphertext;
  * </pre>
  * 
- * @author ZhangXi 2024年12月19日
+ * @author ZhangXi 2024年12月20日
  */
-public abstract class TLSCiphertext extends Record {
+public class ApplicationData extends TLSCiphertext {
 
+	@Override
+	public ContentType contentType() {
+		return ContentType.APPLICATION_DATA;
+	}
 }

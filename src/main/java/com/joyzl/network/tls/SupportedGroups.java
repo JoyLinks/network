@@ -18,6 +18,13 @@ public class SupportedGroups extends Extension {
 	private final static NamedGroup[] EMPTY = new NamedGroup[0];
 	private NamedGroup[] items = EMPTY;
 
+	public SupportedGroups() {
+	}
+
+	public SupportedGroups(NamedGroup... value) {
+		set(value);
+	}
+
 	@Override
 	public ExtensionType type() {
 		return ExtensionType.SUPPORTED_GROUPS;

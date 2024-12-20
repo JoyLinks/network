@@ -1,5 +1,5 @@
 package com.joyzl.network.tls;
 
-public class TLSPlaintext extends Record {
+public abstract class TLSPlaintext extends Record {
 
 }

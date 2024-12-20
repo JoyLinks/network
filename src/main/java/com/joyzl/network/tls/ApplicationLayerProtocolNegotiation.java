@@ -19,14 +19,21 @@ import com.joyzl.network.Utility;
 public class ApplicationLayerProtocolNegotiation extends Extension {
 
 	/** http/1.1 */
-	public final byte[] HTTP_1_1 = new byte[] { 0x68, 0x74, 0x74, 0x70, 0x2f, 0x31, 0x2e, 0x31 };
+	public final static byte[] HTTP_1_1 = new byte[] { 0x68, 0x74, 0x74, 0x70, 0x2f, 0x31, 0x2e, 0x31 };
 	/** spdy/1 */
-	public final byte[] SPDY_1 = new byte[] { 0x73, 0x70, 0x64, 0x79, 0x2f, 0x31 };
+	public final static byte[] SPDY_1 = new byte[] { 0x73, 0x70, 0x64, 0x79, 0x2f, 0x31 };
 	/** spdy/2 */
-	public final byte[] SPDY_2 = new byte[] { 0x73, 0x70, 0x64, 0x79, 0x2f, 0x32 };
+	public final static byte[] SPDY_2 = new byte[] { 0x73, 0x70, 0x64, 0x79, 0x2f, 0x32 };
 
 	private final static byte[][] EMPTY = new byte[0][];
 	private byte[][] items = EMPTY;
+
+	public ApplicationLayerProtocolNegotiation() {
+	}
+
+	public ApplicationLayerProtocolNegotiation(byte[]... value) {
+		set(value);
+	}
 
 	@Override
 	public ExtensionType type() {

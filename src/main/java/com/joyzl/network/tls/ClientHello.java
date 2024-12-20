@@ -1,11 +1,42 @@
 package com.joyzl.network.tls;
 
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * <pre>
+ * RFC 2246 TLSv1.0
+ * RFC 4346 TLSv1.1
+ * 
+ * struct {
+ *    uint32 gmt_unix_time;
+ *    opaque random_bytes[28];
+ * } Random[32];
+ * 
+ * enum { null(0), (255) } CompressionMethod;
+ * 
+ * struct {
+ *     ProtocolVersion client_version;
+ *     Random random;
+ *     SessionID session_id;
+ *     CipherSuite cipher_suites<2..2^16-1>;
+ *     CompressionMethod compression_methods<1..2^8-1>;
+ * } ClientHello;
+ * 
+ * RFC 5246 TLSv1.2
+ * struct {
+ *     ProtocolVersion client_version;
+ *     Random random;
+ *     SessionID session_id;
+ *     CipherSuite cipher_suites<2..2^16-2>;
+ *     CompressionMethod compression_methods<1..2^8-1>;
+ *     select (extensions_present) {
+ *         case false:
+ *             struct {};
+ *         case true:
+ *             Extension extensions<0..2^16-1>;
+ *     };
+ * } ClientHello;
+ * 
+ * RFC 8446 TLSv1.3
+ * 
  * uint16 ProtocolVersion;
  * opaque Random[32];
 
@@ -23,13 +54,11 @@ import java.util.List;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class ClientHello extends Handshake {
+public class ClientHello extends HandshakeExtensions {
 
-	private List<Extension> extensions = new ArrayList<>();
-
-	private short version;
+	private short version = TLS.V12;
 	private byte[] random;
-	private byte[] session_id;
+	private byte[] session_id = TLS.EMPTY_BYTES;
 	private short[] cipher_suites;
 	private byte[] compression_methods;
 
@@ -76,35 +105,5 @@ public class ClientHello extends Handshake {
 
 	public void setCompressionMethods(byte[] value) {
 		compression_methods = value;
-	}
-
-	public List<Extension> getExtensions() {
-		return extensions;
-	}
-
-	public void setExtensions(List<Extension> value) {
-		if (value != extensions) {
-			extensions.clear();
-			extensions.addAll(value);
-		}
-	}
-
-	public static ClientHello make(short version) {
-		final ClientHello hello = new ClientHello();
-		hello.setRandom(SecureRandom.getSeed(32));
-		if (version == TLS.V13) {
-			hello.setSessionId(TLS.EMPTY_BYTES);
-			hello.setCipherSuites(CipherSuite.V13);
-			hello.setCompressionMethods(TLS.ZERO_BYTES);
-			hello.getExtensions().add(new SupportedVersions(TLS.V13, TLS.V12, TLS.V11, TLS.V10));
-
-		}
-		if (version == TLS.V12) {
-
-		}
-		if (version == TLS.V13) {
-
-		}
-		return hello;
 	}
 }

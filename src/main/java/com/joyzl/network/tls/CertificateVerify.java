@@ -35,4 +35,8 @@ public class CertificateVerify extends Handshake {
 	public void setAlgorithm(SignatureScheme value) {
 		algorithm = value;
 	}
+
+	public void setAlgorithm(int value) {
+		algorithm = SignatureScheme.code(value);
+	}
 }
