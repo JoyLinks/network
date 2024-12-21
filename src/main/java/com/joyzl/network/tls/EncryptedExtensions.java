@@ -12,7 +12,7 @@ package com.joyzl.network.tls;
 public class EncryptedExtensions extends HandshakeExtensions {
 
 	@Override
-	public HandshakeType getMsgType() {
-		return HandshakeType.ENCRYPTED_EXTENSIONS;
+	public byte msgType() {
+		return ENCRYPTED_EXTENSIONS;
 	}
 }

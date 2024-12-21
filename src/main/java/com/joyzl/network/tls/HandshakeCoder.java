@@ -8,47 +8,47 @@ public class HandshakeCoder extends TLS {
 
 	public static void encode(Handshake message, DataBuffer buffer) throws IOException {
 		// HandshakeType 1Byte
-		buffer.writeByte(message.getMsgType().code());
+		buffer.writeByte(message.msgType());
 		// Length 3Byte(uint24)
 		int position = buffer.readable();
 		buffer.writeMedium(0);
 		// SUB Handshake
-		if (message.getMsgType() == HandshakeType.HELLO_REQUEST) {
+		if (message.msgType() == Handshake.HELLO_REQUEST) {
 			encode((HelloRequest) message, buffer);
-		} else if (message.getMsgType() == HandshakeType.CLIENT_HELLO) {
+		} else if (message.msgType() == Handshake.CLIENT_HELLO) {
 			encode((ClientHello) message, buffer);
-		} else if (message.getMsgType() == HandshakeType.SERVER_HELLO) {
+		} else if (message.msgType() == Handshake.SERVER_HELLO) {
 			encode((ServerHello) message, buffer);
-		} else if (message.getMsgType() == HandshakeType.NEW_SESSION_TICKET) {
+		} else if (message.msgType() == Handshake.NEW_SESSION_TICKET) {
 			encode((NewSessionTicket) message, buffer);
-		} else if (message.getMsgType() == HandshakeType.END_OF_EARLY_DATA) {
+		} else if (message.msgType() == Handshake.END_OF_EARLY_DATA) {
 			encode((EndOfEarlyData) message, buffer);
-		} else if (message.getMsgType() == HandshakeType.ENCRYPTED_EXTENSIONS) {
+		} else if (message.msgType() == Handshake.ENCRYPTED_EXTENSIONS) {
 			encode((EncryptedExtensions) message, buffer);
-		} else if (message.getMsgType() == HandshakeType.CERTIFICATE) {
+		} else if (message.msgType() == Handshake.CERTIFICATE) {
 			encode((Certificate) message, buffer);
-		} else if (message.getMsgType() == HandshakeType.SERVER_KEY_EXCHANGE) {
+		} else if (message.msgType() == Handshake.SERVER_KEY_EXCHANGE) {
 			encode((ServerKeyExchange) message, buffer);
-		} else if (message.getMsgType() == HandshakeType.CERTIFICATE_REQUEST) {
+		} else if (message.msgType() == Handshake.CERTIFICATE_REQUEST) {
 			encode((CertificateRequest) message, buffer);
-		} else if (message.getMsgType() == HandshakeType.SERVER_HELLO_DONE) {
+		} else if (message.msgType() == Handshake.SERVER_HELLO_DONE) {
 			encode((ServerHelloDone) message, buffer);
-		} else if (message.getMsgType() == HandshakeType.CERTIFICATE_VERIFY) {
+		} else if (message.msgType() == Handshake.CERTIFICATE_VERIFY) {
 			encode((CertificateVerify) message, buffer);
-		} else if (message.getMsgType() == HandshakeType.CLIENT_KEY_EXCHANGE) {
+		} else if (message.msgType() == Handshake.CLIENT_KEY_EXCHANGE) {
 			encode((ClientKeyExchange) message, buffer);
-		} else if (message.getMsgType() == HandshakeType.FINISHED) {
+		} else if (message.msgType() == Handshake.FINISHED) {
 			encode((Finished) message, buffer);
-		} else if (message.getMsgType() == HandshakeType.CERTIFICATE_URL) {
+		} else if (message.msgType() == Handshake.CERTIFICATE_URL) {
 			encode((CertificateURL) message, buffer);
-		} else if (message.getMsgType() == HandshakeType.CERTIFICATE_STATUS) {
+		} else if (message.msgType() == Handshake.CERTIFICATE_STATUS) {
 			encode((CertificateStatus) message, buffer);
-		} else if (message.getMsgType() == HandshakeType.KEY_UPDATE) {
+		} else if (message.msgType() == Handshake.KEY_UPDATE) {
 			encode((KeyUpdate) message, buffer);
-		} else if (message.getMsgType() == HandshakeType.MESSAGE_HASH) {
+		} else if (message.msgType() == Handshake.MESSAGE_HASH) {
 			encode((MessageHash) message, buffer);
 		} else {
-			throw new UnsupportedOperationException("TLS 不支持的握手消息类型:" + message.getMsgType());
+			throw new UnsupportedOperationException("TLS 不支持的握手消息类型:" + message.msgType());
 		}
 		// SET LENGTH
 		int length = buffer.readable() - position - 3;
@@ -64,39 +64,39 @@ public class HandshakeCoder extends TLS {
 		// uint24 length
 		int length = buffer.readUnsignedMedium();
 		if (buffer.readable() >= length) {
-			if (type == HandshakeType.HELLO_REQUEST.code()) {
+			if (type == Handshake.HELLO_REQUEST) {
 				return decodeHelloRequest(buffer);
-			} else if (type == HandshakeType.CLIENT_HELLO.code()) {
+			} else if (type == Handshake.CLIENT_HELLO) {
 				return decodeClientHello(buffer);
-			} else if (type == HandshakeType.SERVER_HELLO.code()) {
+			} else if (type == Handshake.SERVER_HELLO) {
 				return decodeServerHello(buffer);
-			} else if (type == HandshakeType.NEW_SESSION_TICKET.code()) {
+			} else if (type == Handshake.NEW_SESSION_TICKET) {
 				return decodeNewSessionTicket(buffer);
-			} else if (type == HandshakeType.END_OF_EARLY_DATA.code()) {
+			} else if (type == Handshake.END_OF_EARLY_DATA) {
 				return decodeEndOfEarlyData(buffer);
-			} else if (type == HandshakeType.ENCRYPTED_EXTENSIONS.code()) {
+			} else if (type == Handshake.ENCRYPTED_EXTENSIONS) {
 				return decodeEncryptedExtensions(buffer);
-			} else if (type == HandshakeType.CERTIFICATE.code()) {
+			} else if (type == Handshake.CERTIFICATE) {
 				return decodeCertificate(buffer);
-			} else if (type == HandshakeType.SERVER_KEY_EXCHANGE.code()) {
+			} else if (type == Handshake.SERVER_KEY_EXCHANGE) {
 				return decodeServerKeyExchange(buffer);
-			} else if (type == HandshakeType.CERTIFICATE_REQUEST.code()) {
+			} else if (type == Handshake.CERTIFICATE_REQUEST) {
 				return decodeCertificateRequest(buffer);
-			} else if (type == HandshakeType.SERVER_HELLO_DONE.code()) {
+			} else if (type == Handshake.SERVER_HELLO_DONE) {
 				return decodeServerHelloDone(buffer);
-			} else if (type == HandshakeType.CERTIFICATE_VERIFY.code()) {
+			} else if (type == Handshake.CERTIFICATE_VERIFY) {
 				return decodeCertificateVerify(buffer);
-			} else if (type == HandshakeType.CLIENT_KEY_EXCHANGE.code()) {
+			} else if (type == Handshake.CLIENT_KEY_EXCHANGE) {
 				return decodeClientKeyExchange(buffer);
-			} else if (type == HandshakeType.FINISHED.code()) {
+			} else if (type == Handshake.FINISHED) {
 				return decodeFinished(buffer);
-			} else if (type == HandshakeType.CERTIFICATE_URL.code()) {
+			} else if (type == Handshake.CERTIFICATE_URL) {
 				return decodeCertificateURL(buffer);
-			} else if (type == HandshakeType.CERTIFICATE_STATUS.code()) {
+			} else if (type == Handshake.CERTIFICATE_STATUS) {
 				return decodeCertificateStatus(buffer);
-			} else if (type == HandshakeType.KEY_UPDATE.code()) {
+			} else if (type == Handshake.KEY_UPDATE) {
 				return decodeKeyUpdate(buffer);
-			} else if (type == HandshakeType.MESSAGE_HASH.code()) {
+			} else if (type == Handshake.MESSAGE_HASH) {
 				return decodeMessageHash(buffer);
 			} else {
 				throw new UnsupportedOperationException("TLS 不支持的握手消息类型:" + type);
@@ -317,7 +317,7 @@ public class HandshakeCoder extends TLS {
 
 	private static void encode(CertificateVerify message, DataBuffer buffer) throws IOException {
 		// SignatureScheme algorithm;
-		buffer.writeShort(message.getAlgorithm().code());
+		buffer.writeShort(message.getAlgorithm());
 		// opaque signature<0..2^16-1>;
 		buffer.writeShort(message.getSignature().length);
 		buffer.write(message.getSignature());
@@ -377,13 +377,11 @@ public class HandshakeCoder extends TLS {
 	}
 
 	private static void encode(KeyUpdate message, DataBuffer buffer) throws IOException {
-		buffer.writeByte(message.getRequest().code());
+		buffer.writeByte(message.getRequest());
 	}
 
 	private static KeyUpdate decodeKeyUpdate(DataBuffer buffer) throws IOException {
-		final KeyUpdate message = new KeyUpdate();
-		message.setRequest(buffer.readUnsignedByte());
-		return message;
+		return new KeyUpdate(buffer.readByte());
 	}
 
 	private static void encode(MessageHash message, DataBuffer buffer) throws IOException {

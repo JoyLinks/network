@@ -13,8 +13,8 @@ public class TruncatedHMAC extends Extension {
 	public final static TruncatedHMAC INSTANCE = new TruncatedHMAC();
 
 	@Override
-	public ExtensionType type() {
-		return ExtensionType.TRUNCATED_HMAC;
+	public short type() {
+		return TRUNCATED_HMAC;
 	}
 
 	@Override

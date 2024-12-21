@@ -11,32 +11,45 @@ package com.joyzl.network.tls;
  */
 public class MaxFragmentLength extends Extension {
 
-	private final MaxFragmentType type;
+	// MaxFragmentType MAX(255)
 
-	public MaxFragmentLength(MaxFragmentType type) {
+	/** 2^9 */
+	public final static byte MAX_512 = 1;
+	/** 2^10 */
+	public final static byte MAX_1024 = 2;
+	/** 2^11 */
+	public final static byte MAX_2048 = 3;
+	/** 2^12 */
+	public final static byte MAX_4096 = 4;
+
+	////////////////////////////////////////////////////////////////////////////////
+
+	private final byte type;
+
+	public MaxFragmentLength(byte type) {
 		this.type = type;
 	}
 
 	@Override
-	public ExtensionType type() {
-		return ExtensionType.MAX_FRAGMENT_LENGTH;
+	public short type() {
+		return MAX_FRAGMENT_LENGTH;
 	}
 
-	public MaxFragmentType getType() {
+	public byte getType() {
 		return type;
 	}
 
 	public int getMaxFragment() {
-		if (type == MaxFragmentType.MAX_4096) {
+		if (type == MAX_4096) {
 			return 4096;
 		}
-		if (type == MaxFragmentType.MAX_2048) {
+		if (type == MAX_2048) {
 			return 2048;
 		}
-		if (type == MaxFragmentType.MAX_1024) {
+		if (type == MAX_1024) {
 			return 1024;
 		}
-		if (type == MaxFragmentType.MAX_512) {
+		if (type == MAX_512) {
 			return 512;
 		}
 		return 0;

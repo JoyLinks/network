@@ -14,10 +14,10 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class ServerCertificateType extends CertificateTypeExtension {
+public class ServerCertificateType extends CertificateTypes {
 
 	@Override
-	public ExtensionType type() {
-		return ExtensionType.SERVER_CERTIFICATE_TYPE;
+	public short type() {
+		return SERVER_CERTIFICATE_TYPE;
 	}
 }

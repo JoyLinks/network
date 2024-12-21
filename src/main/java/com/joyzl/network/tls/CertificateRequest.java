@@ -15,8 +15,8 @@ public class CertificateRequest extends HandshakeExtensions {
 	private byte[] certificate_request_context;
 
 	@Override
-	public HandshakeType getMsgType() {
-		return HandshakeType.CERTIFICATE_REQUEST;
+	public byte msgType() {
+		return CERTIFICATE_REQUEST;
 	}
 
 	public byte[] getCertificateRequestContext() {

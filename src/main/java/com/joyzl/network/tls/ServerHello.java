@@ -30,8 +30,8 @@ public class ServerHello extends HandshakeExtensions {
 	private byte compression_method;
 
 	@Override
-	public HandshakeType getMsgType() {
-		return HandshakeType.SERVER_HELLO;
+	public byte msgType() {
+		return SERVER_HELLO;
 	}
 
 	public byte[] getRandom() {

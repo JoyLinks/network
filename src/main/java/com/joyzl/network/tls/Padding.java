@@ -10,8 +10,8 @@ public class Padding extends Extension {
 	private int siez;
 
 	@Override
-	public ExtensionType type() {
-		return ExtensionType.PADDING;
+	public short type() {
+		return PADDING;
 	}
 
 	/**

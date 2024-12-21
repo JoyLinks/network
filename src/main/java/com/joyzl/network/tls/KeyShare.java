@@ -2,8 +2,6 @@ package com.joyzl.network.tls;
 
 import java.util.Arrays;
 
-import com.joyzl.network.Utility;
-
 /**
  * <pre>
  * struct {
@@ -29,11 +27,11 @@ import com.joyzl.network.Utility;
 public class KeyShare extends Extension {
 
 	private final static KeyShareEntry[] EMPTY = new KeyShareEntry[0];
-	private KeyShareEntry[] items;
+	private KeyShareEntry[] items = EMPTY;
 
 	@Override
-	public ExtensionType type() {
-		return ExtensionType.KEY_SHARE;
+	public short type() {
+		return KEY_SHARE;
 	}
 
 	public KeyShareEntry[] get() {
@@ -63,20 +61,5 @@ public class KeyShare extends Extension {
 
 	public int size() {
 		return items.length;
-	}
-
-	@Override
-	public String toString() {
-		final StringBuilder builder = Utility.getStringBuilder();
-		builder.append("key_share:");
-		if (items != null && items.length > 0) {
-			for (int index = 0; index < items.length; index++) {
-				if (index > 0) {
-					builder.append(',');
-				}
-				builder.append(items[index].toString());
-			}
-		}
-		return builder.toString();
 	}
 }

@@ -30,21 +30,24 @@ public class TLSClientHandler implements ChainHandler<Record> {
 		hello.setSessionId(TLS.EMPTY_BYTES);
 		hello.setCipherSuites(CipherSuite.V13);
 		hello.setCompressionMethods(CompressionMethod.METHODS);
+		// Extensions
 		hello.getExtensions().add(new SupportedVersions(TLS.ALL_VERSIONS));
-		hello.getExtensions().add(new PskKeyExchangeModes(PskKeyExchangeMode.values()));
-		hello.getExtensions().add(new SupportedGroups(NamedGroup.values()));
+		hello.getExtensions().add(new PskKeyExchangeModes(PskKeyExchangeModes.ALL));
+		hello.getExtensions().add(new SupportedGroups(SupportedGroups.ALL));
 		hello.getExtensions().add(new SignedCertificateTimestamp());
 		hello.getExtensions().add(new StatusRequest(new OCSPStatusRequest()));
-		hello.getExtensions().add(new SignatureAlgorithms(SignatureScheme.values()));
-		hello.getExtensions().add(new ApplicationLayerProtocolNegotiation(ApplicationLayerProtocolNegotiation.HTTP_1_1));
+		hello.getExtensions().add(new SignatureAlgorithms(SignatureAlgorithms.ALL));
+		hello.getExtensions().add(new ApplicationLayerProtocolNegotiation(//
+			ApplicationLayerProtocolNegotiation.H2, //
+			ApplicationLayerProtocolNegotiation.HTTP_1_1));
+		hello.getExtensions().add(new ApplicationSettings(ApplicationSettings.H2));
+		hello.getExtensions().add(new CompressCertificate(CompressCertificate.ALL));
+		hello.getExtensions().add(new ECPointFormats(ECPointFormats.UNCOMPRESSED));
+		hello.getExtensions().add(new ExtendedMasterSecret());
+		hello.getExtensions().add(new RenegotiationInfo());
+		hello.getExtensions().add(new SessionTicket());
+		hello.getExtensions().add(new KeyShare());
 
-		// Type: renegotiation_info (65281)
-		// Type: extended_master_secret (23)
-		// Type: encrypted_client_hello (65037)
-		// Type: session_ticket (35)
-		// Type: ec_point_formats (11)
-		// Type: compress_certificate (27)
-		// Type: application_settings (17513)
 		chain.send(hello);
 	}
 

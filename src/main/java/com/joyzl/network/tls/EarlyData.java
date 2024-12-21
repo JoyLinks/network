@@ -21,8 +21,8 @@ public class EarlyData extends Extension {
 	private int maxSize = 0;
 
 	@Override
-	public ExtensionType type() {
-		return ExtensionType.EARLY_DATA;
+	public short type() {
+		return EARLY_DATA;
 	}
 
 	public int getMaxSize() {

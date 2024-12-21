@@ -37,8 +37,8 @@ public class StatusRequest extends Extension {
 	}
 
 	@Override
-	public ExtensionType type() {
-		return ExtensionType.STATUS_REQUEST;
+	public short type() {
+		return STATUS_REQUEST;
 	}
 
 	public CertificateStatusRequest getRequest() {

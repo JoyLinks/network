@@ -22,8 +22,8 @@ public class OIDFilters extends Extension {
 	private OIDFilter[] items = EMPTY;
 
 	@Override
-	public ExtensionType type() {
-		return ExtensionType.OID_FILTERS;
+	public short type() {
+		return OID_FILTERS;
 	}
 
 	public OIDFilter[] get() {

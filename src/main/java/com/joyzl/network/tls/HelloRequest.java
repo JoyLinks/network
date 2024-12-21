@@ -12,7 +12,7 @@ public class HelloRequest extends Handshake {
 	public static final HelloRequest INSTANCE = new HelloRequest();
 
 	@Override
-	public HandshakeType getMsgType() {
-		return HandshakeType.HELLO_REQUEST;
+	public byte msgType() {
+		return HELLO_REQUEST;
 	}
 }

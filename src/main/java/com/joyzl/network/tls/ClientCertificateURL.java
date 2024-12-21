@@ -13,8 +13,8 @@ public class ClientCertificateURL extends Extension {
 	public final static ClientCertificateURL INSTANCE = new ClientCertificateURL();
 
 	@Override
-	public ExtensionType type() {
-		return ExtensionType.CLIENT_CERTIFICATE_URL;
+	public short type() {
+		return CLIENT_CERTIFICATE_URL;
 	}
 
 	@Override

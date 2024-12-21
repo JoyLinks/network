@@ -6,8 +6,8 @@ public class OCSPStatusRequest extends CertificateStatusRequest {
 	private byte[] extensions = TLS.EMPTY_BYTES;
 
 	@Override
-	public CertificateStatusType type() {
-		return CertificateStatusType.OCSP;
+	public byte type() {
+		return OCSP;
 	}
 
 	public byte[] getExtensions() {

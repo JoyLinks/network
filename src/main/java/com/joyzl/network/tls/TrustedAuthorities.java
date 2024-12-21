@@ -35,8 +35,8 @@ public class TrustedAuthorities extends Extension {
 	private TrustedAuthority[] items = EMPTY;
 
 	@Override
-	public ExtensionType type() {
-		return ExtensionType.TRUSTED_CA_KEYS;
+	public short type() {
+		return TRUSTED_CA_KEYS;
 	}
 
 	public TrustedAuthority[] get() {

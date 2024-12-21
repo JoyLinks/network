@@ -21,8 +21,8 @@ public class NewSessionTicket extends HandshakeExtensions {
 	private byte[] ticket;
 
 	@Override
-	public HandshakeType getMsgType() {
-		return HandshakeType.NEW_SESSION_TICKET;
+	public byte msgType() {
+		return NEW_SESSION_TICKET;
 	}
 
 	public byte[] getTicket() {

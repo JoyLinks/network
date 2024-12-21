@@ -2,8 +2,6 @@ package com.joyzl.network.tls;
 
 import java.util.Arrays;
 
-import com.joyzl.network.Utility;
-
 /**
  * <pre>
  * uint8 SRTPProtectionProfile[2];
@@ -20,13 +18,22 @@ import com.joyzl.network.Utility;
  */
 public class UseSRTP extends Extension {
 
-	private final static SRTPProtectionProfile[] EMPTY = new SRTPProtectionProfile[0];
-	private SRTPProtectionProfile[] profiles = EMPTY;
+	// SRTPProtectionProfile MAX(65535)
+
+	public final static short SRTP_AES128_CM_HMAC_SHA1_80 = 0x0001;
+	public final static short SRTP_AES128_CM_HMAC_SHA1_32 = 0x0002;
+	public final static short SRTP_NULL_HMAC_SHA1_80 = 0x0005;
+	public final static short SRTP_NULL_HMAC_SHA1_32 = 0x0006;
+
+	////////////////////////////////////////////////////////////////////////////////
+
+	private final static short[] EMPTY = new short[0];
+	private short[] profiles = EMPTY;
 	private byte[] mki;
 
 	@Override
-	public ExtensionType type() {
-		return ExtensionType.USE_SRTP;
+	public short type() {
+		return USE_SRTP;
 	}
 
 	public byte[] getMKI() {
@@ -37,15 +44,15 @@ public class UseSRTP extends Extension {
 		mki = value;
 	}
 
-	public SRTPProtectionProfile[] get() {
+	public short[] get() {
 		return profiles;
 	}
 
-	public SRTPProtectionProfile get(int index) {
+	public short get(int index) {
 		return profiles[index];
 	}
 
-	public void set(SRTPProtectionProfile... value) {
+	public void set(short... value) {
 		if (value == null) {
 			profiles = EMPTY;
 		} else {
@@ -53,9 +60,9 @@ public class UseSRTP extends Extension {
 		}
 	}
 
-	public void add(SRTPProtectionProfile value) {
+	public void add(short value) {
 		if (profiles == EMPTY) {
-			profiles = new SRTPProtectionProfile[] { value };
+			profiles = new short[] { value };
 		} else {
 			profiles = Arrays.copyOf(profiles, profiles.length + 1);
 			profiles[profiles.length - 1] = value;
@@ -64,20 +71,5 @@ public class UseSRTP extends Extension {
 
 	public int size() {
 		return profiles.length;
-	}
-
-	@Override
-	public String toString() {
-		final StringBuilder builder = Utility.getStringBuilder();
-		builder.append("use_srtp:");
-		if (profiles != null && profiles.length > 0) {
-			for (int index = 0; index < profiles.length; index++) {
-				if (index > 0) {
-					builder.append(',');
-				}
-				builder.append(profiles[index].toString());
-			}
-		}
-		return builder.toString();
 	}
 }

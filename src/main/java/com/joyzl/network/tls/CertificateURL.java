@@ -21,12 +21,21 @@ package com.joyzl.network.tls;
  */
 public class CertificateURL extends Handshake {
 
-	private CertChainType type;
+	// CertChainType MAX(255)
+
+	/** DER-encoded X.509v3 certificate */
+	public final static byte INDIVIDUAL_CERTS = 0;
+	/** MIME:application/pkix-pkipath */
+	public final static byte PKIPATH = 1;
+
+	////////////////////////////////////////////////////////////////////////////////
+
+	private byte type;
 	private URLAndHash[] urls;
 
 	@Override
-	public HandshakeType getMsgType() {
-		return HandshakeType.CERTIFICATE_URL;
+	public byte msgType() {
+		return CERTIFICATE_URL;
 	}
 
 	public URLAndHash[] getUrls() {
@@ -37,11 +46,11 @@ public class CertificateURL extends Handshake {
 		urls = value;
 	}
 
-	public CertChainType getCertChainType() {
+	public byte getCertChainType() {
 		return type;
 	}
 
-	public void setCertChainType(CertChainType value) {
+	public void setCertChainType(byte value) {
 		type = value;
 	}
 

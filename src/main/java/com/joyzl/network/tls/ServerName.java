@@ -4,25 +4,31 @@ import java.nio.charset.StandardCharsets;
 
 class ServerName {
 
-	private final NameType type;
+	// NameType MAX(255)
+
+	public final static byte HOST_NAME = 0;
+
+	////////////////////////////////////////////////////////////////////////////////
+
+	private final byte type;
 	private byte[] name;
 
 	public ServerName(String name) {
-		type = NameType.HOST_NAME;
+		type = HOST_NAME;
 		setName(name);
 	}
 
-	public ServerName(NameType type, byte[] name) {
+	public ServerName(byte type, byte[] name) {
 		this.type = type;
 		this.name = name;
 	}
 
-	public ServerName(NameType type, String name) {
+	public ServerName(byte type, String name) {
 		this.type = type;
 		setName(name);
 	}
 
-	public NameType type() {
+	public byte type() {
 		return type;
 	}
 

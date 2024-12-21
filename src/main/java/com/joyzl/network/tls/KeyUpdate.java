@@ -15,22 +15,32 @@ package com.joyzl.network.tls;
  */
 public class KeyUpdate extends Handshake {
 
-	private KeyUpdateRequest request;
+	// KeyUpdateRequest MAX(255)
 
-	@Override
-	public HandshakeType getMsgType() {
-		return HandshakeType.KEY_UPDATE;
+	public final static byte UPDATE_NOT_REQUESTED = 0;
+	public final static byte UPDATE_REQUESTED = 1;
+
+	////////////////////////////////////////////////////////////////////////////////
+
+	private byte request;
+
+	public KeyUpdate() {
 	}
 
-	public KeyUpdateRequest getRequest() {
+	public KeyUpdate(byte request) {
+		this.request = request;
+	}
+
+	@Override
+	public byte msgType() {
+		return KEY_UPDATE;
+	}
+
+	public byte getRequest() {
 		return request;
 	}
 
-	public void setRequest(KeyUpdateRequest value) {
+	public void setRequest(byte value) {
 		request = value;
-	}
-
-	public void setRequest(int value) {
-		request = KeyUpdateRequest.code(value);
 	}
 }

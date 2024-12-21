@@ -63,8 +63,8 @@ public class ClientHello extends HandshakeExtensions {
 	private byte[] compression_methods;
 
 	@Override
-	public HandshakeType getMsgType() {
-		return HandshakeType.CLIENT_HELLO;
+	public byte msgType() {
+		return CLIENT_HELLO;
 	}
 
 	public byte[] getRandom() {

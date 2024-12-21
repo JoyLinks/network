@@ -20,8 +20,8 @@ public class SignedCertificateTimestamp extends Extension {
 	private byte[][] items = EMPTY;
 
 	@Override
-	public ExtensionType type() {
-		return ExtensionType.SIGNED_CERTIFICATE_TIMESTAMP;
+	public short type() {
+		return SIGNED_CERTIFICATE_TIMESTAMP;
 	}
 
 	public byte[][] get() {

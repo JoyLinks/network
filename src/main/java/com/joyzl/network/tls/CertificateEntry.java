@@ -1,15 +1,19 @@
 package com.joyzl.network.tls;
 
+/**
+ * @see CertificateTypes
+ * @author ZhangXi 2024年12月21日
+ */
 public class CertificateEntry {
 
-	private final CertificateType type;
+	private final byte type;
 	private byte[] data;
 
-	public CertificateEntry(CertificateType type) {
+	public CertificateEntry(byte type) {
 		this.type = type;
 	}
 
-	public CertificateType type() {
+	public byte type() {
 		return type;
 	}
 

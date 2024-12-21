@@ -12,8 +12,8 @@ public class PostHandshakeAuth extends Extension {
 	public final static PostHandshakeAuth INSTANCE = new PostHandshakeAuth();
 
 	@Override
-	public ExtensionType type() {
-		return ExtensionType.POST_HANDSHAKE_AUTH;
+	public short type() {
+		return POST_HANDSHAKE_AUTH;
 	}
 
 	@Override

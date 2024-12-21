@@ -35,6 +35,14 @@ package com.joyzl.network.tls;
  *     opaque certificate_request_context<0..2^8-1>;
  *     CertificateEntry certificate_list<0..2^24-1>;
  * } Certificate;
+ * 
+ * RFC 8879
+ * 
+ * struct {
+ *       CertificateCompressionAlgorithm algorithm;
+ *       uint24 uncompressed_length;
+ *       opaque compressed_certificate_message<1..2^24-1>;
+ * } CompressedCertificate;
  * </pre>
  * 
  * @author ZhangXi 2024年12月19日
@@ -46,8 +54,8 @@ public class Certificate extends HandshakeExtensions {
 	private byte[] context = null;
 
 	@Override
-	public HandshakeType getMsgType() {
-		return HandshakeType.CERTIFICATE;
+	public byte msgType() {
+		return CERTIFICATE;
 	}
 
 	public byte[] getContext() {

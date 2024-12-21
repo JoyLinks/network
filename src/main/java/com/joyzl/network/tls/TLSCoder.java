@@ -153,17 +153,17 @@ public class TLSCoder extends TLS {
 
 	private static void encode(Alert message, DataBuffer buffer) {
 		// AlertLevel 1Byte
-		buffer.writeByte(message.getLevel().code());
+		buffer.writeByte(message.getLevel());
 		// AlertDescription 1Byte
-		buffer.writeByte(message.getDescription().code());
+		buffer.writeByte(message.getDescription());
 	}
 
 	private static Alert decodeAlert(DataBuffer buffer) throws IOException {
 		final Alert alert = new Alert();
 		// AlertLevel 1Byte
-		alert.setLevel(buffer.readUnsignedByte());
+		alert.setLevel(buffer.readByte());
 		// AlertDescription 1Byte
-		alert.setDescription(buffer.readUnsignedByte());
+		alert.setDescription(buffer.readByte());
 		return alert;
 	}
 }

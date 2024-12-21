@@ -13,7 +13,7 @@ public class TLS {
 	/** TLS 1.3 */
 	public final static short V13 = 0x0304;
 	/** ALL VERSIONS */
-	public final static short[] ALL_VERSIONS = new short[] { V10, V11, V12, V13 };
+	public final static short[] ALL_VERSIONS = new short[] { V13, V12, V11, V10 };
 
 	/** 16K (2^14) */
 	final static int CHUNK_MAX = 16384;

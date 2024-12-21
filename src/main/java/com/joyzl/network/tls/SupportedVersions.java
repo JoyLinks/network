@@ -33,8 +33,8 @@ public class SupportedVersions extends Extension {
 	}
 
 	@Override
-	public ExtensionType type() {
-		return ExtensionType.SUPPORTED_VERSIONS;
+	public short type() {
+		return SUPPORTED_VERSIONS;
 	}
 
 	public short[] get() {

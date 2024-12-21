@@ -14,8 +14,8 @@ public class Finished extends Handshake {
 	private byte[] data;
 
 	@Override
-	public HandshakeType getMsgType() {
-		return HandshakeType.FINISHED;
+	public byte msgType() {
+		return FINISHED;
 	}
 
 	public byte[] getData() {

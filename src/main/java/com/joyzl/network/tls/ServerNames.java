@@ -34,8 +34,8 @@ public class ServerNames extends Extension {
 	private ServerName[] items = EMPTY;
 
 	@Override
-	public ExtensionType type() {
-		return ExtensionType.SERVER_NAME;
+	public short type() {
+		return SERVER_NAME;
 	}
 
 	public ServerName[] get() {

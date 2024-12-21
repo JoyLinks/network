@@ -3,8 +3,6 @@ package com.joyzl.network.tls;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-import com.joyzl.network.Utility;
-
 /**
  * <pre>
  * opaque ProtocolName<1..2^8-1>;
@@ -24,6 +22,12 @@ public class ApplicationLayerProtocolNegotiation extends Extension {
 	public final static byte[] SPDY_1 = new byte[] { 0x73, 0x70, 0x64, 0x79, 0x2f, 0x31 };
 	/** spdy/2 */
 	public final static byte[] SPDY_2 = new byte[] { 0x73, 0x70, 0x64, 0x79, 0x2f, 0x32 };
+	/** spdy/3 */
+	public final static byte[] SPDY_3 = new byte[] { 0x73, 0x70, 0x64, 0x79, 0x2f, 0x33 };
+	/** h2 */
+	public final static byte[] H2 = new byte[] { 0x68, 0x32 };
+
+	////////////////////////////////////////////////////////////////////////////////
 
 	private final static byte[][] EMPTY = new byte[0][];
 	private byte[][] items = EMPTY;
@@ -36,8 +40,8 @@ public class ApplicationLayerProtocolNegotiation extends Extension {
 	}
 
 	@Override
-	public ExtensionType type() {
-		return ExtensionType.APPLICATION_LAYER_PROTOCOL_NEGOTIATION;
+	public short type() {
+		return APPLICATION_LAYER_PROTOCOL_NEGOTIATION;
 	}
 
 	public byte[][] get() {
@@ -60,6 +64,17 @@ public class ApplicationLayerProtocolNegotiation extends Extension {
 		}
 	}
 
+	public void set(String... value) {
+		if (value == null) {
+			items = EMPTY;
+		} else {
+			items = new byte[value.length][];
+			for (int index = 0; index < items.length; index++) {
+				items[index] = value[index].getBytes(StandardCharsets.US_ASCII);
+			}
+		}
+	}
+
 	public void add(byte[] value) {
 		if (items == EMPTY) {
 			items = new byte[][] { value };
@@ -69,22 +84,16 @@ public class ApplicationLayerProtocolNegotiation extends Extension {
 		}
 	}
 
-	public int size() {
-		return items.length;
+	public void add(String value) {
+		if (items == EMPTY) {
+			items = new byte[][] { value.getBytes(StandardCharsets.US_ASCII) };
+		} else {
+			items = Arrays.copyOf(items, items.length + 1);
+			items[items.length - 1] = value.getBytes(StandardCharsets.US_ASCII);
+		}
 	}
 
-	@Override
-	public String toString() {
-		final StringBuilder builder = Utility.getStringBuilder();
-		builder.append("application_layer_protocol_negotiation:");
-		if (items != null && items.length > 0) {
-			for (int index = 0; index < items.length; index++) {
-				if (index > 0) {
-					builder.append(',');
-				}
-				builder.append(getString(index));
-			}
-		}
-		return builder.toString();
+	public int size() {
+		return items.length;
 	}
 }

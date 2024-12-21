@@ -12,7 +12,7 @@ public class EndOfEarlyData extends Handshake {
 	public final static EndOfEarlyData INSTANCE = new EndOfEarlyData();
 
 	@Override
-	public HandshakeType getMsgType() {
-		return HandshakeType.END_OF_EARLY_DATA;
+	public byte msgType() {
+		return END_OF_EARLY_DATA;
 	}
 }

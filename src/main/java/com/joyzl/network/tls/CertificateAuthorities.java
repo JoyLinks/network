@@ -19,8 +19,8 @@ public class CertificateAuthorities extends Extension {
 	private byte[][] items;
 
 	@Override
-	public ExtensionType type() {
-		return ExtensionType.CERTIFICATE_AUTHORITIES;
+	public short type() {
+		return CERTIFICATE_AUTHORITIES;
 	}
 
 	public byte[][] get() {

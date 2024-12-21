@@ -37,8 +37,8 @@ public class PreSharedKey extends Extension {
 	private int selected;
 
 	@Override
-	public ExtensionType type() {
-		return ExtensionType.PRE_SHARED_KEY;
+	public short type() {
+		return PRE_SHARED_KEY;
 	}
 
 	public PskIdentity[] get() {

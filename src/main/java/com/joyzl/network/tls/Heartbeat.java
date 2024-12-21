@@ -17,18 +17,32 @@ package com.joyzl.network.tls;
  */
 public class Heartbeat extends Extension {
 
-	private HeartbeatMode mode;
+	// HeartbeatMode MAX(255)
 
-	@Override
-	public ExtensionType type() {
-		return ExtensionType.HEARTBEAT;
+	public final static byte PEER_ALLOWED_TO_SEND = 1;
+	public final static byte PEER_NOT_ALLOWED_TO_SEND = 2;
+
+	////////////////////////////////////////////////////////////////////////////////
+
+	private byte mode;
+
+	public Heartbeat() {
 	}
 
-	public HeartbeatMode getMode() {
+	public Heartbeat(byte mode) {
+		this.mode = mode;
+	}
+
+	@Override
+	public short type() {
+		return HEARTBEAT;
+	}
+
+	public byte getMode() {
 		return mode;
 	}
 
-	public void setMode(HeartbeatMode value) {
+	public void setMode(byte value) {
 		mode = value;
 	}
 }

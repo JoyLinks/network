@@ -12,12 +12,12 @@ package com.joyzl.network.tls;
  */
 public class CertificateVerify extends Handshake {
 
-	private SignatureScheme algorithm;
+	private short algorithm;
 	private byte[] signature;
 
 	@Override
-	public HandshakeType getMsgType() {
-		return HandshakeType.CERTIFICATE_VERIFY;
+	public byte msgType() {
+		return CERTIFICATE_VERIFY;
 	}
 
 	public byte[] getSignature() {
@@ -28,15 +28,11 @@ public class CertificateVerify extends Handshake {
 		signature = value;
 	}
 
-	public SignatureScheme getAlgorithm() {
+	public short getAlgorithm() {
 		return algorithm;
 	}
 
-	public void setAlgorithm(SignatureScheme value) {
+	public void setAlgorithm(short value) {
 		algorithm = value;
-	}
-
-	public void setAlgorithm(int value) {
-		algorithm = SignatureScheme.code(value);
 	}
 }

@@ -11,8 +11,8 @@ public class Reserved extends Extension {
 	private byte[] data = TLS.EMPTY_BYTES;
 
 	@Override
-	public ExtensionType type() {
-		return ExtensionType.code(type);
+	public short type() {
+		return type;
 	}
 
 	public byte[] getData() {
