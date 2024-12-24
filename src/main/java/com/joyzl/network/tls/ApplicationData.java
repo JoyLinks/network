@@ -1,5 +1,7 @@
 package com.joyzl.network.tls;
 
+import com.joyzl.network.buffer.DataBuffer;
+
 /**
  * <pre>
  * struct {
@@ -20,8 +22,18 @@ package com.joyzl.network.tls;
  */
 public class ApplicationData extends TLSCiphertext {
 
+	private DataBuffer data;
+
 	@Override
-	public ContentType contentType() {
-		return ContentType.APPLICATION_DATA;
+	public byte contentType() {
+		return APPLICATION_DATA;
+	}
+
+	public DataBuffer getData() {
+		return data;
+	}
+
+	public void setData(DataBuffer data) {
+		this.data = data;
 	}
 }

@@ -12,6 +12,15 @@ public abstract class HandshakeExtensions extends Handshake {
 
 	private List<Extension> extensions = new ArrayList<>();
 
+	public boolean isHelloRetryRequest() {
+		return false;
+	}
+
+	@Override
+	public boolean hasExtensions() {
+		return !extensions.isEmpty();
+	}
+
 	public List<Extension> getExtensions() {
 		return extensions;
 	}

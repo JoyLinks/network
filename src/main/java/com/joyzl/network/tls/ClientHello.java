@@ -57,10 +57,10 @@ package com.joyzl.network.tls;
 public class ClientHello extends HandshakeExtensions {
 
 	private short version = TLS.V12;
-	private byte[] random;
+	private byte[] random = TLS.EMPTY_BYTES;
 	private byte[] session_id = TLS.EMPTY_BYTES;
 	private short[] cipher_suites;
-	private byte[] compression_methods;
+	private byte[] compression_methods = TLS.EMPTY_BYTES;
 
 	@Override
 	public byte msgType() {

@@ -6,7 +6,7 @@ public class ChangeCipherSpec extends TLSPlaintext {
 	public final static byte ONE = 0x01;
 
 	@Override
-	public ContentType contentType() {
-		return ContentType.CHANGE_CIPHER_SPEC;
+	public byte contentType() {
+		return CHANGE_CIPHER_SPEC;
 	}
 }

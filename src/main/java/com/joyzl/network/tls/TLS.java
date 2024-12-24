@@ -18,4 +18,5 @@ public class TLS {
 	/** 16K (2^14) */
 	final static int CHUNK_MAX = 16384;
 	final static byte[] EMPTY_BYTES = new byte[0];
+	final static short[] EMPTY_SHORTS = new short[0];
 }

@@ -2,7 +2,6 @@ package com.joyzl.network.tls;
 
 public class TLSCompressed {
 
-	private ContentType type;
 	private ProtocolVersion version;
 	private int length;
 	private byte[] fragment;
@@ -29,13 +28,5 @@ public class TLSCompressed {
 
 	public void setVersion(ProtocolVersion value) {
 		version = value;
-	}
-
-	public ContentType getType() {
-		return type;
-	}
-
-	public void setType(ContentType value) {
-		type = value;
 	}
 }

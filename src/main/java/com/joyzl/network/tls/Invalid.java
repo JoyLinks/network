@@ -5,7 +5,7 @@ public class Invalid extends TLSPlaintext {
 	public final static Invalid INSTANCE = new Invalid();
 
 	@Override
-	public ContentType contentType() {
-		return ContentType.INVALID;
+	public byte contentType() {
+		return INVALID;
 	}
 }

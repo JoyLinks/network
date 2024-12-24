@@ -6,31 +6,31 @@ import com.joyzl.network.buffer.DataBuffer;
 
 public class TLSCoder extends TLS {
 
-	public static DataBuffer encode(Record message) throws IOException {
+	public static DataBuffer encodeByClient(Record message) throws IOException {
 		final DataBuffer buffer = DataBuffer.instance();
 		// ContentType 1Byte
-		buffer.writeByte(message.contentType().code());
+		buffer.writeByte(message.contentType());
 		// ProtocolVersion 2Byte
 		buffer.writeShort(message.getProtocolVersion());
 		// length 2Byte(uint16)
 		buffer.writeShort(0);
 		// fragment nByte
-		if (message.contentType() == ContentType.APPLICATION_DATA) {
+		if (message.contentType() == Record.APPLICATION_DATA) {
 			// TLSCiphertext
 			encode((ApplicationData) message, buffer);
-		} else if (message.contentType() == ContentType.CHANGE_CIPHER_SPEC) {
+		} else if (message.contentType() == Record.CHANGE_CIPHER_SPEC) {
 			// TLS Plaintext
 			encode((ChangeCipherSpec) message, buffer);
-		} else if (message.contentType() == ContentType.HANDSHAKE) {
+		} else if (message.contentType() == Record.HANDSHAKE) {
 			// TLS Plaintext
-			encode((Handshake) message, buffer);
-		} else if (message.contentType() == ContentType.HEARTBEAT) {
+			HandshakeCoder.encodeByClient((Handshake) message, buffer);
+		} else if (message.contentType() == Record.HEARTBEAT) {
 			// TLS Plaintext
 			encode((HeartbeatMessage) message, buffer);
-		} else if (message.contentType() == ContentType.INVALID) {
+		} else if (message.contentType() == Record.INVALID) {
 			// TLS Plaintext
 			encode((Invalid) message, buffer);
-		} else if (message.contentType() == ContentType.ALERT) {
+		} else if (message.contentType() == Record.ALERT) {
 			// TLS Plaintext
 			encode((Alert) message, buffer);
 		} else {
@@ -38,12 +38,49 @@ public class TLSCoder extends TLS {
 		}
 		// SET Length
 		int length = buffer.readable() - 5;
-		buffer.set(3, (byte) (length << 8));
+		buffer.set(3, (byte) (length >>> 8));
 		buffer.set(4, (byte) length);
 		return buffer;
 	}
 
-	public static Record decode(DataBuffer buffer) throws IOException {
+	public static DataBuffer encodeByServer(Record message) throws IOException {
+		final DataBuffer buffer = DataBuffer.instance();
+		// ContentType 1Byte
+		buffer.writeByte(message.contentType());
+		// ProtocolVersion 2Byte
+		buffer.writeShort(message.getProtocolVersion());
+		// length 2Byte(uint16)
+		buffer.writeShort(0);
+		// fragment nByte
+		if (message.contentType() == Record.APPLICATION_DATA) {
+			// TLSCiphertext
+			encode((ApplicationData) message, buffer);
+		} else if (message.contentType() == Record.CHANGE_CIPHER_SPEC) {
+			// TLS Plaintext
+			encode((ChangeCipherSpec) message, buffer);
+		} else if (message.contentType() == Record.HANDSHAKE) {
+			// TLS Plaintext
+			HandshakeCoder.encodeByServer((Handshake) message, buffer);
+		} else if (message.contentType() == Record.HEARTBEAT) {
+			// TLS Plaintext
+			encode((HeartbeatMessage) message, buffer);
+		} else if (message.contentType() == Record.INVALID) {
+			// TLS Plaintext
+			encode((Invalid) message, buffer);
+		} else if (message.contentType() == Record.ALERT) {
+			// TLS Plaintext
+			encode((Alert) message, buffer);
+		} else {
+			throw new UnsupportedOperationException("TLS 不支持的内容类型:" + message.contentType());
+		}
+		// SET Length
+		int length = buffer.readable() - 5;
+		buffer.set(3, (byte) (length >>> 8));
+		buffer.set(4, (byte) length);
+		return buffer;
+	}
+
+	public static Record decodeByClient(DataBuffer buffer) throws IOException {
 		buffer.mark();
 		// ContentType 1Byte
 		final int type = buffer.readByte();
@@ -57,22 +94,22 @@ public class TLSCoder extends TLS {
 		}
 		if (buffer.readable() >= length) {
 			final Record record;
-			if (type == ContentType.APPLICATION_DATA.code()) {
+			if (type == Record.APPLICATION_DATA) {
 				// TLSCiphertext
-				record = decodeApplicationData(buffer);
-			} else if (type == ContentType.CHANGE_CIPHER_SPEC.code()) {
+				record = decodeApplicationData(buffer, length);
+			} else if (type == Record.CHANGE_CIPHER_SPEC) {
 				// TLS Plaintext
 				record = decodeChangeCipherSpec(buffer);
-			} else if (type == ContentType.HANDSHAKE.code()) {
+			} else if (type == Record.HANDSHAKE) {
 				// TLS Plaintext
-				record = decodeHandshake(buffer);
-			} else if (type == ContentType.HEARTBEAT.code()) {
+				record = HandshakeCoder.decodeByClient(buffer);
+			} else if (type == Record.HEARTBEAT) {
 				// TLS Plaintext
 				record = decodeHeartbeat(buffer, length);
-			} else if (type == ContentType.INVALID.code()) {
+			} else if (type == Record.INVALID) {
 				// TLS Plaintext
 				record = decodeInvalid(buffer, length);
-			} else if (type == ContentType.ALERT.code()) {
+			} else if (type == Record.ALERT) {
 				// TLS Plaintext
 				record = decodeAlert(buffer);
 			} else {
@@ -87,20 +124,62 @@ public class TLSCoder extends TLS {
 		}
 	}
 
-	private static void encode(Handshake message, DataBuffer buffer) throws IOException {
-		HandshakeCoder.encode(message, buffer);
-	}
-
-	private static Handshake decodeHandshake(DataBuffer buffer) throws IOException {
-		return HandshakeCoder.decode(buffer);
+	public static Record decodeByServer(DataBuffer buffer) throws IOException {
+		buffer.mark();
+		// ContentType 1Byte
+		final int type = buffer.readByte();
+		// ProtocolVersion 2Byte
+		final short version = buffer.readShort();
+		// length 2Byte(uint16)
+		final int length = buffer.readUnsignedShort();
+		if (length > CHUNK_MAX) {
+			buffer.clear();
+			return Invalid.INSTANCE;
+		}
+		if (buffer.readable() >= length) {
+			final Record record;
+			if (type == Record.APPLICATION_DATA) {
+				// TLSCiphertext
+				record = decodeApplicationData(buffer, length);
+			} else if (type == Record.CHANGE_CIPHER_SPEC) {
+				// TLS Plaintext
+				record = decodeChangeCipherSpec(buffer);
+			} else if (type == Record.HANDSHAKE) {
+				// TLS Plaintext
+				record = HandshakeCoder.decodeByServer(buffer);
+			} else if (type == Record.HEARTBEAT) {
+				// TLS Plaintext
+				record = decodeHeartbeat(buffer, length);
+			} else if (type == Record.INVALID) {
+				// TLS Plaintext
+				record = decodeInvalid(buffer, length);
+			} else if (type == Record.ALERT) {
+				// TLS Plaintext
+				record = decodeAlert(buffer);
+			} else {
+				buffer.clear();
+				throw new UnsupportedOperationException("TLS 不支持的内容类型:" + type);
+			}
+			record.setProtocolVersion(version);
+			return record;
+		} else {
+			buffer.reset();
+			return null;
+		}
 	}
 
 	private static void encode(ApplicationData message, DataBuffer buffer) {
 		// opaque encrypted_record
+		message.getData().transfer(buffer);
+		message.getData().release();
+		message.setData(null);
 	}
 
-	private static ApplicationData decodeApplicationData(DataBuffer buffer) {
-		return null;
+	private static ApplicationData decodeApplicationData(DataBuffer buffer, int length) {
+		final ApplicationData data = new ApplicationData();
+		data.setData(DataBuffer.instance());
+		buffer.transfer(data.getData(), length);
+		return data;
 	}
 
 	private static void encode(ChangeCipherSpec message, DataBuffer buffer) {
@@ -119,7 +198,7 @@ public class TLSCoder extends TLS {
 
 	private static void encode(HeartbeatMessage message, DataBuffer buffer) throws IOException {
 		// HeartbeatMessageType 1Byte
-		buffer.writeByte(message.getMessageType().code());
+		buffer.writeByte(message.getMessageType());
 		// payload_length 2Byte(uint16)
 		buffer.writeShort(message.getPayload().length);
 		// opaque payload nByte
@@ -133,7 +212,7 @@ public class TLSCoder extends TLS {
 
 	private static HeartbeatMessage decodeHeartbeat(DataBuffer buffer, int length) throws IOException {
 		final HeartbeatMessage message = new HeartbeatMessage();
-		message.setMessageType(buffer.readUnsignedByte());
+		message.setMessageType(buffer.readByte());
 		final byte[] payload = new byte[buffer.readUnsignedShort()];
 		buffer.readFully(payload);
 		message.setPayload(payload);

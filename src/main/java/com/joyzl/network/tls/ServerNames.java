@@ -33,6 +33,13 @@ public class ServerNames extends Extension {
 	private final static ServerName[] EMPTY = new ServerName[0];
 	private ServerName[] items = EMPTY;
 
+	public ServerNames() {
+	}
+
+	public ServerNames(ServerName... value) {
+		set(value);
+	}
+
 	@Override
 	public short type() {
 		return SERVER_NAME;

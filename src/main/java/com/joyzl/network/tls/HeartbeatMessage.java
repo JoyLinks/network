@@ -14,12 +14,19 @@ package com.joyzl.network.tls;
  */
 public class HeartbeatMessage extends TLSPlaintext {
 
-	private HeartbeatMessageType type = HeartbeatMessageType.HEARTBEAT_REQUEST;
+	// HeartbeatMessageType MAX(255)
+
+	public final static byte HEARTBEAT_REQUEST = 1;
+	public final static byte HEARTBEAT_RESPONSE = 2;
+
+	////////////////////////////////////////////////////////////////////////////////
+
+	private byte type = HEARTBEAT_REQUEST;
 	private byte[] payload = TLS.EMPTY_BYTES;
 
 	@Override
-	public ContentType contentType() {
-		return ContentType.HEARTBEAT;
+	public byte contentType() {
+		return HEARTBEAT;
 	}
 
 	public byte[] getPayload() {
@@ -30,24 +37,20 @@ public class HeartbeatMessage extends TLSPlaintext {
 		payload = value;
 	}
 
-	public HeartbeatMessageType getMessageType() {
+	public byte getMessageType() {
 		return type;
 	}
 
-	public void setMessageType(HeartbeatMessageType value) {
+	public void setMessageType(byte value) {
 		type = value;
-	}
-
-	public void setMessageType(int value) {
-		type = HeartbeatMessageType.code(value);
 	}
 
 	/**
 	 * REQUEST -> RESPONSE
 	 */
 	public HeartbeatMessage exchange() {
-		if (type == HeartbeatMessageType.HEARTBEAT_REQUEST) {
-			type = HeartbeatMessageType.HEARTBEAT_RESPONSE;
+		if (type == HEARTBEAT_REQUEST) {
+			type = HEARTBEAT_RESPONSE;
 		}
 		return this;
 	}

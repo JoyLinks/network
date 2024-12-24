@@ -29,6 +29,13 @@ public class KeyShare extends Extension {
 	private final static KeyShareEntry[] EMPTY = new KeyShareEntry[0];
 	private KeyShareEntry[] items = EMPTY;
 
+	public KeyShare() {
+	}
+
+	public KeyShare(KeyShareEntry... value) {
+		set(value);
+	}
+
 	@Override
 	public short type() {
 		return KEY_SHARE;

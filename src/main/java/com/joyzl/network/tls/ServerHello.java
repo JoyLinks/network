@@ -1,5 +1,7 @@
 package com.joyzl.network.tls;
 
+import java.util.Arrays;
+
 /**
  * <pre>
  * struct {
@@ -18,9 +20,9 @@ public class ServerHello extends HandshakeExtensions {
 
 	/** SHA-256("HelloRetryRequest") */
 	final static byte[] HELLO_RETRY_REQUEST_RANDOM = new byte[] { (byte) 0xCF, 0x21, (byte) 0xAD, 0x74, (byte) 0xE5, (byte) 0x9A, 0x61, 0x11, (byte) 0xBE, 0x1D, (byte) 0x8C, 0x02, 0x1E, 0x65, (byte) 0xB8, (byte) 0x91, (byte) 0xC2, (byte) 0xA2, 0x11, 0x16, 0x7A, (byte) 0xBB, (byte) 0x8C, 0x5E, 0x07, (byte) 0x9E, 0x09, (byte) 0xE2, (byte) 0xC8, (byte) 0xA8, 0x33, (byte) 0x9C };
-	/** 1.2 - 1.3 SERVER */
+	/** 1.2 - 1.3 "DOWNGRD"+0x01 */
 	final static byte[] V12_LAST8 = new byte[] { 0x44, 0x4F, 0x57, 0x4E, 0x47, 0x52, 0x44, 0x01 };
-	/** 1.1 - 1.3 SERVER */
+	/** 1.1 - 1.0 "DOWNGRD"+0x00 */
 	final static byte[] V11_LAST8 = new byte[] { 0x44, 0x4F, 0x57, 0x4E, 0x47, 0x52, 0x44, 0x00 };
 
 	private short version = TLS.V12;
@@ -32,6 +34,11 @@ public class ServerHello extends HandshakeExtensions {
 	@Override
 	public byte msgType() {
 		return SERVER_HELLO;
+	}
+
+	@Override
+	public boolean isHelloRetryRequest() {
+		return Arrays.equals(random, HELLO_RETRY_REQUEST_RANDOM);
 	}
 
 	public byte[] getRandom() {

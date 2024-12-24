@@ -67,9 +67,13 @@ public abstract class Handshake extends TLSPlaintext {
 
 	public abstract byte msgType();
 
+	public boolean hasExtensions() {
+		return false;
+	}
+
 	@Override
-	public ContentType contentType() {
-		return ContentType.HANDSHAKE;
+	public byte contentType() {
+		return HANDSHAKE;
 	}
 
 	@Override

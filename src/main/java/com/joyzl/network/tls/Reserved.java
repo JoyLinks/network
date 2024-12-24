@@ -10,6 +10,13 @@ public class Reserved extends Extension {
 	private short type;
 	private byte[] data = TLS.EMPTY_BYTES;
 
+	public Reserved() {
+	}
+
+	public Reserved(short type) {
+		this.type = type;
+	}
+
 	@Override
 	public short type() {
 		return type;

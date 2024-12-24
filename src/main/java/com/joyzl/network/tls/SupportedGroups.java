@@ -57,6 +57,33 @@ public class SupportedGroups extends Extension {
 			FFDHE8192,//
 	};
 
+	public final static String named(short code) {
+		switch (code) {
+			case SupportedGroups.X25519:
+				return "X25519";
+			case SupportedGroups.X448:
+				return "X448";
+			case SupportedGroups.SECP256R1:
+				return "SECP256R1";
+			case SupportedGroups.SECP384R1:
+				return "SECP384R1";
+			case SupportedGroups.SECP521R1:
+				return "SECP521R1";
+			case SupportedGroups.FFDHE2048:
+				return "FFDHE2048";
+			case SupportedGroups.FFDHE3072:
+				return "FFDHE3072";
+			case SupportedGroups.FFDHE4096:
+				return "FFDHE4096";
+			case SupportedGroups.FFDHE6144:
+				return "FFDHE6144";
+			case SupportedGroups.FFDHE8192:
+				return "FFDHE8192";
+			default:
+				return null;
+		}
+	}
+
 	////////////////////////////////////////////////////////////////////////////////
 
 	private final static short[] EMPTY = new short[0];

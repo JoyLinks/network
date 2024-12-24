@@ -68,8 +68,8 @@ public class Alert extends TLSPlaintext {
 	}
 
 	@Override
-	public ContentType contentType() {
-		return ContentType.ALERT;
+	public byte contentType() {
+		return ALERT;
 	}
 
 	public byte getDescription() {
