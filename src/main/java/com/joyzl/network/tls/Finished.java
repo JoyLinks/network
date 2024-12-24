@@ -11,18 +11,18 @@ package com.joyzl.network.tls;
  */
 public class Finished extends Handshake {
 
-	private byte[] data;
+	private byte[] verify_data;
 
 	@Override
 	public byte msgType() {
 		return FINISHED;
 	}
 
-	public byte[] getData() {
-		return data;
+	public byte[] getVerifyData() {
+		return verify_data;
 	}
 
-	public void setData(byte[] value) {
-		data = value;
+	public void setVerifyData(byte[] value) {
+		verify_data = value;
 	}
 }

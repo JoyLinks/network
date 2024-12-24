@@ -435,15 +435,15 @@ public class HandshakeCoder extends TLS {
 	}
 
 	private static void encode(Finished message, DataBuffer buffer) throws IOException {
-		buffer.writeShort(message.getData().length);
-		buffer.write(message.getData());
+		buffer.writeShort(message.getVerifyData().length);
+		buffer.write(message.getVerifyData());
 	}
 
 	private static Finished decodeFinished(DataBuffer buffer) throws IOException {
 		final Finished message = new Finished();
 		byte[] opaque;
 		buffer.readFully(opaque = new byte[buffer.readUnsignedShort()]);
-		message.setData(opaque);
+		message.setVerifyData(opaque);
 		return message;
 	}
 

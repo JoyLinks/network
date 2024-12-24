@@ -34,7 +34,7 @@ public class TLSClientHandler implements ChainHandler<Record> {
 		Executor.shutdown();
 	}
 
-	private KeyPair key;
+	private HKDF hkdf;
 
 	@Override
 	public void connected(ChainChannel<Record> chain) throws Exception {
@@ -42,6 +42,7 @@ public class TLSClientHandler implements ChainHandler<Record> {
 		hello.setVersion(TLS.V12);
 		hello.setRandom(SecureRandom.getSeed(32));
 		hello.setSessionId(SecureRandom.getSeed(32));
+		// AEAD HKDF
 		hello.setCipherSuites(CipherSuite.V13);
 		hello.setCompressionMethods(CompressionMethod.METHODS);
 		// Extensions
@@ -85,7 +86,21 @@ public class TLSClientHandler implements ChainHandler<Record> {
 			// new KeyShareEntry((short) 0x11EC, SecureRandom.getSeed(1216)), //
 			new KeyShareEntry(SupportedGroups.X25519, make(SupportedGroups.X25519))));
 		// hello.getExtensions().add(new KeyShare());
+
+		hkdf = new HKDF(CipherSuite.TLS_AES_128_GCM_SHA256);
 		chain.send(hello);
+	}
+
+	@Override
+	public DataBuffer encode(ChainChannel<Record> chain, Record message) throws Exception {
+		final DataBuffer buffer = TLSCoder.encodeByClient(message);
+		hkdf.hash(buffer);
+		return buffer;
+	}
+
+	@Override
+	public void sent(ChainChannel<Record> chain, Record message) throws Exception {
+		chain.receive();
 	}
 
 	@Override
@@ -96,16 +111,23 @@ public class TLSClientHandler implements ChainHandler<Record> {
 	@Override
 	public void received(ChainChannel<Record> chain, Record message) throws Exception {
 		System.out.println(message);
-	}
+		if (message == null) {
+			// TIMEOUT
+		} else {
+			if (message.contentType() == Record.HANDSHAKE) {
+				final Handshake handshake = (Handshake) message;
+				if (handshake.msgType() == Handshake.SERVER_HELLO) {
+					final ServerHello serverHello = (com.joyzl.network.tls.ServerHello) handshake;
+					if (serverHello.isHelloRetryRequest()) {
 
-	@Override
-	public DataBuffer encode(ChainChannel<Record> chain, Record message) throws Exception {
-		return TLSCoder.encodeByClient(message);
-	}
-
-	@Override
-	public void sent(ChainChannel<Record> chain, Record message) throws Exception {
-		chain.receive();
+					} else {
+						final Finished finished = new Finished();
+						finished.setVerifyData(hkdf.finishedVerifyData());
+						chain.send(finished);
+					}
+				}
+			}
+		}
 	}
 
 	@Override
