@@ -168,4 +168,19 @@ public class Utility {
 		builder.append(suffix);
 		return builder.toString();
 	}
+
+	public static byte[] hex(String data) {
+		return hex(data, 0, data.length());
+	}
+
+	public static byte[] hex(String data, int offset, int length) {
+		final byte[] temp = new byte[(length - offset) / 2];
+		int value;
+		for (int i = 0; i < temp.length; i++) {
+			value = Character.digit(data.charAt(offset++), 16) * 16;
+			value += Character.digit(data.charAt(offset++), 16);
+			temp[i] = (byte) value;
+		}
+		return temp;
+	}
 }

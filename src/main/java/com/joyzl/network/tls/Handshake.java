@@ -34,31 +34,31 @@ public abstract class Handshake extends TLSPlaintext {
 	public final static byte CLIENT_HELLO = 1;
 	/** TLS 1.0 1.3 */
 	public final static byte SERVER_HELLO = 2;
-	/** TLS 1.3 */
+	/** TLS 1.3 新会话票据(PSK) */
 	public final static byte NEW_SESSION_TICKET = 4;
-	/** TLS 1.3 */
+	/** TLS 1.3 早期数据结束 */
 	public final static byte END_OF_EARLY_DATA = 5;
-	/** TLS 1.3 */
+	/** TLS 1.3 被保护的扩展 */
 	public final static byte ENCRYPTED_EXTENSIONS = 8;
-	/** TLS 1.0 1.3 */
+	/** TLS 1.0 1.3 终端的证书 */
 	public final static byte CERTIFICATE = 11;
 	/** TLS 1.0 */
 	public final static byte SERVER_KEY_EXCHANGE = 12;
-	/** TLS 1.0 1.3 */
+	/** TLS 1.0 1.3 请求客户端证书 */
 	public final static byte CERTIFICATE_REQUEST = 13;
 	/** TLS 1.0 */
 	public final static byte SERVER_HELLO_DONE = 14;
-	/** TLS 1.0 1.3 */
+	/** TLS 1.0 1.3 使用证书消息对整个握手消息进行签名 */
 	public final static byte CERTIFICATE_VERIFY = 15;
 	/** TLS 1.0 */
 	public final static byte CLIENT_KEY_EXCHANGE = 16;
-	/** TLS 1.0 1.3 */
+	/** TLS 1.0 1.3 整个握手消息的密钥确认 */
 	public final static byte FINISHED = 20;
 
 	public final static byte CERTIFICATE_URL = 21;
 
 	public final static byte CERTIFICATE_STATUS = 22;
-	/** TLS 1.3 */
+	/** TLS 1.3 更新密钥 */
 	public final static byte KEY_UPDATE = 24;
 	/** TLS 1.3 */
 	public final static byte MESSAGE_HASH = (byte) 254;

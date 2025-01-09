@@ -34,7 +34,7 @@ public class TLSClientHandler implements ChainHandler<Record> {
 		Executor.shutdown();
 	}
 
-	private HKDF hkdf;
+	private ClientSecrets secrets;
 
 	@Override
 	public void connected(ChainChannel<Record> chain) throws Exception {
@@ -87,14 +87,16 @@ public class TLSClientHandler implements ChainHandler<Record> {
 			new KeyShareEntry(SupportedGroups.X25519, make(SupportedGroups.X25519))));
 		// hello.getExtensions().add(new KeyShare());
 
-		hkdf = new HKDF(CipherSuite.TLS_AES_128_GCM_SHA256);
+		secrets = new ClientSecrets(CipherSuite.TLS_AES_128_GCM_SHA256);
 		chain.send(hello);
 	}
 
 	@Override
 	public DataBuffer encode(ChainChannel<Record> chain, Record message) throws Exception {
 		final DataBuffer buffer = TLSCoder.encodeByClient(message);
-		hkdf.hash(buffer);
+		if (message.contentType() == Record.HANDSHAKE) {
+			secrets.hash(buffer);
+		}
 		return buffer;
 	}
 
@@ -122,7 +124,7 @@ public class TLSClientHandler implements ChainHandler<Record> {
 
 					} else {
 						final Finished finished = new Finished();
-						finished.setVerifyData(hkdf.finishedVerifyData());
+						finished.setVerifyData(secrets.clientFinished());
 						chain.send(finished);
 					}
 				}

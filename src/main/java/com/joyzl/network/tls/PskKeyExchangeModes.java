@@ -17,7 +17,9 @@ public class PskKeyExchangeModes extends Extension {
 
 	// PskKeyExchangeMode MAX(255)
 
+	/** 仅PSK密钥建立。在这种模式下Server不能提供"key_share" */
 	public final static byte PSK_KE = 0;
+	/** PSK和(EC)DHE建立。在这种模式下，Client和Server必须提供"key_share" */
 	public final static byte PSK_DHE_KE = 1;
 
 	public final static byte[] ALL = new byte[] { PSK_DHE_KE, PSK_KE };

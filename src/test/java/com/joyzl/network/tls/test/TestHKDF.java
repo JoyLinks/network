@@ -2,10 +2,6 @@ package com.joyzl.network.tls.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.joyzl.network.Utility;
@@ -14,25 +10,10 @@ import com.joyzl.network.tls.HKDF;
 
 class TestHKDF {
 
-	@BeforeAll
-	static void setUpBeforeClass() throws Exception {
-	}
-
-	@AfterAll
-	static void tearDownAfterClass() throws Exception {
-	}
-
-	@BeforeEach
-	void setUp() throws Exception {
-	}
-
-	@AfterEach
-	void tearDown() throws Exception {
-	}
+	// RFC 5869
 
 	@Test
 	void testSample() throws Exception {
-		// RFC 5869
 		// Hash = SHA-256
 		// IKM = 0x0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b (22 octets)
 		final byte[] IKM = new byte[] { 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b };
@@ -54,4 +35,13 @@ class TestHKDF {
 		assertEquals(Utility.hex(temp2), OKM);
 	}
 
+	void testRFC8848() throws Exception {
+		final String PRK = "33ad0a1c607ec03b09e6cd9893680ce210adf300aa1f2660e1b22e10f170f92a";
+		final String info = "00200d746c733133206465726976656420e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+		final String expanded = "6f2615a108c702c5678f54fc9dbab69716c076189c48250cebeac3576c3611ba";
+
+		final HKDF hkdf = new HKDF(CipherSuite.TLS_AES_128_GCM_SHA256);
+		final byte[] temp = hkdf.expand(Utility.hex(PRK), Utility.hex(info), 32);
+		assertEquals(Utility.hex(temp), expanded);
+	}
 }

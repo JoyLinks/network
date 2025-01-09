@@ -19,6 +19,7 @@ public class ExtensionCoder {
 	 * trusted_ca_keys			C-S-C
 	 * truncated_hmac			C-S-C
 	 * status_request			C-S-C
+	 * psk_key_exchange_modes	C-S
 	 */
 
 	public static void encodeByServer(HandshakeExtensions extensions, DataBuffer buffer) throws IOException {

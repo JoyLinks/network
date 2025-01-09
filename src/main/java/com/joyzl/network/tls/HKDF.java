@@ -1,9 +1,6 @@
 package com.joyzl.network.tls;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 
 import javax.crypto.spec.SecretKeySpec;
 
@@ -15,15 +12,16 @@ import javax.crypto.spec.SecretKeySpec;
  */
 public class HKDF extends TranscriptHash {
 
-	// https://docs.oracle.com/en/java/javase/17/docs/specs/security/standard-names.html
-
 	/*-
 	 * RFC 5869 HMAC-based Extract-and-Expand Key Derivation Function (HKDF)
 	 *     extract-then-expand:提取-展开
+	 *     salt:盐
+	 *     IKM:密钥材料
+	 *
 	 *     HMAC-based Key Derivation Function (HKDF)
 	 *     HKDF-Extract(salt, IKM) -> PRK
 	 *     PRK = HMAC-Hash(salt, IKM)
-	 *     
+	 *
 	 *     HKDF-Expand
 	 *     N = ceil(L/HashLen)
 	 *     T = T(1) | T(2) | T(3) | ... | T(N)
@@ -36,28 +34,32 @@ public class HKDF extends TranscriptHash {
 	 *     ...
 	 */
 
-	private byte[] PRK;
-
-	public HKDF(short code) throws NoSuchAlgorithmException {
+	public HKDF(short code) throws Exception {
 		super(code);
 	}
 
+	/** Hash.length */
+	public int hashLength() {
+		return hmac.getMacLength();
+	}
+
 	/** HKDF-Extract(salt, IKM) -> PRK=HMAC-Hash(salt, IKM) */
-	public byte[] extract(byte[] salt, byte[] IKM) throws NoSuchAlgorithmException, InvalidKeyException {
+	public byte[] extract(byte[] salt, byte[] IKM) throws Exception {
 		if (salt == null || salt.length == 0) {
 			// HashLen zeros
 			salt = new byte[hmac.getMacLength()];
 		}
+
 		// PRK = HMAC-Hash(salt, IKM)
 
 		hmac.reset();
 		hmac.init(new SecretKeySpec(salt, hmac.getAlgorithm()));
 		hmac.update(IKM);
-		return PRK = hmac.doFinal();
+		return hmac.doFinal();
 	}
 
 	/** HKDF-Expand */
-	public byte[] expand(byte[] PRK, byte[] info, int length) throws NoSuchAlgorithmException, InvalidKeyException {
+	public byte[] expand(byte[] PRK, byte[] info, int length) throws Exception {
 		if (length <= 0) {
 			throw new IllegalArgumentException("length");
 		}
@@ -99,7 +101,7 @@ public class HKDF extends TranscriptHash {
 	 */
 
 	/** HKDF-Expand-Label(Secret, Label, Context, Length) */
-	public byte[] expandLabel(byte[] label, byte[] context, int length) throws IOException, InvalidKeyException, NoSuchAlgorithmException {
+	public byte[] expandLabel(byte[] secret, byte[] label, byte[] context, int length) throws Exception {
 		if (length <= 0) {
 			throw new IllegalArgumentException("length");
 		}
@@ -110,23 +112,26 @@ public class HKDF extends TranscriptHash {
 			context = TLS.EMPTY_BYTES;
 		}
 
-		final SecretKeySpec key = new SecretKeySpec(PRK, hmac.getAlgorithm());
 		hmac.reset();
-		hmac.init(key);
+		hmac.init(new SecretKeySpec(secret, hmac.getAlgorithm()));
 
 		final byte[] OKM = new byte[length];
 		int t, N = (int) Math.ceil(length / 1.0 / hmac.getMacLength());
 		byte[] T = TLS.EMPTY_BYTES;
 		for (int n = 1; n <= N; n++) {
 			hmac.update(T);
+			// info begin
 			// HkdfLabel uint16 length
-			hmac.update((byte) (length >>> 8));
-			hmac.update((byte) (length));
+			hmac.update((byte) (OKM.length >>> 8));
+			hmac.update((byte) (OKM.length));
 			// HkdfLabel "tls13 " + Label;
+			hmac.update((byte) (TLS13_.length + label.length));
 			hmac.update(TLS13_);
 			hmac.update(label);
 			// HkdfLabel Context
+			hmac.update((byte) (context.length));
 			hmac.update(context);
+			// info end
 			// T(n)
 			hmac.update((byte) n);
 			T = hmac.doFinal();
@@ -139,41 +144,10 @@ public class HKDF extends TranscriptHash {
 		return OKM;
 	}
 
-	/** Derive-Secret */
-	public byte[] derive(byte[] label) throws InvalidKeyException, NoSuchAlgorithmException, IOException {
-		return expandLabel(label, digest(), hmac.getMacLength());
-	}
-
-	/*-
-	 * +-----------+-------------------------+-----------------------------+
-	 * | Mode      | Handshake Context       | Base Key                    |
-	 * +-----------+-------------------------+-----------------------------+
-	 * | Server    | ClientHello ... later   | server_handshake_traffic_   |
-	 * |           | of EncryptedExtensions/ | secret                      |
-	 * |           | CertificateRequest      |                             |
-	 * |           |                         |                             |
-	 * | Client    | ClientHello ... later   | client_handshake_traffic_   |
-	 * |           | of server               | secret                      |
-	 * |           | Finished/EndOfEarlyData |                             |
-	 * |           |                         |                             |
-	 * | Post-     | ClientHello ... client  | client_application_traffic_ |
-	 * | Handshake | Finished +              | secret_N                    |
-	 * |           | CertificateRequest      |                             |
-	 * +-----------+-------------------------+-----------------------------+
+	/**
+	 * Derive-Secret(Secret,Label,Messages)=HKDF-Expand-Label(Secret,Label,Transcript-Hash(Messages),Hash.length)
 	 */
-
-	final static byte[] FINISHED = "finished".getBytes(StandardCharsets.US_ASCII);
-
-	public byte[] finishedVerifyData() throws IOException, InvalidKeyException, NoSuchAlgorithmException {
-		// finished_key=HKDF-Expand-Label(BaseKey,"finished","",Hash.length)
-		// verify_data=HMAC(finished_key,Transcript-Hash(Handshake-Context,Certificate*,CertificateVerify*))
-
-		final byte[] finished_key = expandLabel(FINISHED, TLS.EMPTY_BYTES, hmac.getMacLength());
-		final SecretKeySpec key = new SecretKeySpec(finished_key, hmac.getAlgorithm());
-
-		hmac.reset();
-		hmac.init(key);
-		hmac.update(digest());
-		return hmac.doFinal();
+	public byte[] deriveSecret(byte[] secret, byte[] label, byte[] hash) throws Exception {
+		return expandLabel(secret, label, hash, hashLength());
 	}
 }

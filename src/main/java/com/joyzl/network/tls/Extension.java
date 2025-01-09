@@ -26,17 +26,17 @@ public abstract class Extension {
 	public final static short MAX_FRAGMENT_LENGTH = 1;
 	/** RFC 6066 */
 	public final static short CLIENT_CERTIFICATE_URL = 2;
-	/** RFC 6066 */
+	/** RFC 6066 受信任的CA(证书颁发机构) */
 	public final static short TRUSTED_CA_KEYS = 3;
 	/** RFC 6066 */
 	public final static short TRUNCATED_HMAC = 4;
 	/** RFC 6066 */
 	public final static short STATUS_REQUEST = 5;
-	/** RFC 8422,7919 elliptic_curves */
+	/** RFC 8422,7919 客户端支持的密钥交换命名组，原名elliptic_curves */
 	public final static short SUPPORTED_GROUPS = 10;
 	/** RFC 8422 */
 	public final static short EC_POINT_FORMATS = 11;
-	/** RFC 8446 */
+	/** RFC 8446 验证X.509证书的签名算法 */
 	public final static short SIGNATURE_ALGORITHMS = 13;
 	/** RFC 5764 */
 	public final static short USE_SRTP = 14;
@@ -60,27 +60,27 @@ public abstract class Extension {
 	public final static short SESSION_TICKET = 35;
 	/** RESERVED */
 	public final static short RESERVED1 = 40;
-	/** RFC 8446 */
+	/** RFC 8446 PSK(预共享密钥) */
 	public final static short PRE_SHARED_KEY = 41;
-	/** RFC 8446 */
+	/** RFC 8446 早发送应用数据 */
 	public final static short EARLY_DATA = 42;
-	/** RFC 8446 */
+	/** RFC 8446 支持的版本 */
 	public final static short SUPPORTED_VERSIONS = 43;
 	/** RFC 8446 */
 	public final static short COOKIE = 44;
-	/** RFC 8446 */
+	/** RFC 8446 客户端支持的PSK模式 */
 	public final static short PSK_KEY_EXCHANGE_MODES = 45;
 	/** RESERVED */
 	public final static short RESERVED2 = 46;
-	/** RFC 8446 */
+	/** RFC 8446 终端支持的CA(证书颁发机构) */
 	public final static short CERTIFICATE_AUTHORITIES = 47;
-	/** RFC 8446 */
+	/** RFC 8446 使用证书扩展OID选择证书 */
 	public final static short OID_FILTERS = 48;
-	/** RFC 8446 */
+	/** RFC 8446 客户端可握手后再认证 */
 	public final static short POST_HANDSHAKE_AUTH = 49;
-	/** RFC 8446 */
+	/** RFC 8446 证书里面的签名算法 */
 	public final static short SIGNATURE_ALGORITHMS_CERT = 50;
-	/** RFC 8446 */
+	/** RFC 8446 终端的密钥交换参数（要交换的密钥的命名组，密钥交换信息） */
 	public final static short KEY_SHARE = 51;
 
 	/** RFC 5746 */
