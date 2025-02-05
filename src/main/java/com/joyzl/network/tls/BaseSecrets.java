@@ -5,9 +5,9 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月30日
  */
-public abstract class BaseSecrets extends Secrets {
+public abstract class BaseSecrets extends DeriveSecret {
 
-	private byte[] early = TLS.EMPTY_BYTES;
+	private byte[] psk = null;
 	private byte[] handshake = TLS.EMPTY_BYTES;
 	private byte[] client_handshake_traffic = TLS.EMPTY_BYTES;
 	private byte[] server_handshake_traffic = TLS.EMPTY_BYTES;
@@ -22,34 +22,45 @@ public abstract class BaseSecrets extends Secrets {
 	}
 
 	/**
-	 * 获取早期密钥
-	 */
-	public byte[] early() throws Exception {
-		if (early == TLS.EMPTY_BYTES) {
-			early = extract(TLS.EMPTY_BYTES, new byte[hashLength()]);
-		}
-		return early;
-	}
-
-	/**
-	 * 获取共享密钥
+	 * 获取共享密钥(PSK)
 	 */
 	public byte[] shared() {
-		return null;
+		return psk;
+	}
+
+	public byte[] early() throws Exception {
+		return early(psk);
+	}
+
+	public byte[] exporterBinderKey() throws Exception {
+		return exporterBinderKey(early());
+	}
+
+	public byte[] resumptionBinderKey() throws Exception {
+		return resumptionBinderKey(early());
+	}
+
+	public byte[] clientEarlyTraffic() throws Exception {
+		return clientEarlyTraffic(early(), hash());
+	}
+
+	public byte[] earlyExporterMaster() throws Exception {
+		return earlyExporterMaster(early(), hash());
 	}
 
 	public byte[] handshake(byte[] shared) throws Exception {
 		if (handshake == TLS.EMPTY_BYTES) {
-			final byte[] derived = derived(early());
-			handshake = extract(derived, shared);
+			handshake = handshake(early(), shared);
 		}
 		return handshake;
 	}
 
 	public byte[] handshake() throws Exception {
 		if (handshake == TLS.EMPTY_BYTES) {
-			final byte[] derived = derived(early());
-			handshake = extract(derived, shared());
+			// final byte[] derived = derive(early(psk));
+			// handshake = extract(derived, shared());
+
+			handshake = handshake(early(), psk);
 		}
 		return handshake;
 	}
@@ -80,7 +91,7 @@ public abstract class BaseSecrets extends Secrets {
 
 	public byte[] master() throws Exception {
 		if (master == TLS.EMPTY_BYTES) {
-			final byte[] derived = derived(handshake());
+			final byte[] derived = derive(handshake());
 			master = extract(derived, new byte[hashLength()]);
 		}
 		return master;

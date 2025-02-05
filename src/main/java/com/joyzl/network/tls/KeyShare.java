@@ -3,6 +3,8 @@ package com.joyzl.network.tls;
 import java.util.Arrays;
 
 /**
+ * 扩展：共享密钥
+ * 
  * <pre>
  * struct {
  *     NamedGroup group;

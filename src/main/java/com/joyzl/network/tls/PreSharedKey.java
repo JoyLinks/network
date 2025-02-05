@@ -5,6 +5,8 @@ import java.util.Arrays;
 import com.joyzl.network.Utility;
 
 /**
+ * 扩展：预共享密钥，表明支持的对称密钥标识
+ * 
  * <pre>
  * RFC 8446
  * 

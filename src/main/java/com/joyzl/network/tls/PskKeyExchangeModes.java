@@ -3,6 +3,8 @@ package com.joyzl.network.tls;
 import java.util.Arrays;
 
 /**
+ * 扩展：预共享密钥交换模式
+ * 
  * <pre>
  * enum { psk_ke(0), psk_dhe_ke(1), (255) } PskKeyExchangeMode;
  * 

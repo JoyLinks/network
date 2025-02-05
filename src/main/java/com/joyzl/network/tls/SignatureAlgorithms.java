@@ -3,6 +3,8 @@ package com.joyzl.network.tls;
 import java.util.Arrays;
 
 /**
+ * 扩展：支持的签名算法
+ * 
  * <pre>
  * struct {
  *        SignatureScheme supported_signature_algorithms<2..2^16-2>;

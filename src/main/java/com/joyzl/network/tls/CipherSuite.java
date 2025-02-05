@@ -1,7 +1,7 @@
 package com.joyzl.network.tls;
 
 /**
- * 密码套件
+ * 密码套件，支持的AEAD算法和HKDF哈希对，用于密钥导出计划和消息加密与解密
  * 
  * @author ZhangXi 2024年12月17日
  */

@@ -16,6 +16,14 @@ public class ClientSecrets extends BaseSecrets {
 		return iv(serverHandshakeTraffic());
 	}
 
+	public byte[] handshakeTrafficWriteKey() throws Exception {
+		return key(clientHandshakeTraffic());
+	}
+
+	public byte[] handshakeTrafficWriteIv() throws Exception {
+		return iv(clientHandshakeTraffic());
+	}
+
 	public byte[] applicationTrafficReadKey() throws Exception {
 		return key(serverApplicationTraffic());
 	}

@@ -5,6 +5,8 @@ import java.nio.charset.StandardCharsets;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
+ * 密钥提取与展开方法<br>
+ * 
  * RFC 5869 HMAC-based Extract-and-Expand Key Derivation Function (HKDF)<br>
  * RFC 2104 HMAC: Keyed-Hashing for Message Authentication
  * 
@@ -34,8 +36,12 @@ public class HKDF extends TranscriptHash {
 	 *     ...
 	 */
 
+	/** Hash.length 00 */
+	final byte[] ZEROS;
+
 	public HKDF(short code) throws Exception {
 		super(code);
+		ZEROS = new byte[hmac.getMacLength()];
 	}
 
 	/** Hash.length */
@@ -47,7 +53,11 @@ public class HKDF extends TranscriptHash {
 	public byte[] extract(byte[] salt, byte[] IKM) throws Exception {
 		if (salt == null || salt.length == 0) {
 			// HashLen zeros
-			salt = new byte[hmac.getMacLength()];
+			salt = ZEROS;
+		}
+		if (IKM == null || IKM.length == 0) {
+			// HashLen zeros
+			IKM = ZEROS;
 		}
 
 		// PRK = HMAC-Hash(salt, IKM)

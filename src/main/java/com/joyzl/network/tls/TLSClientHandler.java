@@ -58,14 +58,13 @@ public class TLSClientHandler implements ChainHandler<Record> {
 			SignatureAlgorithms.RSA_PKCS1_SHA384, //
 			SignatureAlgorithms.RSA_PSS_RSAE_SHA512, //
 			SignatureAlgorithms.RSA_PKCS1_SHA512));
-		hello.getExtensions().add(new PskKeyExchangeModes(PskKeyExchangeModes.PSK_DHE_KE));
 		hello.getExtensions().add(new ECPointFormats(ECPointFormats.UNCOMPRESSED));
 		// ENCRYPTED_CLIENT_HELLO
 		hello.getExtensions().add(new SupportedGroups(//
 			// (short) 0x2A2A, (short) 0x11EC, //
-			SupportedGroups.X25519, //
-			SupportedGroups.SECP256R1, //
-			SupportedGroups.SECP384R1));
+			NamedGroup.X25519, //
+			NamedGroup.SECP256R1, //
+			NamedGroup.SECP384R1));
 		hello.getExtensions().add(new SessionTicket());
 		hello.getExtensions().add(new ApplicationLayerProtocolNegotiation(//
 			ApplicationLayerProtocolNegotiation.H2, //
@@ -81,10 +80,11 @@ public class TLSClientHandler implements ChainHandler<Record> {
 		hello.getExtensions().add(new CompressCertificate(CompressCertificate.BROTLI));
 		// hello.getExtensions().add(new Reserved((short) 0x9A9A));
 
+		hello.getExtensions().add(new PskKeyExchangeModes(PskKeyExchangeModes.PSK_DHE_KE));
 		hello.getExtensions().add(new KeyShare(//
 			// new KeyShareEntry((short) 0x2A2A, new byte[] { 0 }), //
 			// new KeyShareEntry((short) 0x11EC, SecureRandom.getSeed(1216)), //
-			new KeyShareEntry(SupportedGroups.X25519, make(SupportedGroups.X25519))));
+			new KeyShareEntry(NamedGroup.X25519, make(NamedGroup.X25519))));
 		// hello.getExtensions().add(new KeyShare());
 
 		secrets = new ClientSecrets(CipherSuite.TLS_AES_128_GCM_SHA256);
@@ -143,7 +143,7 @@ public class TLSClientHandler implements ChainHandler<Record> {
 	}
 
 	public final byte[] make(short named_group) throws Exception {
-		final String name = SupportedGroups.named(named_group);
+		final String name = NamedGroup.named(named_group);
 		if (name != null) {
 			final KeyPairGenerator generator = KeyPairGenerator.getInstance(name);
 			final KeyAgreement agreement = KeyAgreement.getInstance(name);
