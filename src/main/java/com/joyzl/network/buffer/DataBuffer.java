@@ -668,11 +668,12 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 		// 利用length的特殊值标记是否已释放
 		if (length != Integer.MIN_VALUE) {
 			clear();
+			verifier = EmptyVerifier.INSTANCE;
 			length = Integer.MIN_VALUE;
 			BYTE_BUFFERS.offer(this);
 		} else {
-			// 重复释放
-			throw new IllegalStateException("DataBuffer已释放（回收）");
+			// 重复释放抛出异常
+			throw new IllegalStateException("释放已回收的数据缓存");
 		}
 	}
 
@@ -809,6 +810,47 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 
 	////////////////////////////////////////////////////////////////////////////////
 
+	/**
+	 * 获取第一个单元
+	 */
+	public DataBufferUnit first() {
+		return read;
+	}
+
+	/**
+	 * 取出第一个单元
+	 */
+	public DataBufferUnit take() {
+		if (read == null) {
+			return null;
+		} else {
+			final DataBufferUnit unit = read;
+			read = unit.braek();
+			length -= unit.readable();
+			return unit;
+		}
+	}
+
+	/**
+	 * 获取最后一个单元
+	 */
+	public DataBufferUnit last() {
+		return write;
+	}
+
+	/**
+	 * 连接单元到尾部
+	 */
+	public void link(DataBufferUnit unit) {
+		length += unit.readable();
+		write = write.link(unit);
+		if (read == null) {
+			read = unit;
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
+
 	private Verifier verifier = EmptyVerifier.INSTANCE;
 
 	@Override
@@ -819,6 +861,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	@Override
 	public void setVerifier(Verifier v) {
 		// 确保字节校验器不为null
+		// 以此减少大量空判断
 		verifier = v == null ? EmptyVerifier.INSTANCE : v;
 	}
 
@@ -859,7 +902,26 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 
 	////////////////////////////////////////////////////////////////////////////////
 
-	private final static String HEX_UPPERCASE = "0123456789ABCDEF";
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (o instanceof DataBuffer) {
+			final DataBuffer other = (DataBuffer) o;
+			if (other.readable() == this.readable()) {
+				// 执行逐字节比较
+				// 允许单元结构差异
+				for (int index = 0; index < this.readable(); index++) {
+					if (other.get(index) != this.get(index)) {
+						return false;
+					}
+				}
+				return true;
+			}
+		}
+		return false;
+	}
 
 	@Override
 	public final String toString() {
@@ -879,8 +941,8 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 						builder.append(' ');
 					}
 					int value = unit.get(index) & 0xFF;
-					builder.append(HEX_UPPERCASE.charAt(value >>> 4));
-					builder.append(HEX_UPPERCASE.charAt(value & 0x0F));
+					builder.append(Character.forDigit(value >>> 4, 16));
+					builder.append(Character.forDigit(value & 0x0F, 16));
 				}
 				builder.append(']');
 				unit = unit.next();

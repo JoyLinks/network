@@ -1,95 +1,118 @@
 package com.joyzl.network.tls;
 
+import java.nio.ByteBuffer;
 import java.security.Key;
-import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.spec.AlgorithmParameterSpec;
 
 import javax.crypto.Cipher;
-import javax.crypto.Mac;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import com.joyzl.network.buffer.DataBuffer;
+import com.joyzl.network.buffer.DataBufferUnit;
+
 /**
- * 初始化密码套件
+ * 密码套件执行消息加密与解密
+ * 
+ * <pre>
+ * 构建套件
+ * CipherSuiter cipher=new CipherSuiter(CipherSuite.TLS_AES_128_GCM_SHA256);
+ * 重置密钥
+ * cipher.encryptReset(...);
+ * 附加数据长度
+ * cipher.encryptAdditional(length);
+ * cipher.encrypt(...);
+ * cipher.encryptFinal();
+ * 加密完成
+ * 
+ * 附加数据长度（每次附加都会重新构建随机码）
+ * ...
+ * 加密完成
+ * </pre>
  * 
  * @author ZhangXi 2024年12月24日
  */
-public class CipherSuiter extends KeyExchange implements CipherSuite {
+public class CipherSuiter extends SecretCache implements CipherSuite {
 
 	// https://www.bouncycastle.org/
+	// https://docs.oracle.com/en/java/javase/17/docs/specs/security/standard-names.html
 
-	/** CipherSuite */
 	private short code;
-
-	/** HASH */
-	protected MessageDigest digest;
-	/** HMAC */
-	protected Mac hmac;
 
 	/** 消息加密/解密 */
 	private String algorithm;
-	private Cipher cipherEncrypt;
-	private Cipher cipherDecrypt;
-	private long sequenceEncrypt = 0;
-	private long sequenceDecrypt = 0;
-	private byte[] ivEncrypt;
-	private byte[] ivDecrypt;
-	private Key keyEncrypt;
-	private Key keyDecrypt;
 	private int tagLength;
 	private int keyLength;
 	private int ivLength;
 
+	private long encryptSequence = 0;
+	private long decryptSequence = 0;
+	private Cipher encryptCipher;
+	private Cipher decryptCipher;
+	private byte[] encryptIV;
+	private byte[] decryptIV;
+	private Key encryptKey;
+	private Key decryptKey;
+
+	public CipherSuiter() throws Exception {
+		super();
+	}
+
 	public CipherSuiter(short code) throws Exception {
-		// https://docs.oracle.com/en/java/javase/17/docs/specs/security/standard-names.html
-		switch (code) {
+		super();
+		suite(code);
+	}
+
+	public void suite(short code) throws Exception {
+		switch (this.code = code) {
 			// v1.3
 			case TLS_AES_128_GCM_SHA256:
 				algorithm = "AES";
-				cipherEncrypt = Cipher.getInstance("AES/GCM/NoPadding");
-				cipherDecrypt = Cipher.getInstance("AES/GCM/NoPadding");
-				digest = MessageDigest.getInstance("SHA-256");
-				hmac = Mac.getInstance("HmacSHA256");
+				encryptCipher = Cipher.getInstance("AES/GCM/NoPadding");
+				decryptCipher = Cipher.getInstance("AES/GCM/NoPadding");
+				digest("SHA-256");
+				hmac("HmacSHA256");
 				tagLength = 16;
 				keyLength = 16;
 				ivLength = 12;
 				break;
 			case TLS_AES_256_GCM_SHA384:
 				algorithm = "AES";
-				cipherEncrypt = Cipher.getInstance("AES/GCM/NoPadding");
-				cipherDecrypt = Cipher.getInstance("AES/GCM/NoPadding");
-				digest = MessageDigest.getInstance("SHA-384");
-				hmac = Mac.getInstance("HmacSHA384");
+				encryptCipher = Cipher.getInstance("AES/GCM/NoPadding");
+				decryptCipher = Cipher.getInstance("AES/GCM/NoPadding");
+				digest("SHA-384");
+				hmac("HmacSHA384");
 				tagLength = 32;
 				keyLength = 32;
 				ivLength = 12;
 				break;
 			case TLS_CHACHA20_POLY1305_SHA256:
 				algorithm = "AES";
-				cipherEncrypt = Cipher.getInstance("ChaCha20/Poly1305/NoPadding");
-				cipherDecrypt = Cipher.getInstance("ChaCha20/Poly1305/NoPadding");
-				digest = MessageDigest.getInstance("SHA-256");
-				hmac = Mac.getInstance("HmacSHA256");
+				encryptCipher = Cipher.getInstance("ChaCha20/Poly1305/NoPadding");
+				decryptCipher = Cipher.getInstance("ChaCha20/Poly1305/NoPadding");
+				digest("SHA-256");
+				hmac("HmacSHA256");
 				tagLength = 32;
 				keyLength = 32;
 				ivLength = 12;
 				break;
 			case TLS_AES_128_CCM_SHA256:
 				algorithm = "AES";
-				cipherEncrypt = Cipher.getInstance("AES/CCM/NoPadding");
-				cipherDecrypt = Cipher.getInstance("AES/CCM/NoPadding");
-				digest = MessageDigest.getInstance("SHA-256");
-				hmac = Mac.getInstance("HmacSHA256");
+				encryptCipher = Cipher.getInstance("AES/CCM/NoPadding");
+				decryptCipher = Cipher.getInstance("AES/CCM/NoPadding");
+				digest("SHA-256");
+				hmac("HmacSHA256");
 				tagLength = 16;
 				keyLength = 16;
 				ivLength = 12;
 				break;
 			case TLS_AES_128_CCM_8_SHA256:
 				algorithm = "AES";
-				cipherEncrypt = Cipher.getInstance("AES/CCM/NoPadding");
-				cipherDecrypt = Cipher.getInstance("AES/CCM/NoPadding");
-				digest = MessageDigest.getInstance("SHA-256");
-				hmac = Mac.getInstance("HmacSHA256");
+				encryptCipher = Cipher.getInstance("AES/CCM/NoPadding");
+				decryptCipher = Cipher.getInstance("AES/CCM/NoPadding");
+				digest("SHA-256");
+				hmac("HmacSHA256");
 				tagLength = 16;
 				keyLength = 16;
 				ivLength = 12;
@@ -97,145 +120,144 @@ public class CipherSuiter extends KeyExchange implements CipherSuite {
 			// v1.2 v1.1 v1.0
 			case TLS_RSA_WITH_NULL_MD5:
 				algorithm = "RSA";
-				cipherEncrypt = Cipher.getInstance("RSA/NONE/NoPadding");
-				cipherDecrypt = Cipher.getInstance("RSA/NONE/NoPadding");
-				digest = MessageDigest.getInstance("MD5");
-				hmac = Mac.getInstance("HmacMD5");
+				encryptCipher = Cipher.getInstance("RSA/NONE/NoPadding");
+				decryptCipher = Cipher.getInstance("RSA/NONE/NoPadding");
+				digest("MD5");
+				hmac("HmacMD5");
 				break;
 			case TLS_RSA_WITH_NULL_SHA:
 				algorithm = "RSA";
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			case TLS_RSA_EXPORT_WITH_RC4_40_MD5:
 				algorithm = "RSA";
-				digest = MessageDigest.getInstance("MD5");
-				hmac = Mac.getInstance("HmacMD5");
+				digest("MD5");
+				hmac("HmacMD5");
 				break;
 			case TLS_RSA_WITH_RC4_128_MD5:
 				algorithm = "RSA";
-				digest = MessageDigest.getInstance("MD5");
-				hmac = Mac.getInstance("HmacMD5");
+				digest("MD5");
+				hmac("HmacMD5");
 				break;
 			case TLS_RSA_WITH_RC4_128_SHA:
 				algorithm = "RSA";
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			case TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5:
 				algorithm = "RSA";
-				digest = MessageDigest.getInstance("MD5");
-				hmac = Mac.getInstance("HmacMD5");
+				digest("MD5");
+				hmac("HmacMD5");
 				break;
 			case TLS_RSA_WITH_IDEA_CBC_SHA:
 				algorithm = "RSA";
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			case TLS_RSA_EXPORT_WITH_DES40_CBC_SHA:
 				algorithm = "RSA";
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			case TLS_RSA_WITH_DES_CBC_SHA:
 				algorithm = "RSA";
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			case TLS_RSA_WITH_3DES_EDE_CBC_SHA:
 				algorithm = "RSA";
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			//
 			case TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA:
 				algorithm = "DH-DSS-EXPORT";
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			case TLS_DH_DSS_WITH_DES_CBC_SHA:
 				algorithm = "DH-DSS";
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			case TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA:
 				algorithm = "DH-DSS";
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			case TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA:
 				algorithm = "DH-RSA-EXPORT";
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			case TLS_DH_RSA_WITH_DES_CBC_SHA:
 				algorithm = "DH-RSA";
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			case TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA:
 				algorithm = "DH-RSA";
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			//
 			case TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA:
 				algorithm = "DHE-DSS-EXPORT";
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			case TLS_DHE_DSS_WITH_DES_CBC_SHA:
 				algorithm = "DHE-DSS";
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			case TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA:
 				algorithm = "DHE-DSS";
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			case TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA:
 				algorithm = "DHE-RSA-EXPORT";
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			case TLS_DHE_RSA_WITH_DES_CBC_SHA:
 				algorithm = "DHE-RSA";
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			case TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA:
 				algorithm = "DHE-RSA";
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			//
 			case TLS_DH_ANON_EXPORT_WITH_RC4_40_MD5:
-				digest = MessageDigest.getInstance("MD5");
-				hmac = Mac.getInstance("HmacMD5");
+				digest("MD5");
+				hmac("HmacMD5");
 				break;
 			case TLS_DH_ANON_WITH_RC4_128_MD5:
-				digest = MessageDigest.getInstance("MD5");
-				hmac = Mac.getInstance("HmacMD5");
+				digest("MD5");
+				hmac("HmacMD5");
 				break;
 			case TLS_DH_ANON_EXPORT_WITH_DES40_CBC_SHA:
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			case TLS_DH_ANON_WITH_DES_CBC_SHA:
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			case TLS_DH_ANON_WITH_3DES_EDE_CBC_SHA:
-				digest = MessageDigest.getInstance("SHA-1");
-				hmac = Mac.getInstance("HmacSHA1");
+				digest("SHA-1");
+				hmac("HmacSHA1");
 				break;
 			//
 			case TLS_NULL_WITH_NULL_NULL:
 			default:
-				digest = null;
+				throw new NoSuchAlgorithmException("CipherSuiter" + code);
 		}
-		this.code = code;
 	}
 
 	/**
@@ -330,81 +352,196 @@ public class CipherSuiter extends KeyExchange implements CipherSuite {
 	}
 
 	/**
-	 * 重置密钥和随机数
+	 * 重置加密密钥
 	 */
-	public void encryptReset(byte[] writeKey, byte[] writeIV) {
-		keyEncrypt = new SecretKeySpec(writeKey, algorithm);
-		ivEncrypt = writeIV;
-		sequenceEncrypt = 0;
+	public void encryptReset(byte[] secret) throws Exception {
+		encryptKey = new SecretKeySpec(key(secret, keyLength()), algorithm);
+		encryptIV = iv(secret, ivLength());
+		encryptSequence = 0;
 	}
 
 	/**
-	 * 重置密钥和随机数
+	 * 重置解密密钥
 	 */
-	public void decryptReset(byte[] readKey, byte[] readIV) {
-		keyDecrypt = new SecretKeySpec(readKey, algorithm);
-		ivDecrypt = readIV;
-		sequenceDecrypt = 0;
-	}
-
-	/**
-	 * AEAD 附加数据 TLS 1.3
-	 */
-	public void additionalEncrypt(int length) throws Exception {
-		cipherEncrypt.init(Cipher.ENCRYPT_MODE, keyEncrypt, parameters(nonce(ivEncrypt, sequenceEncrypt)));
-		cipherEncrypt.updateAAD(additional(length));
+	public void decryptReset(byte[] secret) throws Exception {
+		decryptKey = new SecretKeySpec(key(secret, keyLength()), algorithm);
+		decryptIV = iv(secret, ivLength());
+		decryptSequence = 0;
 	}
 
 	/**
 	 * AEAD 附加数据 TLS 1.3
 	 */
-	public void additionalDecrypt(int length) throws Exception {
-		cipherDecrypt.init(Cipher.DECRYPT_MODE, keyDecrypt, parameters(nonce(ivDecrypt, sequenceDecrypt)));
-		cipherDecrypt.updateAAD(additional(length));
+	public void encryptAdditional(int length) throws Exception {
+		encryptCipher.init(Cipher.ENCRYPT_MODE, encryptKey, parameters(nonce(encryptIV, encryptSequence)));
+		encryptCipher.updateAAD(additional(length));
+	}
+
+	/**
+	 * AEAD 附加数据 TLS 1.3
+	 */
+	public void decryptAdditional(int length) throws Exception {
+		decryptCipher.init(Cipher.DECRYPT_MODE, decryptKey, parameters(nonce(decryptIV, decryptSequence)));
+		decryptCipher.updateAAD(additional(length));
 	}
 
 	/**
 	 * 加密
 	 */
 	public byte[] encrypt(byte[] data) {
-		return cipherEncrypt.update(data);
+		return encryptCipher.update(data);
 	}
 
 	/**
 	 * 解密
 	 */
 	public byte[] decrypt(byte[] data) {
-		return cipherDecrypt.update(data);
+		return decryptCipher.update(data);
 	}
 
 	/**
 	 * 加密完成
 	 */
 	public byte[] encryptFinal() throws Exception {
-		sequenceEncrypt++;
-		return cipherEncrypt.doFinal();
+		encryptSequence++;
+		return encryptCipher.doFinal();
 	}
 
 	/**
 	 * 解密完成
 	 */
 	public byte[] decryptFinal() throws Exception {
-		sequenceDecrypt++;
-		return cipherDecrypt.doFinal();
+		decryptSequence++;
+		return decryptCipher.doFinal();
+	}
+
+	/** 空的堆内缓存对象，用于完成时的缺省参数 */
+	final static ByteBuffer EMPTY = ByteBuffer.allocate(0);
+
+	/**
+	 * 加密，缓存数据将被加密后的数据替代
+	 */
+	public void encryptFinal(DataBuffer buffer) throws Exception {
+		int size;
+		final DataBufferUnit e = DataBufferUnit.get();
+		DataBufferUnit i = buffer.take();
+		DataBufferUnit o = e;
+
+		while (i != null) {
+			if (i.readable() > 0) {
+				size = encryptCipher.getOutputSize(i.readable());
+				if (size > o.writeable()) {
+					if (o.writeable() == 0) {
+						o = o.link(DataBufferUnit.get());
+						continue;
+					}
+					do {
+						// 减除超出数量
+						size = i.readable() - (size - o.readable());
+						// 获取输出数量
+						size = encryptCipher.getOutputSize(size);
+					} while (size > o.readable());
+
+				} else {
+					size = encryptCipher.update(i.buffer(), o.receive());
+					o.received();
+					i.release();
+				}
+			}
+			i = buffer.take();
+		}
+
+		encryptCipher.doFinal(EMPTY, o.receive());
+		o.received();
+
+		encryptSequence++;
+		buffer.link(e);
+	}
+
+	/**
+	 * 解密，缓存数据将被解密后的数据替代
+	 */
+	public void decryptFinal(DataBuffer buffer) throws Exception {
+		int size;
+		final DataBufferUnit e = DataBufferUnit.get();
+		DataBufferUnit i = buffer.take();
+		DataBufferUnit o = e;
+
+		while (i != null) {
+			if (i.readable() > 0) {
+				size = decryptCipher.getOutputSize(i.readable());
+				if (size > o.writeable()) {
+					if (o.writeable() == 0) {
+						o = o.link(DataBufferUnit.get());
+						continue;
+					}
+					do {
+						// 减除超出数量
+						size = i.readable() - (size - o.readable());
+						// 获取输出数量
+						size = decryptCipher.getOutputSize(size);
+					} while (size > o.readable());
+
+				} else {
+					size = decryptCipher.update(i.buffer(), o.receive());
+					o.received();
+					i.release();
+				}
+			}
+			i = buffer.take();
+		}
+
+		decryptCipher.doFinal(EMPTY, o.receive());
+		o.received();
+
+		decryptSequence++;
+		buffer.link(e);
+	}
+
+	/**
+	 * 加密，输入缓存的数据将原样保留，加密后的数据输出到输出缓存的尾部
+	 */
+	public void encryptFinal(DataBuffer in, DataBuffer out) throws Exception {
+		int size;
+		DataBufferUnit i = in.first();
+		ByteBuffer o = out.write();
+
+		while (i != null) {
+			if (i.readable() > 0) {
+				size = encryptCipher.getOutputSize(i.readable());
+				if (size > o.remaining()) {
+					do {
+						// 减除超出数量
+						size = i.readable() - (size - o.remaining());
+						// 获取输出数量
+						size = encryptCipher.getOutputSize(size);
+					} while (size > o.remaining());
+
+				} else {
+					size = encryptCipher.update(i.buffer().mark(), o);
+					i.buffer().reset();
+					out.written(size);
+				}
+			}
+			i = i.next();
+		}
+
+		out.written(encryptCipher.doFinal(EMPTY, out.write()));
+		encryptSequence++;
 	}
 
 	/**
 	 * 加密序列号
 	 */
 	public long encryptSequence() {
-		return sequenceEncrypt;
+		return encryptSequence;
 	}
 
 	/**
 	 * 解密序列号
 	 */
 	public long decryptSequence() {
-		return sequenceDecrypt;
+		return decryptSequence;
 	}
 
 	/**
@@ -426,12 +563,5 @@ public class CipherSuiter extends KeyExchange implements CipherSuite {
 	 */
 	public int ivLength() {
 		return ivLength;
-	}
-
-	/**
-	 * 密码套件代码
-	 */
-	public short code() {
-		return code;
 	}
 }

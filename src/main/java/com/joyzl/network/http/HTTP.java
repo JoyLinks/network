@@ -34,7 +34,29 @@ public class HTTP {
 	public final static String PUT = "PUT";
 	/** 请求回环测试 */
 	public final static String TRACE = "TRACE";
-	public final static Seeker METHODS = new Seeker(new String[] { CONNECT, DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT, TRACE });
+
+	// WEB DAV
+
+	/** 请求检索资源属性 */
+	public final static String PROPFIND = "PROPFIND";
+	/** 请求设置资源属性 */
+	public final static String PROPPATCH = "PROPPATCH";
+	/** 请求创建资源集合 */
+	public final static String MKCOL = "MKCOL";
+	/** 请求拷贝资源 */
+	public final static String COPY = "COPY";
+	/** 请求移动资源 */
+	public final static String MOVE = "MOVE";
+	/** 请求锁定资源 */
+	public final static String LOCK = "LOCK";
+	/** 请求解锁资源 */
+	public final static String UNLOCK = "UNLOCK";
+
+	public final static Seeker METHODS = new Seeker(new String[] {
+			// HTTP BASE
+			CONNECT, DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT, TRACE,
+			// WEB DAV
+			PROPFIND, PROPPATCH, MKCOL, COPY, MOVE, LOCK, UNLOCK });
 
 	// HRADERS
 

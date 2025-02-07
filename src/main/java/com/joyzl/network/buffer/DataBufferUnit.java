@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * ByteBuffer封装
+ * ByteBuffer 单元
  * 
  * @author ZhangXi
  * @date 2021年3月13日
@@ -17,7 +17,17 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public final class DataBufferUnit {
 
 	public final static int BYTES = 1024;
-	private final static ConcurrentLinkedQueue<DataBufferUnit> BYTE_BUFFER_UNITS = new ConcurrentLinkedQueue<>();
+	private final static ConcurrentLinkedQueue<DataBufferUnit> BYTE_BUFFER_UNITS;
+	static {
+		BYTE_BUFFER_UNITS = new ConcurrentLinkedQueue<>();
+
+		// -XX:MaxDirectMemorySize=512m
+
+		int size = BYTES;
+		while (size-- > 0) {
+			BYTE_BUFFER_UNITS.offer(new DataBufferUnit());
+		}
+	}
 
 	public final static DataBufferUnit get() {
 		DataBufferUnit unit = BYTE_BUFFER_UNITS.poll();
@@ -40,7 +50,7 @@ public final class DataBufferUnit {
 		next = null;
 
 		// 为了确保缓冲即可读亦可写必须确保 ByteBuffer的position < limit <= capacity
-		// position表示缓存读位置,limit表示缓存写位置，capacity为容量
+		// position表示缓存读位置，limit表示缓存写位置，capacity为容量
 		buffer = ByteBuffer.allocateDirect(BYTES);
 		// 新建ByteBufferUnit默认状态为java.nio.DirectByteBuffer[pos=0,lim=2048,cap=2048]
 		buffer.limit(0);
@@ -212,7 +222,7 @@ public final class DataBufferUnit {
 	}
 
 	/**
-	 * 下一个节点
+	 * 下一个单元
 	 * 
 	 * @return null / ByteBufferUnit
 	 */
@@ -227,6 +237,8 @@ public final class DataBufferUnit {
 
 	public final void release() {
 		clear();
+		// TODO DataBufferUnit 缓存太多之后释放部分
+
 		BYTE_BUFFER_UNITS.offer(this);
 	}
 

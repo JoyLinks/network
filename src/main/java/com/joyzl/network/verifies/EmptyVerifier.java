@@ -6,7 +6,7 @@
 package com.joyzl.network.verifies;
 
 /**
- * 空校验(什么也不做)
+ * 空校验(什么也不做)，此校验器实例用于减少空(null)判断
  * 
  * @author ZhangXi
  *
@@ -16,7 +16,6 @@ public final class EmptyVerifier extends Verifier {
 	public final static EmptyVerifier INSTANCE = new EmptyVerifier();
 
 	private EmptyVerifier() {
-
 	}
 
 	@Override

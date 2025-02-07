@@ -3,15 +3,11 @@ package com.joyzl.network.tls;
 import java.nio.charset.StandardCharsets;
 
 /**
- * 密钥推导计划
+ * 密钥推导计划基础方法
  * 
  * @author ZhangXi 2025年1月9日
  */
 public class DeriveSecret extends HKDF {
-
-	public DeriveSecret(short code) throws Exception {
-		super(code);
-	}
 
 	/*-
 	 * 	         0
@@ -46,6 +42,14 @@ public class DeriveSecret extends HKDF {
 	final static byte[] LABEL_S_AP_TRAFFIC = "s ap traffic".getBytes(StandardCharsets.US_ASCII);
 	final static byte[] LABEL_EXP_MASTER = "exp master".getBytes(StandardCharsets.US_ASCII);
 	final static byte[] LABEL_RES_MASTER = "res master".getBytes(StandardCharsets.US_ASCII);
+
+	public DeriveSecret() {
+	}
+
+	public DeriveSecret(String digest, String hmac) throws Exception {
+		digest(digest);
+		hmac(hmac);
+	}
 
 	/**
 	 * Derive Secret
@@ -172,15 +176,15 @@ public class DeriveSecret extends HKDF {
 	/**
 	 * *_traffic_secret -> [sender]_write_key
 	 */
-	public byte[] key(byte[] traffic) throws Exception {
-		return expandLabel(traffic, LABEL_KEY, TLS.EMPTY_BYTES, keyLength());
+	public byte[] key(byte[] traffic, int length) throws Exception {
+		return expandLabel(traffic, LABEL_KEY, TLS.EMPTY_BYTES, length);
 	}
 
 	/**
 	 * *_traffic_secret -> [sender]_write_iv
 	 */
-	public byte[] iv(byte[] traffic) throws Exception {
-		return expandLabel(traffic, LABEL_IV, TLS.EMPTY_BYTES, ivLength());
+	public byte[] iv(byte[] traffic, int length) throws Exception {
+		return expandLabel(traffic, LABEL_IV, TLS.EMPTY_BYTES, length);
 	}
 
 	/*-
@@ -210,8 +214,26 @@ public class DeriveSecret extends HKDF {
 		return extract(finished_key, hash);
 	}
 
+	final static byte[] LABEL_EXPORTER = "exporter".getBytes(StandardCharsets.US_ASCII);
+
+	/**
+	 * exporter_master_secret -> exporter<br>
+	 * early_exporter_master_secret -> exporter<br>
+	 */
+	public byte[] exporter(byte[] label, byte[] secret, byte[] hash, int length) throws Exception {
+		// TLS-Exporter(label, context_value, key_length) =
+		// HKDF-Expand-Label(Derive-Secret(Secret,label,""),"exporter",Hash(context_value),key_length)
+		// RFC8446 RFC5705
+
+		secret = deriveSecret(secret, label, hashEmpty());
+		return expandLabel(secret, LABEL_EXPORTER, hash, length);
+	}
+
 	final static byte[] LABEL_RESUMPTION = "resumption".getBytes(StandardCharsets.US_ASCII);
 
+	/**
+	 * resumption_master_secret -> resumption
+	 */
 	public byte[] resumption(byte[] secret, byte[] nonce) throws Exception {
 		// HKDF-Expand-Label(resumption_master_secret,"resumption",ticket_nonce,Hash.length)
 
@@ -219,10 +241,13 @@ public class DeriveSecret extends HKDF {
 	}
 
 	/*-
-	 * application_traffic_secret_N+1=HKDF-Expand-Label(application_traffic_secret_N,"traffic upd","",Hash.length)
+	 * application_traffic_secret_N + 1 = HKDF-Expand-Label(application_traffic_secret_N,"traffic upd","",Hash.length)
 	 */
 	final static byte[] LABEL_TRAFFIC_UPD = "traffic upd".getBytes(StandardCharsets.US_ASCII);
 
+	/**
+	 * application_traffic_secret_N + 1
+	 */
 	public byte[] nextApplicationTraffic(byte[] traffic) throws Exception {
 		return expandLabel(traffic, LABEL_TRAFFIC_UPD, TLS.EMPTY_BYTES, hashLength());
 	}

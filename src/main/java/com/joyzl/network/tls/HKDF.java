@@ -2,6 +2,7 @@ package com.joyzl.network.tls;
 
 import java.nio.charset.StandardCharsets;
 
+import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
@@ -36,11 +37,22 @@ public class HKDF extends TranscriptHash {
 	 *     ...
 	 */
 
-	/** Hash.length 00 */
-	final byte[] ZEROS;
+	/** HMAC */
+	private Mac hmac;
 
-	public HKDF(short code) throws Exception {
-		super(code);
+	/** Hash.length 00 */
+	private byte[] ZEROS;
+
+	public HKDF() {
+	}
+
+	public HKDF(String name) throws Exception {
+		hmac(name);
+	}
+
+	/** 指定认证算法 */
+	public void hmac(String name) throws Exception {
+		hmac = Mac.getInstance(name);
 		ZEROS = new byte[hmac.getMacLength()];
 	}
 
