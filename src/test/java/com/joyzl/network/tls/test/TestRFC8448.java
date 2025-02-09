@@ -1039,7 +1039,231 @@ class TestRFC8448 {
 
 		// 0-RTT
 
+		// RESET KEY
+		client.encryptReset(Utility.hex("3fbbe6a60deb66c30a32795aba0eff7eaa10105586e7be5c09678d63b6caab62"));
+		server.decryptReset(Utility.hex("3fbbe6a60deb66c30a32795aba0eff7eaa10105586e7be5c09678d63b6caab62"));
+
+		// {client} send application_data record
+		// payload:6
+		final DataBuffer plain10 = buffer("414243444546");
+		plain10.write(TLSPlaintext.APPLICATION_DATA);
+		// encrypt:1703030017 ...
+		final DataBuffer cipher10 = buffer("ab1df420e75c457a7cc5d2844f76d5aee4b4edbf049be0");
+
+		buffer.clear();
+		// {client} encrypt
+		client.encryptAdditional(0x0017);
+		client.encryptFinal(plain10, buffer);
+		assertEquals(buffer, cipher10);
+
+		// {server} decrypt
+		server.decryptAdditional(0x0017);
+		server.decryptFinal(buffer);
+		assertEquals(buffer, plain10);
+
+		// RESET KEY
+		server.encryptReset(Utility.hex("fe927ae271312e8bf0275b581c54eef020450dc4ecffaa05a1a35d27518e7803"));
+		client.decryptReset(Utility.hex("fe927ae271312e8bf0275b581c54eef020450dc4ecffaa05a1a35d27518e7803"));
+
+		// {server} send handshake record
+		// payload:EncryptedExtensions+Finished
+		final DataBuffer plain11 = DataBuffer.instance();
+		plain11.write(Utility.hex(EncryptedExtensions1));
+		plain11.write(Utility.hex(ServerFinished1));
+		plain11.write(TLSPlaintext.HANDSHAKE);
+		// encrypt:1703030061 ...
+		final DataBuffer cipher11 = buffer("""
+				dc48237b4b879f
+				50d0d4d262ea8b4716eb40ddc1eb957e11126e8a71
+				49c2d012d37a7115957e64ce30008b9e0323f2c05a
+				9c1c77b4f37849a695ab255060a33fee770ca95cb8
+				486bfd0843b87024865ca35cc41c4e515c64dcb136
+				9f98635bc7a5""");
+
+		buffer.clear();
+		// {server} encrypt
+		server.encryptAdditional(0x0061);
+		server.encryptFinal(plain11, buffer);
+		assertEquals(buffer, cipher11);
+
+		// {client} decrypt
+		client.decryptAdditional(0x0061);
+		client.decryptFinal(buffer);
+		assertEquals(buffer, plain11);
+
+		// {client} send handshake record
+		// payload:EndOfEarlyData
+		final DataBuffer plain12 = buffer("05000000");
+		plain12.write(TLSPlaintext.HANDSHAKE);
+		// encrypt:1703030015 ...
+		final DataBuffer cipher12 = buffer("aca6fc944841298df99593725f9bf9754429b12f09");
+		// 注意：此消息用 client_early_traffic_secret 密钥
+
+		buffer.clear();
+		// {client} encrypt
+		client.encryptAdditional(0x0015);
+		client.encryptFinal(plain12, buffer);
+		assertEquals(buffer, cipher12);
+
+		// {server} decrypt
+		server.decryptAdditional(0x0015);
+		server.decryptFinal(buffer);
+		assertEquals(buffer, plain12);
+
+		// RESET KEY
+		client.encryptReset(Utility.hex("2faac08f851d35fea3604fcb4de82dc62c9b164a70974d0462e27f1ab278700f"));
+		server.decryptReset(Utility.hex("2faac08f851d35fea3604fcb4de82dc62c9b164a70974d0462e27f1ab278700f"));
+
+		// {client} send handshake record
+		// payload:Finished
+		final DataBuffer plain13 = buffer("140000207230a9c952c25cd6138fc5e6628308c41c5335dd81b9f96bcea50fd32bda416d");
+		plain13.write(TLSPlaintext.HANDSHAKE);
+		// encrypt:1703030035
+		final DataBuffer cipher13 = buffer("""
+				00f8b467d14cf2
+				2a4b3f0b6ae0d8e6cc8d08e0db3515ef5c2bdf1922
+				eafbb70009964716d834fb70c3d2a56c5b1f5f6bdb
+				a6c333cf""");
+
+		buffer.clear();
+		// {client} encrypt
+		client.encryptAdditional(0x0035);
+		client.encryptFinal(plain13, buffer);
+		assertEquals(buffer, cipher13);
+
+		// {server} decrypt
+		server.decryptAdditional(0x0035);
+		server.decryptFinal(buffer);
+		assertEquals(buffer, plain13);
+
+		// RESET KEY
+		client.encryptReset(Utility.hex("2abbf2b8e381d23dbebe1dd2a7d16a8bf484cb4950d23fb7fb7fa8547062d9a1"));
+		server.decryptReset(Utility.hex("2abbf2b8e381d23dbebe1dd2a7d16a8bf484cb4950d23fb7fb7fa8547062d9a1"));
+
+		server.encryptReset(Utility.hex("cc21f1bf8feb7dd5fa505bd9c4b468a9984d554a993dc49e6d285598fb672691"));
+		client.decryptReset(Utility.hex("cc21f1bf8feb7dd5fa505bd9c4b468a9984d554a993dc49e6d285598fb672691"));
+
+		// {server} derive write traffic keys for application data:
+		// PRK(32octets):cc21f1bf8feb7dd5fa505bd9c4b468a9984d554a993dc49e6d285598fb672691
 		// System.out.println(Utility.hex(temp));
+
+		// {client} derive write traffic keys for application data:
+		// PRK(32octets):2abbf2b8e381d23dbebe1dd2a7d16a8bf484cb4950d23fb7fb7fa8547062d9a1
+
+		// {client} send application_data record:
+		// payload:50
+		final DataBuffer plain14 = buffer("""
+						000102030405060708090a0b0c0d0e
+				0f101112131415161718191a1b1c1d1e1f20212223
+				2425262728292a2b2c2d2e2f3031""");
+		plain14.write(TLSPlaintext.APPLICATION_DATA);
+		// encrypt:1703030043
+		final DataBuffer cipher14 = buffer("""
+				b1cebce242aa20
+				1be9ae5e1cb2a9aa4b33d4e866af1edb0689192377
+				41aa031d7a74d491c99b9d4e232b74206bc6fbaa04
+				fe78be44a9b4f54320a17eb76992afac3103""");
+		buffer.clear();
+
+		// {client} encrypt
+		client.encryptAdditional(0x0043);
+		client.encryptFinal(plain14, buffer);
+		assertEquals(buffer, cipher14);
+
+		// {server} decrypt
+		server.decryptAdditional(0x0043);
+		server.decryptFinal(buffer);
+		assertEquals(buffer, plain14);
+
+		// {server} send application_data record:
+		// payload:50
+		final DataBuffer plain15 = buffer("""
+				000102030405060708090a0b0c0d0e
+				0f101112131415161718191a1b1c1d1e1f20212223
+				2425262728292a2b2c2d2e2f3031""");
+		plain15.write(TLSPlaintext.APPLICATION_DATA);
+		// encrypt:1703030043
+		final DataBuffer cipher15 = buffer("""
+				275e9f20acff57
+				bc000657d3867df039cccf79047884cf75771746f7
+				40b5a83f462a0954c3581393a203a25a7dd14141ef
+				1a37900cdb62ff62dee1ba39ab2590cbf194""");
+		buffer.clear();
+
+		// {server} encrypt
+		server.encryptAdditional(0x0043);
+		server.encryptFinal(plain15, buffer);
+		assertEquals(buffer, cipher15);
+
+		// {client} decrypt
+		client.decryptAdditional(0x0043);
+		client.decryptFinal(buffer);
+		assertEquals(buffer, plain15);
+
+		// {client} send alert record
+		// payload:2
+		final DataBuffer plain16 = buffer("0100");
+		plain16.write(TLSPlaintext.ALERT);
+		// encrypt:1703030013
+		final DataBuffer cipher16 = buffer("""
+				0facce3246bdfc
+				6369838d6a82ae6de5d422dc""");
+		buffer.clear();
+
+		// {client} encrypt
+		client.encryptAdditional(0x0013);
+		client.encryptFinal(plain16, buffer);
+		assertEquals(buffer, cipher16);
+
+		// {server} decrypt
+		server.decryptAdditional(0x0013);
+		server.decryptFinal(buffer);
+		assertEquals(buffer, plain16);
+
+		// {server} send alert record:
+		// payload:2
+		final DataBuffer plain17 = buffer("0100");
+		plain17.write(TLSPlaintext.ALERT);
+		// encrypt:1703030013
+		final DataBuffer cipher17 = buffer("""
+				5b18af444e8e1e
+				ec7158fb62d8f2577d37ba5d""");
+		buffer.clear();
+
+		// {server} encrypt
+		server.encryptAdditional(0x0013);
+		server.encryptFinal(plain17, buffer);
+		assertEquals(buffer, cipher17);
+
+		// {client} decrypt
+		client.decryptAdditional(0x0013);
+		client.decryptFinal(buffer);
+		assertEquals(buffer, plain17);
+
+		// 额外的满载测试
+		final DataBuffer plain = DataBuffer.instance();
+		for (int i = 0; i < 16; i++) {
+			for (int v = 0; v < 1024; v++) {
+				plain.write(v);
+			}
+		}
+
+		buffer.clear();
+		buffer.replicate(plain);
+		client.encryptAdditional(16 * 1024);
+		client.encryptFinal(buffer);
+		System.out.println(buffer);
+		server.decryptAdditional(16 * 1024);
+		server.decryptFinal(buffer);
+		assertEquals(buffer, plain);
+
+		buffer.clear();
+		client.encryptAdditional(16 * 1024);
+		client.encryptFinal(plain, buffer);
+		System.out.println(buffer);
+		server.decryptAdditional(16 * 1024);
+		server.decryptFinal(buffer);
+		assertEquals(buffer, plain);
 	}
 
 	DataBuffer buffer(String data) throws IOException {

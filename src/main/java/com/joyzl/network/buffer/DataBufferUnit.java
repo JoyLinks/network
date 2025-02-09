@@ -45,10 +45,15 @@ public final class DataBufferUnit {
 
 	private final ByteBuffer buffer;
 	private DataBufferUnit next;
+	/**
+	 * 20250209<br>
+	 * 由于javax.crypto.Cipher.update()方法在内部调用了ByteBuffer.mark()方法，
+	 * 导致采用ByteBuffer.mark()方法记录并恢复读取位置的方案在特定情况下会失效；<br>
+	 * 因此采用额外的mark字段实现数据单元的标记与恢复功能。
+	 */
+	private int mark = 0;
 
 	private DataBufferUnit() {
-		next = null;
-
 		// 为了确保缓冲即可读亦可写必须确保 ByteBuffer的position < limit <= capacity
 		// position表示缓存读位置，limit表示缓存写位置，capacity为容量
 		buffer = ByteBuffer.allocateDirect(BYTES);
@@ -57,9 +62,9 @@ public final class DataBufferUnit {
 	}
 
 	/**
-	 * 获取缓存大小
+	 * 获取缓存容量
 	 */
-	public final int size() {
+	public final int capacity() {
 		return buffer.capacity();
 	}
 
@@ -163,16 +168,33 @@ public final class DataBufferUnit {
 	}
 
 	/**
+	 * 记录当前读写位置
+	 */
+	public final void mark() {
+		mark = buffer.position();
+	}
+
+	/**
+	 * 恢复之前标记的读写位置
+	 */
+	public final void reset() {
+		buffer.position(mark);
+	}
+
+	/**
 	 * 获取用于接收数据的ByteBuffer实例
 	 */
 	public final ByteBuffer receive() {
-		// 调整ByteBuffer用于Channel接收数据
-		// 记录当前位置mark=position
-		buffer.mark();
-		// 恢复写入位置position=limit
+		// 调整ByteBuffer用于Channel接收写入数据
+		// [-p---m---] -> [----p---m]
+
+		// 记录当前位置 mark=position
+		mark = buffer.position();
+		// 恢复写入位置 position=limit
 		buffer.position(buffer.limit());
-		// 恢复写入限制
+		// 恢复写入限制 limit=capacity
 		buffer.limit(buffer.capacity());
+
 		return buffer;
 	}
 
@@ -180,6 +202,11 @@ public final class DataBufferUnit {
 	 * 数据接收完成恢复ByteBuffer状态，返回写入数据量
 	 */
 	public final int received() {
+		// 调整ByteBuffer完成Channel接收写入数据
+		// [----p---m] -> [-p---m---]
+
+		// 20250209
+		// 因ByteBuffer.mark()方法会被意外调用，因此不在使用此方法
 		// 不能用flip()会将mark设置为-1
 		// 设置limit时如果mark>limit则ByteBuffer内部重置mark=-1
 		// mark=-1时执行ByteBuffer.reset()将抛出InvalidMarkException
@@ -187,7 +214,7 @@ public final class DataBufferUnit {
 
 		final int current = buffer.position();
 		buffer.limit(buffer.position());
-		buffer.reset();
+		buffer.position(mark);
 		return current - buffer.position();
 	}
 
@@ -233,6 +260,7 @@ public final class DataBufferUnit {
 	public final void clear() {
 		buffer.position(0);// 读位置
 		buffer.limit(0);// 写位置
+		mark = 0;
 	}
 
 	public final void release() {

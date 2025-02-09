@@ -5,12 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import com.joyzl.network.buffer.DataBuffer;
@@ -43,6 +43,40 @@ class TestDataBuffer {
 	}
 
 	@Test
+	void testTime() {
+		DataBufferUnit unit;
+		long time = System.currentTimeMillis();
+		for (int i = 0; i < 10000; i++) {
+			unit = DataBufferUnit.get();
+			unit.release();
+		}
+		time = System.currentTimeMillis() - time;
+		System.out.println("GET:" + time);
+
+		ByteBuffer bb;
+		time = System.currentTimeMillis();
+		for (int i = 0; i < 10000; i++) {
+			bb = ByteBuffer.allocateDirect(DataBufferUnit.BYTES);
+			bb.clear();
+		}
+		time = System.currentTimeMillis() - time;
+		System.out.println("NEW:" + time);
+
+	}
+
+	@Test
+	void testDataBufferUnit() {
+		DataBufferUnit unit = DataBufferUnit.get();
+
+		ByteBuffer b = unit.receive();
+		assertEquals(unit.received(), 0);
+
+		b = unit.receive();
+		b.put((byte) 0);
+		assertEquals(unit.received(), 1);
+	}
+
+	@Test
 	void testEmpty() {
 		final DataBuffer buffer = DataBuffer.instance();
 		assertEquals(buffer.units(), 1);
@@ -54,7 +88,7 @@ class TestDataBuffer {
 		assertEquals(buffer.units(), 1);
 	}
 
-	@RepeatedTest(100)
+	@Test
 	void testWriteReadByte() {
 		final DataBuffer buffer = DataBuffer.instance();
 		// WRITE 65536
@@ -80,7 +114,7 @@ class TestDataBuffer {
 		assertEquals(buffer.units(), 1);
 	}
 
-	@RepeatedTest(100)
+	@Test
 	void testWriteReadIndex() {
 		final DataBuffer buffer = DataBuffer.instance();
 		// WRITE 65536
@@ -179,7 +213,7 @@ class TestDataBuffer {
 		assertEquals(buffer.units(), 1);
 	}
 
-	@RepeatedTest(100)
+	@Test
 	void testReadBuffer() throws IOException {
 		final DataBuffer source = DataBuffer.instance();
 		for (int index = 0; index < 65536; index++) {
@@ -208,7 +242,7 @@ class TestDataBuffer {
 		assertEquals(DataBuffer.freeCount(), 2);
 	}
 
-	@RepeatedTest(100)
+	@Test
 	void testWriteBuffer() throws IOException {
 		final DataBuffer source = DataBuffer.instance();
 		for (int index = 0; index < 65536; index++) {

@@ -28,6 +28,10 @@ import com.joyzl.network.verifies.Verifier;
 /**
  * 数据缓存对象，数据将写入多个ByteBuffer中，或者从多个ByteBuffer中读取数据，根据需要会自动扩展和回收ByteBuffer。
  * 实例不是多线程安全的，不能在多个线程同时访问实例。
+ * <p>
+ * 数据缓存对象内部通过链表连接多个数据单元，默认情况下缓存单元写满数据后会自动从单元池获取单元并连接尾部。
+ * 数据缓存对象之间的转移或复制基于内部单元，因此无法保证每个单元正好写满数据，允许中间出现未填满的单元。
+ * </p>
  * 
  * @author ZhangXi
  * @date 2021年3月13日
@@ -65,10 +69,12 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 
 	private int length;
 
-	// 必须至少保留一个ByteBufferUnit
-	// 对于获取DataBuffer的程序而言，至少需要一个ByteBufferUnit
-	// 默认保留一个可减少获取频率，减少不必要的null判断
-	// 不能保证每个缓存单元都是写满的
+	// 实现注意：
+	// 不能保证每个缓存单元都是写满的，应尽量避免较多未满单元出现；
+	// 必须至少保留一个ByteBufferUnit，对于获取DataBuffer的程序而言，至少需要一个ByteBufferUnit；
+	// 默认保留一个可减少获取频率，减少不必要的null判断；
+	// 如果read==write则表示仅一个单元，且首尾均指向这个单元；
+	// 内部实现均保证read和write绝不为null。
 
 	private DataBuffer() {
 		read = write = DataBufferUnit.get();
@@ -80,13 +86,13 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 * 获取缓存持有的单元数量（将遍历所有单元以计算数量）
 	 */
 	public final int units() {
-		int units = 0;
+		int size = 0;
 		DataBufferUnit unit = read;
 		while (unit != null) {
 			unit = unit.next();
-			units++;
+			size++;
 		}
-		return units;
+		return size;
 	}
 
 	/**
@@ -96,7 +102,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 		int size = 0;
 		DataBufferUnit unit = read;
 		while (unit != null) {
-			size += unit.size();
+			size += unit.capacity();
 			unit = unit.next();
 		}
 		return size;
@@ -104,6 +110,9 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 
 	/**
 	 * 获取当前剩余可写入字节数量，写入字节超过此数量将自动扩展
+	 * <p>
+	 * 此方法仅返回当前写入单元的剩余数量，不包括其它单元的空闲空间。
+	 * </p>
 	 */
 	public final int writeable() {
 		return write.writeable();
@@ -136,12 +145,12 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 */
 	public final void set(int index, byte value) {
 		if (index >= 0 && index < length) {
-			DataBufferUnit item = read;
-			while (index >= item.readable()) {
-				index -= item.readable();
-				item = item.next();
+			DataBufferUnit unit = read;
+			while (index >= unit.readable()) {
+				index -= unit.readable();
+				unit = unit.next();
 			}
-			item.set(item.readIndex() + index, value);
+			unit.set(unit.readIndex() + index, value);
 		} else {
 			throw new IndexOutOfBoundsException(index);
 		}
@@ -297,13 +306,19 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 
 	/**
 	 * 写入缓存对象中所有字节，参与校验
-	 * 
-	 * @param source DataBufferLink
-	 * @throws IOException
 	 */
 	public final void write(DataBuffer source) throws IOException {
 		while (source.readable() > 0) {
-			write(source.readUnsignedByte());
+			writeByte(source.readUnsignedByte());
+		}
+	}
+
+	/**
+	 * 写入缓存对象中所有字节，参与校验
+	 */
+	public final void write(ByteBuffer source) throws IOException {
+		while (source.remaining() > 0) {
+			writeByte(source.get());
 		}
 	}
 
@@ -428,7 +443,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	public final void mark() {
 		mark = read;
 		while (mark != null) {
-			mark.buffer().mark();
+			mark.mark();
 			mark = mark.next();
 		}
 		mark = read;
@@ -442,7 +457,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 			length = 0;
 			read = mark;
 			while (mark != null) {
-				mark.buffer().reset();
+				mark.reset();
 				length += mark.readable();
 				mark = mark.next();
 			}
@@ -453,6 +468,8 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 * 擦除标记的读取位置，擦除后将无法通过{@link #reset()}恢复，如果之前未执行{@link #mark()}此方法无任何效果
 	 */
 	public final void erase() {
+		// 释放已读完的单元
+
 		if (mark != null) {
 			while (mark != read) {
 				mark = mark.apart();
@@ -652,11 +669,11 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 */
 	public final void clear() {
 		length = 0;
-
 		if (mark != null) {
 			read = mark;
 			mark = null;
 		}
+
 		// 释放ByteBufferUnit只保留一个
 		while (read.next() != null) {
 			read = read.apart();
@@ -688,7 +705,8 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 */
 	public ByteBuffer write() {
 		if (write.isFull()) {
-			// 防止用已满的ByteBuffer接收数据,将导致读零
+			// 防止用已满的ByteBuffer接收数据
+			// 网络读取时将导致读零
 			write = write.link(DataBufferUnit.get());
 		}
 		return write.receive();
@@ -736,13 +754,22 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 * @see #write()
 	 */
 	public void written(int size) {
-		// wrote
-		if (size > 0) {
+		if (size == 0) {
+			write.received();
+		} else if (size > 0) {
 			length += size;
-		}
-		do {
 			size -= write.received();
-		} while (size > 0);
+			while (size > 0) {
+				write = write.next();
+				size -= write.received();
+			}
+		} else {
+			write.received();
+			// 特殊处理
+			if (size == Integer.MIN_VALUE) {
+				write = write.link(DataBufferUnit.get());
+			}
+		}
 	}
 
 	/**
@@ -809,44 +836,50 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
+	// 这些方法提供对内部数据单元的操作能力
+	// 数据单元只能从首部取出，取出后当前(DataBuffer)实例的可读数据将相应减少
+	// 数据单元只能从尾部连接，连接后当前(DataBuffer)实例的可读数据将相应增加
 
 	/**
-	 * 获取第一个单元
+	 * 获取首部单元
 	 */
-	public DataBufferUnit first() {
+	public DataBufferUnit head() {
 		return read;
 	}
 
 	/**
-	 * 取出第一个单元
+	 * 取出首部单元
 	 */
 	public DataBufferUnit take() {
-		if (read == null) {
-			return null;
-		} else {
+		if (readable() > 0) {
 			final DataBufferUnit unit = read;
-			read = unit.braek();
 			length -= unit.readable();
+			if (read == write) {
+				read = write = DataBufferUnit.get();
+			} else {
+				read = unit.braek();
+			}
 			return unit;
 		}
-	}
-
-	/**
-	 * 获取最后一个单元
-	 */
-	public DataBufferUnit last() {
-		return write;
+		return null;
 	}
 
 	/**
 	 * 连接单元到尾部
 	 */
 	public void link(DataBufferUnit unit) {
-		length += unit.readable();
-		write = write.link(unit);
-		if (read == null) {
-			read = unit;
+		if (read == write) {
+			if (read.isEmpty() || read.isBlank()) {
+				read.release();
+				read = unit;
+			}
 		}
+		length += unit.readable();
+		while (unit.next() != null) {
+			unit = unit.next();
+			length += unit.readable();
+		}
+		write = unit;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////

@@ -59,7 +59,7 @@ public class TranscriptHash {
 		// }
 		// current = TLS.EMPTY_BYTES;
 
-		DataBufferUnit unit = message.first();
+		DataBufferUnit unit = message.head();
 		do {
 			unit.buffer().mark();
 			digest.update(unit.buffer());

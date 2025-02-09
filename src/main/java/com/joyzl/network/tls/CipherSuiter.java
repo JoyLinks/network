@@ -422,35 +422,43 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 	 * 加密，缓存数据将被加密后的数据替代
 	 */
 	public void encryptFinal(DataBuffer buffer) throws Exception {
-		int size;
+		int size, limit;
 		final DataBufferUnit e = DataBufferUnit.get();
 		DataBufferUnit i = buffer.take();
 		DataBufferUnit o = e;
 
 		while (i != null) {
-			if (i.readable() > 0) {
+			do {
 				size = encryptCipher.getOutputSize(i.readable());
 				if (size > o.writeable()) {
-					if (o.writeable() == 0) {
-						o = o.link(DataBufferUnit.get());
-						continue;
-					}
 					do {
-						// 减除超出数量
-						size = i.readable() - (size - o.readable());
-						// 获取输出数量
-						size = encryptCipher.getOutputSize(size);
-					} while (size > o.readable());
-
+						// 减除超出数量，测试输出数量
+						size = i.readable() - (size - o.writeable());
+					} while (encryptCipher.getOutputSize(size) > o.writeable());
+					if (size > 0) {
+						// 调整输入数量
+						limit = i.writeIndex();
+						size = (i.readable() - size);
+						i.writeIndex(i.writeIndex() - size);
+						encryptCipher.update(i.buffer(), o.receive());
+						i.writeIndex(limit);
+						o.received();
+					} else {
+						o = o.link(DataBufferUnit.get());
+					}
 				} else {
-					size = encryptCipher.update(i.buffer(), o.receive());
+					encryptCipher.update(i.buffer(), o.receive());
 					o.received();
-					i.release();
 				}
-			}
+			} while (i.readable() > 0);
+			i.release();
 			i = buffer.take();
 		}
 
+		size = encryptCipher.getOutputSize(0);
+		if (size > o.writeable()) {
+			o = o.link(DataBufferUnit.get());
+		}
 		encryptCipher.doFinal(EMPTY, o.receive());
 		o.received();
 
@@ -462,71 +470,72 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 	 * 解密，缓存数据将被解密后的数据替代
 	 */
 	public void decryptFinal(DataBuffer buffer) throws Exception {
-		int size;
-		final DataBufferUnit e = DataBufferUnit.get();
+		// GCM模式解码时须等待最后的Tag校验完成才会输出解码后的数据
+		// 这将导致必须构建足够长度的ByteBuffer以接收输出结果
+		// 强烈建议：Java应逐块解码输出结果，不应等待最终校验
+
+		final ByteBuffer output = ByteBuffer.allocate(buffer.readable());
 		DataBufferUnit i = buffer.take();
-		DataBufferUnit o = e;
 
 		while (i != null) {
 			if (i.readable() > 0) {
-				size = decryptCipher.getOutputSize(i.readable());
-				if (size > o.writeable()) {
-					if (o.writeable() == 0) {
-						o = o.link(DataBufferUnit.get());
-						continue;
-					}
-					do {
-						// 减除超出数量
-						size = i.readable() - (size - o.readable());
-						// 获取输出数量
-						size = decryptCipher.getOutputSize(size);
-					} while (size > o.readable());
-
-				} else {
-					size = decryptCipher.update(i.buffer(), o.receive());
-					o.received();
-					i.release();
-				}
+				decryptCipher.update(i.buffer(), output);
 			}
+			i.release();
 			i = buffer.take();
 		}
 
-		decryptCipher.doFinal(EMPTY, o.receive());
-		o.received();
-
+		decryptCipher.doFinal(EMPTY, output);
+		buffer.write(output.flip());
 		decryptSequence++;
-		buffer.link(e);
 	}
 
 	/**
 	 * 加密，输入缓存的数据将原样保留，加密后的数据输出到输出缓存的尾部
 	 */
 	public void encryptFinal(DataBuffer in, DataBuffer out) throws Exception {
-		int size;
-		DataBufferUnit i = in.first();
-		ByteBuffer o = out.write();
+		int size, limit;
+		DataBufferUnit i = in.head();
+		ByteBuffer o;
 
 		while (i != null) {
-			if (i.readable() > 0) {
+			i.buffer().mark();
+			while (i.readable() > 0) {
+				o = out.write();
 				size = encryptCipher.getOutputSize(i.readable());
 				if (size > o.remaining()) {
 					do {
-						// 减除超出数量
+						// 减除超出数量，测试输出数量
 						size = i.readable() - (size - o.remaining());
-						// 获取输出数量
-						size = encryptCipher.getOutputSize(size);
-					} while (size > o.remaining());
+					} while (encryptCipher.getOutputSize(size) > o.remaining());
 
+					if (size > 0) {
+						// 调整输入数量
+						limit = i.writeIndex();
+						size = (i.readable() - size);
+						i.writeIndex(i.writeIndex() - size);
+						out.written(encryptCipher.update(i.buffer(), o));
+						i.writeIndex(limit);
+					} else {
+						out.written(Integer.MIN_VALUE);
+					}
 				} else {
-					size = encryptCipher.update(i.buffer().mark(), o);
-					i.buffer().reset();
+					// Cipher.update()方法内部偶尔会调用output参数的ByteBuffer.mark()方法
+					size = encryptCipher.update(i.buffer(), o);
 					out.written(size);
 				}
 			}
+			i.buffer().reset();
 			i = i.next();
 		}
 
-		out.written(encryptCipher.doFinal(EMPTY, out.write()));
+		o = out.write();
+		size = encryptCipher.getOutputSize(0);
+		if (size > o.remaining()) {
+			out.written(Integer.MIN_VALUE);
+			o = out.write();
+		}
+		out.written(encryptCipher.doFinal(EMPTY, o));
 		encryptSequence++;
 	}
 
