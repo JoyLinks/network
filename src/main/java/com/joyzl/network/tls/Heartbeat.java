@@ -1,6 +1,8 @@
 package com.joyzl.network.tls;
 
 /**
+ * RFC 6520
+ * 
  * <pre>
  * enum {
  *     peer_allowed_to_send(1),

@@ -15,8 +15,8 @@ import com.joyzl.network.tls.CipherSuiter;
 import com.joyzl.network.tls.DeriveSecret;
 import com.joyzl.network.tls.KeyExchange;
 import com.joyzl.network.tls.NamedGroup;
+import com.joyzl.network.tls.Record;
 import com.joyzl.network.tls.SecretCache;
-import com.joyzl.network.tls.TLSPlaintext;
 
 class TestRFC8448 {
 
@@ -25,7 +25,7 @@ class TestRFC8448 {
 	// 000d0020001e040305030603020308040805080604010501060102010402050206020202
 	// 000d0018001604030503060302030804080508060401050106010201
 
-	// 1-RTT Messages
+	// Simple 1-RTT Handshake Messages
 	final String ClientHello = "010000c00303cb34ecb1e78163ba1c38c6dacb196a6dffa21a8d9912ec18a2ef6283024dece7000006130113031302010000910000000b0009000006736572766572ff01000100000a00140012001d0017001800190100010101020103010400230000003300260024001d002099381de560e4bd43d23d8e435a7dbafeb3c06e51c13cae4d5413691e529aaf2c002b0003020304000d0020001e040305030603020308040805080604010501060102010402050206020202002d00020101001c00024001";
 	final String ServerHello = "020000560303a6af06a4121860dc5e6e60249cd34c95930c8ac5cb1434dac155772ed3e2692800130100002e00330024001d0020c9828876112095fe66762bdbf7c672e156d6cc253b833df1dd69b1b04e751f0f002b00020304";
 	final String ServerEncryptedExtensions = "080000240022000a00140012001d00170018001901000101010201030104001c0002400100000000";
@@ -34,7 +34,7 @@ class TestRFC8448 {
 	final String ServerFinished = "140000209b9b141d906337fbd2cbdce71df4deda4ab42c309572cb7fffee5454b78f0718";
 	final String ClientFinished = "14000020a8ec436d677634ae525ac1fcebe11a039ec17694fac6e98527b642f2edd5ce61";
 	final String ServerNewSessionTicket = "040000c90000001efad6aac502000000b22c035d829359ee5ff7af4ec900000000262a6494dc486d2c8a34cb33fa90bf1b0070ad3c498883c9367c09a2be785abc55cd226097a3a982117283f82a03a143efd3ff5dd36d64e861be7fd61d2827db279cce145077d454a3664d4e6da4d29ee03725a6a4dafcd0fc67d2aea70529513e3da2677fa5906c5b3f7d8f92f228bda40dda721470f9fbf297b5aea617646fac5c03272e970727c621a79141ef5f7de6505e5bfbc388e93343694093934ae4d3570008002a000400000400";
-	// 0-RTT Messages
+	// Resumed 0-RTT Handshake Messages
 	final String ClientHelloPrefix = "010001fc03031bc3ceb6bbe39cff938355b5a50adb6db21b7a6af649d7b4bc419d7876487d95000006130113031302010001cd0000000b0009000006736572766572ff01000100000a00140012001d00170018001901000101010201030104003300260024001d0020e4ffb68ac05f8d96c99da26698346c6be16482badddafe051a66b4f18d668f0b002a0000002b0003020304000d0020001e040305030603020308040805080604010501060102010402050206020202002d00020101001c0002400100150057000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002900dd00b800b22c035d829359ee5ff7af4ec900000000262a6494dc486d2c8a34cb33fa90bf1b0070ad3c498883c9367c09a2be785abc55cd226097a3a982117283f82a03a143efd3ff5dd36d64e861be7fd61d2827db279cce145077d454a3664d4e6da4d29ee03725a6a4dafcd0fc67d2aea70529513e3da2677fa5906c5b3f7d8f92f228bda40dda721470f9fbf297b5aea617646fac5c03272e970727c621a79141ef5f7de6505e5bfbc388e93343694093934ae4d357fad6aacb";
 	final String ServerHello1 = "0200005c03033ccfd2dec890222763472ae8136777c9d7358777bb66e91ea5122495f559ea2d00130100003400290002000000330024001d0020121761ee42c333e1b9e77b60dd57c2053cd94512ab47f115e86eff50942cea31002b00020304";
 	final String EncryptedExtensions1 = "080000280026000a00140012001d00170018001901000101010201030104001c0002400100000000002a0000";
@@ -55,7 +55,9 @@ class TestRFC8448 {
 		final KeyExchange clientKeyExchange = new KeyExchange(NamedGroup.X25519);
 		final KeyExchange serverKeyExchange = new KeyExchange(NamedGroup.X25519);
 
-		// 1-RTT Handshake ////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////////////////
+		// Simple 1-RTT Handshake
+		////////////////////////////////////////////////////////////////////////////////
 
 		// {client} create an ephemeral x25519 key pair
 		clientKeyExchange.generate();
@@ -288,7 +290,9 @@ class TestRFC8448 {
 		cResumption = client.resumption(cResumption, new byte[] { 0, 0 });
 		assertArrayEquals(Utility.hex("4ecd0eb6ec3b4d87f5d6028f922ca4c5851a277fd41311c9e62d2c9492e1c4f3"), cResumption);
 
-		// Resumed 0-RTT Handshake ////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////////////////
+		// Resumed 0-RTT Handshake
+		////////////////////////////////////////////////////////////////////////////////
 
 		// {client} create an ephemeral x25519 key pair
 		clientKeyExchange.setPrivateKey(Utility.hex("bff91188283846dd6a2134ef7180ca2b0b14fb10dce707b5098c0dddc813b2df"));
@@ -578,6 +582,7 @@ class TestRFC8448 {
 		// {client} send alert record
 		// {server} send alert record
 		// System.out.println(Utility.hex(cResumption));
+
 	}
 
 	@Test
@@ -592,7 +597,9 @@ class TestRFC8448 {
 
 		byte[] temp;
 
-		// 1-RTT ////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////////////////
+		// Simple 1-RTT Handshake
+		////////////////////////////////////////////////////////////////////////////////
 
 		clientKeyExchange.setPrivateKey(Utility.hex("49af42ba7f7994852d713ef2784bcbcaa7911de26adc5642cb634540e7ea5005"));
 		clientKeyExchange.setPublicKey(Utility.hex("99381de560e4bd43d23d8e435a7dbafeb3c06e51c13cae4d5413691e529aaf2c"));
@@ -700,7 +707,9 @@ class TestRFC8448 {
 		// {client} send alert record (TLSCiphertext)
 		// {server} send alert record (TLSCiphertext)
 
-		// Resumed 0-RTT Handshake ////////////////////////////////////////
+		////////////////////////////////////////////////////////////////////////////////
+		// Resumed 0-RTT Handshake
+		////////////////////////////////////////////////////////////////////////////////
 
 		clientKeyExchange.setPrivateKey(Utility.hex("bff91188283846dd6a2134ef7180ca2b0b14fb10dce707b5098c0dddc813b2df"));
 		clientKeyExchange.setPublicKey(Utility.hex("e4ffb68ac05f8d96c99da26698346c6be16482badddafe051a66b4f18d668f0b"));
@@ -834,7 +843,9 @@ class TestRFC8448 {
 		final CipherSuiter client = new CipherSuiter(CipherSuite.TLS_AES_128_GCM_SHA256);
 		final DataBuffer buffer = DataBuffer.instance();
 
-		// 1-RTT
+		////////////////////////////////////////////////////////////////////////////////
+		// Simple 1-RTT Handshake
+		////////////////////////////////////////////////////////////////////////////////
 
 		// {server} send handshake record:
 		// payload:EncryptedExtentions+Certificate+CertificateVerify+Finished
@@ -843,7 +854,7 @@ class TestRFC8448 {
 		plain1.write(Utility.hex(ServerCertificate));
 		plain1.write(Utility.hex(ServerCertificateVerify));
 		plain1.write(Utility.hex(ServerFinished));
-		plain1.write(TLSPlaintext.HANDSHAKE);
+		plain1.write(Record.HANDSHAKE);
 		// encrypt:17030302a2 ...
 		final DataBuffer cipher1 = buffer("""
 				d1ff334a56f5bf
@@ -904,7 +915,7 @@ class TestRFC8448 {
 		// payload:Finished
 		final DataBuffer plain2 = DataBuffer.instance();
 		plain2.write(Utility.hex(ClientFinished));
-		plain2.write(TLSPlaintext.HANDSHAKE);
+		plain2.write(Record.HANDSHAKE);
 		// encrypt:1703030035 ...
 		final DataBuffer cipher2 = buffer("""
 				75ec4dc238cce6
@@ -931,7 +942,7 @@ class TestRFC8448 {
 		// payload:NewSessionTicket
 		final DataBuffer plain3 = DataBuffer.instance();
 		plain3.write(Utility.hex(ServerNewSessionTicket));
-		plain3.write(TLSPlaintext.HANDSHAKE);
+		plain3.write(Record.HANDSHAKE);
 		// encrypt:17030300de ...
 		final DataBuffer cipher3 = buffer("""
 				3a6b8f90414a97
@@ -968,7 +979,7 @@ class TestRFC8448 {
 				000102030405060708090a0b0c0d0e
 				0f101112131415161718191a1b1c1d1e1f20212223
 				2425262728292a2b2c2d2e2f3031""");
-		plain4.write(TLSPlaintext.APPLICATION_DATA);
+		plain4.write(Record.APPLICATION_DATA);
 		// encrypt:1703030043 ...
 		final DataBuffer cipher4 = buffer("""
 				a23f7054b62c94
@@ -992,7 +1003,7 @@ class TestRFC8448 {
 				000102030405060708090a0b0c0d0e
 				0f101112131415161718191a1b1c1d1e1f20212223
 				2425262728292a2b2c2d2e2f3031""");
-		plain5.write(TLSPlaintext.APPLICATION_DATA);
+		plain5.write(Record.APPLICATION_DATA);
 		// encrypt:1703030043 ...
 		final DataBuffer cipher5 = buffer("""
 				2e937e11ef4ac7
@@ -1014,7 +1025,7 @@ class TestRFC8448 {
 		// {client} send alert record
 		// payload:2
 		final DataBuffer plain6 = buffer("0100");
-		plain6.write(TLSPlaintext.ALERT);
+		plain6.write(Record.ALERT);
 		// encrypt:1703030013 ...
 		final DataBuffer cipher6 = buffer("c9872760655666b74d7ff1153efd6db6d0b0e3");
 
@@ -1027,7 +1038,7 @@ class TestRFC8448 {
 		// {server} send alert record:
 		// payload:2
 		final DataBuffer plain7 = buffer("0100");
-		plain7.write(TLSPlaintext.ALERT);
+		plain7.write(Record.ALERT);
 		// encrypt:1703030013 ...
 		final DataBuffer cipher7 = buffer("b58fd67166ebf599d24720cfbe7efa7a8864a9");
 
@@ -1037,7 +1048,9 @@ class TestRFC8448 {
 		server.encryptFinal(plain7, buffer);
 		assertEquals(buffer, cipher7);
 
-		// 0-RTT
+		////////////////////////////////////////////////////////////////////////////////
+		// Resumed 0-RTT Handshake
+		////////////////////////////////////////////////////////////////////////////////
 
 		// RESET KEY
 		client.encryptReset(Utility.hex("3fbbe6a60deb66c30a32795aba0eff7eaa10105586e7be5c09678d63b6caab62"));
@@ -1046,7 +1059,7 @@ class TestRFC8448 {
 		// {client} send application_data record
 		// payload:6
 		final DataBuffer plain10 = buffer("414243444546");
-		plain10.write(TLSPlaintext.APPLICATION_DATA);
+		plain10.write(Record.APPLICATION_DATA);
 		// encrypt:1703030017 ...
 		final DataBuffer cipher10 = buffer("ab1df420e75c457a7cc5d2844f76d5aee4b4edbf049be0");
 
@@ -1070,7 +1083,7 @@ class TestRFC8448 {
 		final DataBuffer plain11 = DataBuffer.instance();
 		plain11.write(Utility.hex(EncryptedExtensions1));
 		plain11.write(Utility.hex(ServerFinished1));
-		plain11.write(TLSPlaintext.HANDSHAKE);
+		plain11.write(Record.HANDSHAKE);
 		// encrypt:1703030061 ...
 		final DataBuffer cipher11 = buffer("""
 				dc48237b4b879f
@@ -1094,7 +1107,7 @@ class TestRFC8448 {
 		// {client} send handshake record
 		// payload:EndOfEarlyData
 		final DataBuffer plain12 = buffer("05000000");
-		plain12.write(TLSPlaintext.HANDSHAKE);
+		plain12.write(Record.HANDSHAKE);
 		// encrypt:1703030015 ...
 		final DataBuffer cipher12 = buffer("aca6fc944841298df99593725f9bf9754429b12f09");
 		// 注意：此消息用 client_early_traffic_secret 密钥
@@ -1117,7 +1130,7 @@ class TestRFC8448 {
 		// {client} send handshake record
 		// payload:Finished
 		final DataBuffer plain13 = buffer("140000207230a9c952c25cd6138fc5e6628308c41c5335dd81b9f96bcea50fd32bda416d");
-		plain13.write(TLSPlaintext.HANDSHAKE);
+		plain13.write(Record.HANDSHAKE);
 		// encrypt:1703030035
 		final DataBuffer cipher13 = buffer("""
 				00f8b467d14cf2
@@ -1156,7 +1169,7 @@ class TestRFC8448 {
 						000102030405060708090a0b0c0d0e
 				0f101112131415161718191a1b1c1d1e1f20212223
 				2425262728292a2b2c2d2e2f3031""");
-		plain14.write(TLSPlaintext.APPLICATION_DATA);
+		plain14.write(Record.APPLICATION_DATA);
 		// encrypt:1703030043
 		final DataBuffer cipher14 = buffer("""
 				b1cebce242aa20
@@ -1181,7 +1194,7 @@ class TestRFC8448 {
 				000102030405060708090a0b0c0d0e
 				0f101112131415161718191a1b1c1d1e1f20212223
 				2425262728292a2b2c2d2e2f3031""");
-		plain15.write(TLSPlaintext.APPLICATION_DATA);
+		plain15.write(Record.APPLICATION_DATA);
 		// encrypt:1703030043
 		final DataBuffer cipher15 = buffer("""
 				275e9f20acff57
@@ -1203,7 +1216,7 @@ class TestRFC8448 {
 		// {client} send alert record
 		// payload:2
 		final DataBuffer plain16 = buffer("0100");
-		plain16.write(TLSPlaintext.ALERT);
+		plain16.write(Record.ALERT);
 		// encrypt:1703030013
 		final DataBuffer cipher16 = buffer("""
 				0facce3246bdfc
@@ -1223,7 +1236,7 @@ class TestRFC8448 {
 		// {server} send alert record:
 		// payload:2
 		final DataBuffer plain17 = buffer("0100");
-		plain17.write(TLSPlaintext.ALERT);
+		plain17.write(Record.ALERT);
 		// encrypt:1703030013
 		final DataBuffer cipher17 = buffer("""
 				5b18af444e8e1e

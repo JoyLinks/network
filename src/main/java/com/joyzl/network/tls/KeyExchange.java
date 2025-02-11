@@ -20,6 +20,8 @@ import javax.crypto.KeyAgreement;
  */
 public class KeyExchange implements NamedGroup {
 
+	private short group;
+
 	private KeyPairGenerator generator;
 	private KeyFactory factory;
 
@@ -37,7 +39,7 @@ public class KeyExchange implements NamedGroup {
 	 * 初始化
 	 */
 	public void initialize(short group) throws Exception {
-		switch (group) {
+		switch (this.group = group) {
 			case X25519:
 				factory = KeyFactory.getInstance("XDH");
 				generator = KeyPairGenerator.getInstance("XDH");
@@ -181,5 +183,9 @@ public class KeyExchange implements NamedGroup {
 	 */
 	public void setPrivateKey(byte[] key) throws Exception {
 		privateKey = privateKey(key);
+	}
+
+	public short group() {
+		return group;
 	}
 }

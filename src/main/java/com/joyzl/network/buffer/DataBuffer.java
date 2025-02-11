@@ -144,16 +144,12 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 * @param value byte
 	 */
 	public final void set(int index, byte value) {
-		if (index >= 0 && index < length) {
-			DataBufferUnit unit = read;
-			while (index >= unit.readable()) {
-				index -= unit.readable();
-				unit = unit.next();
-			}
-			unit.set(unit.readIndex() + index, value);
-		} else {
-			throw new IndexOutOfBoundsException(index);
+		DataBufferUnit unit = read;
+		while (index >= unit.readable()) {
+			index -= unit.readable();
+			unit = unit.next();
 		}
+		unit.set(unit.readIndex() + index, value);
 	}
 
 	/**
@@ -339,16 +335,12 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 * @param index 0~{@link #readable()}-1
 	 */
 	public final byte get(int index) {
-		if (index >= 0 && index < length) {
-			DataBufferUnit item = read;
-			while (index >= item.readable()) {
-				index -= item.readable();
-				item = item.next();
-			}
-			return item.get(item.readIndex() + index);
-		} else {
-			throw new IndexOutOfBoundsException(index);
+		DataBufferUnit item = read;
+		while (index >= item.readable()) {
+			index -= item.readable();
+			item = item.next();
 		}
+		return item.get(item.readIndex() + index);
 	}
 
 	/**
@@ -368,7 +360,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 * @param output
 	 */
 	public final void read(OutputStream output, int length) throws IOException {
-		while (length > 0 && readable() > 0) {
+		while (length > 0) {
 			output.write(readUnsignedByte());
 			length--;
 		}
@@ -450,7 +442,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	}
 
 	/**
-	 * 恢复读取位置，可通过{@link #mark()}标记读取位置，如果之前未执行{@link #mark()}此方法无任何效果
+	 * 恢复读取位置，可通过{@link #mark()}标记读取位置，如果之前未执行{@link #mark()}将抛出异常
 	 */
 	public final void reset() {
 		if (mark != null) {
@@ -462,10 +454,11 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 				mark = mark.next();
 			}
 		}
+		// TODO 尾部处理
 	}
 
 	/**
-	 * 擦除标记的读取位置，擦除后将无法通过{@link #reset()}恢复，如果之前未执行{@link #mark()}此方法无任何效果
+	 * 擦除标记的读取位置，擦除后将无法通过{@link #reset()}恢复，如果之前未执行{@link #mark()}将抛出异常
 	 */
 	public final void erase() {
 		// 释放已读完的单元
@@ -901,12 +894,19 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	////////////////////////////////////////////////////////////////////////////////
 
 	@Override
-	public void writeByte(byte value) {
-		if (write.isFull()) {
-			write = write.link(DataBufferUnit.get());
+	public byte readByte() {
+		// 读完后最后可能会残留一个 EMPTY 的单元
+		// 此单元可能会在转移后混入链表中间导致读取抛出异常
+		// 用while循环判断可排除异常,是否有更好的方案避免 EMPTY 单元
+		while (read.isEmpty()) {
+			if (mark == null) {
+				read = read.apart();
+			} else {
+				read = read.next();
+			}
 		}
-		length++;
-		write.writeByte(getVerifier().check(value));
+		length--;
+		return getVerifier().check(read.readByte());
 	}
 
 	@Override
@@ -915,22 +915,34 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	}
 
 	@Override
-	public byte readByte() {
-		if (length > 0) {
-			// 读完后最后可能会残留一个 EMPTY 的单元
-			// 此单元可能会在转移后混入链表中间导致读取抛出异常
-			// 用while循环判断可排除异常,是否有更好的方案避免 EMPTY 单元
-			while (read.isEmpty()) {
-				if (mark == null) {
-					read = read.apart();
-				} else {
-					read = read.next();
-				}
-			}
-			length--;
-			return getVerifier().check(read.readByte());
+	public void writeByte(byte value) {
+		if (write.isFull()) {
+			write = write.link(DataBufferUnit.get());
 		}
-		throw new IllegalStateException("无数据可读");
+		length++;
+		write.writeByte(getVerifier().check(value));
+	}
+
+	/**
+	 * 从缓存尾部获取数据
+	 */
+	public byte backByte() {
+		if (write.isBlank() || write.isEmpty()) {
+			if (read == write) {
+				throw new IllegalStateException("DataBuffer EMPTY");
+			}
+			DataBufferUnit unit = read;
+			while (unit.next() != write) {
+				unit = unit.next();
+			}
+			if (mark == null) {
+				write.release();
+			}
+			write = unit;
+		}
+
+		length--;
+		return write.backByte();
 	}
 
 	////////////////////////////////////////////////////////////////////////////////

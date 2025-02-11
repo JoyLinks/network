@@ -1,6 +1,8 @@
 package com.joyzl.network.tls;
 
 /**
+ * RFC8449
+ * 
  * <pre>
  * enum{
  *        2^9(1), 2^10(2), 2^11(3), 2^12(4), (255)

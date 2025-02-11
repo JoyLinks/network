@@ -27,6 +27,10 @@ public class SecretCache extends DeriveSecret {
 		early = early(null);
 	}
 
+	public boolean hasKey() {
+		return handshake != null && master != null;
+	}
+
 	/**
 	 * 设置共享密钥
 	 */

@@ -97,28 +97,28 @@ public final class DataBufferUnit {
 	}
 
 	/**
-	 * 获取缓存当前读取位置索引
+	 * 获取缓存读取位置索引
 	 */
 	public final int readIndex() {
 		return buffer.position();
 	}
 
 	/**
-	 * 设置缓存当前读取位置索引
+	 * 设置缓存读取位置索引
 	 */
 	public final void readIndex(int index) {
 		buffer.position(index);
 	}
 
 	/**
-	 * 从缓存当前位置读取值,读取位置自动推进
+	 * 从缓存读取位置读取值，读取位置自动推进
 	 */
 	public final byte readByte() {
 		return buffer.get();
 	}
 
 	/**
-	 * 从缓存指定位置获取值,读取位置不变
+	 * 从缓存指定位置获取值，读取和写入位置不变
 	 */
 	public final byte get(int index) {
 		return buffer.get(index);
@@ -132,21 +132,21 @@ public final class DataBufferUnit {
 	}
 
 	/**
-	 * 获取缓存当前写入位置索引
+	 * 获取缓存写入位置索引
 	 */
 	public final int writeIndex() {
 		return buffer.limit();
 	}
 
 	/**
-	 * 设置缓存当前写入位置索引
+	 * 设置缓存写入位置索引
 	 */
 	public final void writeIndex(int index) {
 		buffer.limit(index);
 	}
 
 	/**
-	 * 写入值到缓存当前位置,写入位置自动推进
+	 * 写入值到缓存写入位置,写入位置自动推进
 	 */
 	public final void writeByte(byte value) {
 		buffer.limit(buffer.limit() + 1);
@@ -154,7 +154,16 @@ public final class DataBufferUnit {
 	}
 
 	/**
-	 * 设置缓存指定位置值,写入位置不变
+	 * 从缓存写入位置取出值，写入位置自动缩短
+	 */
+	public final byte backByte() {
+		final byte value = buffer.get(buffer.limit() - 1);
+		buffer.limit(buffer.limit() - 1);
+		return value;
+	}
+
+	/**
+	 * 设置缓存指定位置值，读取和写入位置不变
 	 */
 	public final void set(int index, byte value) {
 		buffer.put(index, value);
@@ -265,9 +274,12 @@ public final class DataBufferUnit {
 
 	public final void release() {
 		clear();
-		// TODO DataBufferUnit 缓存太多之后释放部分
-
 		BYTE_BUFFER_UNITS.offer(this);
+		if (next != null) {
+			next.release();
+			next = null;
+		}
+		// TODO DataBufferUnit 缓存太多之后释放部分
 	}
 
 	@Override

@@ -1,9 +1,14 @@
 package com.joyzl.network.tls;
 
-public class ChangeCipherSpec extends TLSPlaintext {
+/**
+ * 兼容（明文）
+ * 
+ * @author ZhangXi 2025年2月10日
+ */
+public class ChangeCipherSpec extends Record {
 
-	public final static ChangeCipherSpec INSTANCE = new ChangeCipherSpec();
 	public final static byte ONE = 0x01;
+	public final static ChangeCipherSpec INSTANCE = new ChangeCipherSpec();
 
 	@Override
 	public byte contentType() {

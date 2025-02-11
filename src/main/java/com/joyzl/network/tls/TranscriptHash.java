@@ -47,18 +47,6 @@ public class TranscriptHash {
 
 	/** Transcript-Hash(message) */
 	public void hash(DataBuffer message) {
-		// final ByteBuffer[] buffers = message.reads();
-		// for (int index = 0; index < buffers.length; index++) {
-		// buffers[index].mark();
-		// // if (index == 0) {
-		// // // 排除RecordLayer的5个字节
-		// // buffers[index].position(buffers[index].position() + 5);
-		// // }
-		// digest.update(buffers[index]);
-		// buffers[index].reset();
-		// }
-		// current = TLS.EMPTY_BYTES;
-
 		DataBufferUnit unit = message.head();
 		do {
 			unit.buffer().mark();
@@ -66,6 +54,29 @@ public class TranscriptHash {
 			unit.buffer().reset();
 			unit = unit.next();
 		} while (unit != null);
+
+		// 每次计算新的消息时重置当前哈希结果
+		current = TLS.EMPTY_BYTES;
+	}
+
+	/** Transcript-Hash(message) */
+	public void hash(DataBuffer message, int length) {
+		DataBufferUnit unit = message.head();
+		while (unit != null && length > 0) {
+			unit.buffer().mark();
+			if (unit.readable() <= length) {
+				length -= unit.readable();
+				digest.update(unit.buffer());
+			} else {
+				length = unit.readable() - length;
+				unit.writeIndex(unit.writeIndex() - length);
+				digest.update(unit.buffer());
+				unit.writeIndex(unit.writeIndex() + length);
+				length = 0;
+			}
+			unit.buffer().reset();
+			unit = unit.next();
+		}
 
 		// 每次计算新的消息时重置当前哈希结果
 		current = TLS.EMPTY_BYTES;

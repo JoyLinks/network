@@ -19,9 +19,26 @@ package com.joyzl.network.tls;
  * } TLSPlaintext;
  * </pre>
  * 
+ * <pre>
+ * struct {
+ *     opaque content[TLSPlaintext.length];
+ *     ContentType type;
+ *     uint8 zeros[length_of_padding];
+ * } TLSInnerPlaintext;
+ * 
+ * struct {
+ *     ContentType opaque_type = application_data; / 23 /
+ *     ProtocolVersion legacy_record_version = 0x0303; / TLS v1.2 /
+ *     uint16 length;
+ *     opaque encrypted_record[TLSCiphertext.length];
+ * } TLSCiphertext;
+ * 
+ * encrypted_record:TLSInnerPlaintext
+ * </pre>
+ * 
  * @author ZhangXi 2024年12月19日
  */
-public abstract class Record {
+public abstract class Record extends TLS {
 
 	// ContentType MAX(255)
 
@@ -37,6 +54,11 @@ public abstract class Record {
 	public final static byte APPLICATION_DATA = 23;
 	/** 1.3 */
 	public final static byte HEARTBEAT = 24;
+
+	/** TLSPlaintext 16K (2^14) */
+	final static int PLAINTEXT_MAX = 16384;
+	/** TLSCiphertext */
+	final static int CIPHERTEXT_MAX = PLAINTEXT_MAX + 256;
 
 	////////////////////////////////////////////////////////////////////////////////
 

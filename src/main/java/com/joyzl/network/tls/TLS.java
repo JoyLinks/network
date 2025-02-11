@@ -15,8 +15,6 @@ public class TLS {
 	/** ALL VERSIONS */
 	public final static short[] ALL_VERSIONS = new short[] { V13, V12, V11, V10 };
 
-	/** 16K (2^14) */
-	final static int CHUNK_MAX = 16384;
 	final static byte[] EMPTY_BYTES = new byte[0];
 	final static short[] EMPTY_SHORTS = new short[0];
 }

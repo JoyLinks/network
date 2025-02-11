@@ -1,6 +1,8 @@
 package com.joyzl.network.tls;
 
 /**
+ * RFC 6520
+ * 
  * <pre>
  * struct {
  *      HeartbeatMessageType type;
@@ -12,7 +14,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class HeartbeatMessage extends TLSPlaintext {
+public class HeartbeatMessage extends Record {
 
 	// HeartbeatMessageType MAX(255)
 

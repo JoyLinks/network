@@ -56,6 +56,8 @@ public abstract class Extension {
 	public final static short EXTENDED_MASTER_SECRET = 23;
 	/** RFC 8879 */
 	public final static short COMPRESS_CERTIFICATE = 27;
+	/** RFC 8449 */
+	public final static short RECORD_SIZE_LIMIT = 28;
 	/** RFC ???? */
 	public final static short SESSION_TICKET = 35;
 	/** RESERVED */

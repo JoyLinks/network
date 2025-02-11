@@ -1,8 +1,8 @@
 package com.joyzl.network.tls;
 
-import com.joyzl.network.buffer.DataBuffer;
-
 /**
+ * 应用数据（必须加密）
+ * 
  * <pre>
  * struct {
  *     opaque content[TLSPlaintext.length];
@@ -20,20 +20,15 @@ import com.joyzl.network.buffer.DataBuffer;
  * 
  * @author ZhangXi 2024年12月20日
  */
-public class ApplicationData extends TLSCiphertext {
+public class ApplicationData extends Record {
 
-	private DataBuffer data;
+	final static ApplicationData DATA = new ApplicationData();
+
+	private ApplicationData() {
+	}
 
 	@Override
 	public byte contentType() {
 		return APPLICATION_DATA;
-	}
-
-	public DataBuffer getData() {
-		return data;
-	}
-
-	public void setData(DataBuffer data) {
-		this.data = data;
 	}
 }

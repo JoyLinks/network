@@ -467,30 +467,6 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 	}
 
 	/**
-	 * 解密，缓存数据将被解密后的数据替代
-	 */
-	public void decryptFinal(DataBuffer buffer) throws Exception {
-		// GCM模式解码时须等待最后的Tag校验完成才会输出解码后的数据
-		// 这将导致必须构建足够长度的ByteBuffer以接收输出结果
-		// 强烈建议：Java应逐块解码输出结果，不应等待最终校验
-
-		final ByteBuffer output = ByteBuffer.allocate(buffer.readable());
-		DataBufferUnit i = buffer.take();
-
-		while (i != null) {
-			if (i.readable() > 0) {
-				decryptCipher.update(i.buffer(), output);
-			}
-			i.release();
-			i = buffer.take();
-		}
-
-		decryptCipher.doFinal(EMPTY, output);
-		buffer.write(output.flip());
-		decryptSequence++;
-	}
-
-	/**
 	 * 加密，输入缓存的数据将原样保留，加密后的数据输出到输出缓存的尾部
 	 */
 	public void encryptFinal(DataBuffer in, DataBuffer out) throws Exception {
@@ -539,6 +515,79 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 		encryptSequence++;
 	}
 
+	// GCM模式解码时须等待最后的Tag校验完成才会输出解码后的数据
+	// 这将导致必须构建足够长度的ByteBuffer以接收输出结果
+	// 强烈建议：Java应逐块解码输出结果，不应等待最终校验
+
+	/**
+	 * 解密，缓存数据将被解密后的数据替代
+	 */
+	public void decryptFinal(DataBuffer buffer) throws Exception {
+
+		final ByteBuffer output = ByteBuffer.allocate(decryptCipher.getOutputSize(buffer.readable()));
+		DataBufferUnit i = buffer.take();
+
+		while (i != null) {
+			decryptCipher.update(i.buffer(), output);
+			i.release();
+			i = buffer.take();
+		}
+
+		decryptCipher.doFinal(EMPTY, output);
+		buffer.write(output.flip());
+		decryptSequence++;
+	}
+
+	/**
+	 * 解密，缓存数据将被解密后的数据替代
+	 */
+	public void decryptFinal(DataBuffer buffer, DataBuffer data) throws Exception {
+
+		final ByteBuffer output = ByteBuffer.allocate(decryptCipher.getOutputSize(buffer.readable()));
+		DataBufferUnit i = buffer.take();
+
+		while (i != null) {
+			decryptCipher.update(i.buffer(), output);
+			i.release();
+			i = buffer.take();
+		}
+
+		decryptCipher.doFinal(EMPTY, output);
+		decryptSequence++;
+
+		data.write(output.flip());
+	}
+
+	/**
+	 * 解密，缓存数据将被解密后的数据替代
+	 */
+	public void decryptFinal(DataBuffer buffer, DataBuffer data, int length) throws Exception {
+
+		final ByteBuffer output = ByteBuffer.allocate(decryptCipher.getOutputSize(length));
+		DataBufferUnit i = buffer.take();
+
+		while (i != null && length > 0) {
+			if (i.readable() <= length) {
+				length -= i.readable();
+				decryptCipher.update(i.buffer(), output);
+				i.release();
+			} else {
+				length = i.readable() - length;
+				i.writeIndex(i.writeIndex() - length);
+				decryptCipher.update(i.buffer(), output);
+				i.writeIndex(i.writeIndex() + length);
+				length = 0;
+				break;
+			}
+			i = buffer.take();
+		}
+
+		decryptCipher.doFinal(EMPTY, output);
+		decryptSequence++;
+
+		data.write(output.flip());
+	}
+
 	/**
 	 * 加密序列号
 	 */
@@ -572,5 +621,9 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 	 */
 	public int ivLength() {
 		return ivLength;
+	}
+
+	public short suite() {
+		return code;
 	}
 }

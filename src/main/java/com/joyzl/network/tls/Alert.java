@@ -1,6 +1,8 @@
 package com.joyzl.network.tls;
 
 /**
+ * 告警
+ * 
  * <pre>
  * struct {
  *     AlertLevel level;
@@ -10,7 +12,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月20日
  */
-public class Alert extends TLSPlaintext {
+public class Alert extends Record {
 
 	// AlertLevel MAX(255)
 
@@ -60,6 +62,11 @@ public class Alert extends TLSPlaintext {
 	private byte description;
 
 	public Alert() {
+	}
+
+	public Alert(byte description) {
+		this.description = description;
+		this.level = FATAL;
 	}
 
 	public Alert(byte level, byte description) {
