@@ -1,6 +1,6 @@
 package com.joyzl.network.web;
 
-import com.joyzl.network.http.Seeker;
+import com.joyzl.network.StringSeeker;
 
 /**
  * ISO 639-3 www.iso639-3.sil.org
@@ -204,12 +204,12 @@ public enum LanguageCodes {
 		return name;
 	}
 
-	public final static Seeker SEEKER;
+	public final static StringSeeker SEEKER;
 	static {
 		final String[] items = new String[LanguageCodes.values().length];
 		for (int index = 0; index < LanguageCodes.values().length; index++) {
 			items[index] = LanguageCodes.values()[index].name();
 		}
-		SEEKER = new Seeker(items);
+		SEEKER = new StringSeeker(items);
 	}
 }

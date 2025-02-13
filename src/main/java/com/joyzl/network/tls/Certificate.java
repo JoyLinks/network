@@ -1,5 +1,7 @@
 package com.joyzl.network.tls;
 
+import java.util.Arrays;
+
 /**
  * <pre>
  * RFC 2246 TLSv1.0
@@ -47,11 +49,11 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class Certificate extends HandshakeExtensions {
+public class Certificate extends Handshake {
 
 	private final static CertificateEntry[] EMPTY = new CertificateEntry[0];
 	private CertificateEntry[] certificates = EMPTY;
-	private byte[] context = null;
+	private byte[] context = TLS.EMPTY_BYTES;
 
 	@Override
 	public byte msgType() {
@@ -63,7 +65,20 @@ public class Certificate extends HandshakeExtensions {
 	}
 
 	public void setContext(byte[] value) {
-		context = value;
+		if (value == null) {
+			context = TLS.EMPTY_BYTES;
+		} else {
+			context = value;
+		}
+	}
+
+	public void add(CertificateEntry value) {
+		if (certificates == EMPTY) {
+			certificates = new CertificateEntry[] { value };
+		} else {
+			certificates = Arrays.copyOf(certificates, certificates.length + 1);
+			certificates[certificates.length - 1] = value;
+		}
 	}
 
 	public CertificateEntry[] getCertificates() {

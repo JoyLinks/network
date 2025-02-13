@@ -1,5 +1,7 @@
 package com.joyzl.network.http;
 
+import com.joyzl.network.StringSeeker;
+
 /**
  * HTTP
  * 
@@ -12,7 +14,7 @@ public class HTTP {
 	public final static String V10 = "HTTP/1.0";
 	public final static String V11 = "HTTP/1.1";
 	public final static String V20 = "HTTP/2";
-	public final static Seeker VERSIONS = new Seeker(new String[] { V10, V11, V20 });
+	public final static StringSeeker VERSIONS = new StringSeeker(new String[] { V10, V11, V20 });
 
 	// METHODS
 
@@ -52,13 +54,13 @@ public class HTTP {
 	/** 请求解锁资源 */
 	public final static String UNLOCK = "UNLOCK";
 
-	public final static Seeker METHODS = new Seeker(new String[] {
+	public final static StringSeeker METHODS = new StringSeeker(new String[] {
 			// HTTP BASE
 			CONNECT, DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT, TRACE,
 			// WEB DAV
 			PROPFIND, PROPPATCH, MKCOL, COPY, MOVE, LOCK, UNLOCK });
 
-	// HRADERS
+	// HRADERS HTTP + WEBDAV
 
 	public final static String Accept = "Accept";
 	public final static String Accept_Additions = "Accept-Additions";
@@ -219,7 +221,7 @@ public class HTTP {
 	public final static String Want_Digest = "Want-Digest";
 	public final static String Warning = "Warning";
 	public final static String WWW_Authenticate = "WWW-Authenticate";
-	public final static Seeker HEADERS = new Seeker(new String[] { //
+	public final static StringSeeker HEADERS = new StringSeeker(new String[] { //
 			Accept, //
 			Accept_Additions, //
 			Accept_Charset, //

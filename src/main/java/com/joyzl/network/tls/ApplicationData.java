@@ -22,7 +22,7 @@ package com.joyzl.network.tls;
  */
 public class ApplicationData extends Record {
 
-	final static ApplicationData DATA = new ApplicationData();
+	final static ApplicationData EMPTY = new ApplicationData();
 
 	private ApplicationData() {
 	}

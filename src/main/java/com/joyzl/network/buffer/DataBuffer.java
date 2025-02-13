@@ -46,7 +46,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 		if (buffer == null) {
 			buffer = new DataBuffer();
 		} else {
-			// length的特殊值标记缓存状态
+			// 取消特殊值
 			buffer.length = 0;
 		}
 		return buffer;
@@ -305,7 +305,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 */
 	public final void write(DataBuffer source) throws IOException {
 		while (source.readable() > 0) {
-			writeByte(source.readUnsignedByte());
+			writeByte(source.readByte());
 		}
 	}
 
@@ -472,7 +472,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	}
 
 	/**
-	 * 将源缓存对象中的数据全部复制到当前缓存对象中，源对象数据被保留，不参与校验
+	 * 将源缓存对象中的数据全部复制到当前缓存对象中尾部，源对象数据保留，不参与校验
 	 * <p>
 	 * 此方法是多线程安全的，可支持多个线程对一个数据源并发执行复制操作
 	 */
@@ -490,7 +490,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	}
 
 	/**
-	 * 将源缓存对象中的数据全部复制到当前缓存对象中，源对象数据被保留，不参与校验
+	 * 将源缓存对象中的数据全部复制到当前缓存对象中尾部，源对象数据保留，不参与校验
 	 * <p>
 	 * 此方法是多线程安全的，可支持多个线程对一个数据源并发执行复制操作
 	 * 
@@ -548,14 +548,14 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	}
 
 	/**
-	 * 转移所有数据到目标缓存对象中，转移数据不参与校验，此方法执行数据单元转移，不会执行逐字节复制；
+	 * 转移所有数据到目标缓存对象中尾部，转移数据不参与校验，此方法执行数据单元转移；
 	 * 读取标记会被擦除，如果要避免擦除应在调用此方法之前执行{@link #reset()}
 	 * 
 	 * @param target 目标缓存对象
 	 */
 	public void transfer(DataBuffer target) {
+		erase();
 		if (length > 0) {
-			erase();
 			if (target.mark != null) {
 				mark();
 			}
@@ -569,7 +569,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	}
 
 	/**
-	 * 转移指定数量的数据到目标缓存对象中，转移数据不参与校验，此方法执行数据单元转移，不会执行逐字节复制；
+	 * 转移指定数量的数据到目标缓存对象中尾部，转移数据不参与校验，此方法执行数据单元转移；
 	 * 读取标记会被擦除，如果要避免擦除应在调用此方法之前执行{@link #reset()}
 	 * 
 	 * @param target 目标缓存对象
@@ -658,6 +658,46 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	}
 
 	/**
+	 * 转入源缓存对象的数据到当前对象中尾部，转入数据不参与校验，此方法执行数据单元转入；
+	 * 读取标记会被擦除，如果要避免擦除应在调用此方法之前执行{@link #reset()}
+	 * 
+	 * @param source 源缓存对象
+	 */
+	public void append(DataBuffer source) {
+		source.erase();
+		if (length == 0) {
+			read = source.read;
+			source.read = write;
+			source.write = write;
+			write = read;
+		} else if (write.isFull()) {
+			write.next(source.read);
+			write = source.write;
+			source.read = DataBufferUnit.get();
+			source.write = source.read;
+		} else if (write.isBlank()) {
+			// LAST - 1
+			DataBufferUnit unit = read;
+			while (unit.next() != write) {
+				unit = unit.next();
+			}
+
+			unit.next(source.read);
+			source.read = write;
+			write = source.write;
+			source.write = source.read;
+		} else {
+			// 将产生未满单元
+			write.next(source.read);
+			write = source.write;
+			source.read = DataBufferUnit.get();
+			source.write = source.read;
+		}
+		length += source.length;
+		source.length = 0;
+	}
+
+	/**
 	 * 清除所有数据
 	 */
 	public final void clear() {
@@ -666,16 +706,23 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 			read = mark;
 			mark = null;
 		}
-
-		// 释放ByteBufferUnit只保留一个
-		while (read.next() != null) {
-			read = read.apart();
+		if (read != write) {
+			if (read != null) {
+				// 释放ByteBufferUnit只保留一个
+				while (read.next() != null) {
+					read = read.apart();
+				}
+			} else {
+				if (write != null) {
+					read = write;
+				}
+			}
 		}
 		write.clear();
 	}
 
 	public void release() {
-		// 利用length的特殊值标记是否已释放
+		// 特殊值标记是否已释放
 		if (length != Integer.MIN_VALUE) {
 			clear();
 			verifier = EmptyVerifier.INSTANCE;
@@ -683,7 +730,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 			BYTE_BUFFERS.offer(this);
 		} else {
 			// 重复释放抛出异常
-			throw new IllegalStateException("释放已回收的数据缓存");
+			throw new IllegalStateException("重复释放");
 		}
 	}
 
@@ -931,6 +978,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 			if (read == write) {
 				throw new IllegalStateException("DataBuffer EMPTY");
 			}
+			// LAST - 1
 			DataBufferUnit unit = read;
 			while (unit.next() != write) {
 				unit = unit.next();

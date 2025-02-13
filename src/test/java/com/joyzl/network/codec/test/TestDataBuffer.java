@@ -1,19 +1,17 @@
 package com.joyzl.network.codec.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.joyzl.network.buffer.DataBufferUnit;
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.buffer.DataBufferUnit;
 
@@ -26,22 +24,6 @@ import com.joyzl.network.buffer.DataBufferUnit;
 class TestDataBuffer {
 
 	// 65536 Byte = 64Kb
-
-	@BeforeAll
-	static void setUpBeforeClass() throws Exception {
-	}
-
-	@AfterAll
-	static void tearDownAfterClass() throws Exception {
-	}
-
-	@BeforeEach
-	void setUp() throws Exception {
-	}
-
-	@AfterEach
-	void tearDown() throws Exception {
-	}
 
 	@Test
 	void testTime() {
@@ -75,6 +57,58 @@ class TestDataBuffer {
 		b = unit.receive();
 		b.put((byte) 0);
 		assertEquals(unit.received(), 1);
+	}
+
+	@Test
+	void testMethods() throws Exception {
+		// 验证方法极限
+
+		final DataBuffer buffer = DataBuffer.instance();
+
+		try {
+			buffer.set(0, (byte) 0);
+			fail("应抛出异常");
+		} catch (Exception e) {
+			assertNotNull(e);
+			buffer.clear();
+		}
+		try {
+			buffer.writeByte(1);
+			buffer.set(1, (byte) 0);
+			fail("应抛出异常");
+		} catch (Exception e) {
+			assertNotNull(e);
+			buffer.clear();
+		}
+
+		try {
+			buffer.get(0);
+			fail("应抛出异常");
+		} catch (Exception e) {
+			assertNotNull(e);
+			buffer.clear();
+		}
+		try {
+			buffer.writeByte(1);
+			buffer.get(1);
+			fail("应抛出异常");
+		} catch (Exception e) {
+			assertNotNull(e);
+			buffer.clear();
+		}
+		try {
+			buffer.readByte();
+			fail("应抛出异常");
+		} catch (Exception e) {
+			assertNotNull(e);
+			buffer.clear();
+		}
+
+		int length;
+		length = buffer.write(InputStream.nullInputStream());
+		assertEquals(length, 0);
+		length = buffer.write(InputStream.nullInputStream(), 0);
+		assertEquals(length, 0);
 	}
 
 	@Test

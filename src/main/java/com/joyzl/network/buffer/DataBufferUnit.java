@@ -22,6 +22,7 @@ public final class DataBufferUnit {
 		BYTE_BUFFER_UNITS = new ConcurrentLinkedQueue<>();
 
 		// -XX:MaxDirectMemorySize=512m
+		// TODO DataBufferUnit 缓存太多之后释放部分
 
 		int size = BYTES;
 		while (size-- > 0) {
@@ -33,6 +34,9 @@ public final class DataBufferUnit {
 		DataBufferUnit unit = BYTE_BUFFER_UNITS.poll();
 		if (unit == null) {
 			return new DataBufferUnit();
+		} else {
+			// 取消特殊值
+			unit.mark = 0;
 		}
 		return unit;
 	}
@@ -258,6 +262,13 @@ public final class DataBufferUnit {
 	}
 
 	/**
+	 * 连接一个缓存单元，不检查后续单元
+	 */
+	final void next(DataBufferUnit unit) {
+		next = unit;
+	}
+
+	/**
 	 * 下一个单元
 	 * 
 	 * @return null / ByteBufferUnit
@@ -267,19 +278,28 @@ public final class DataBufferUnit {
 	}
 
 	public final void clear() {
-		buffer.position(0);// 读位置
-		buffer.limit(0);// 写位置
+		// 重置读位置
+		buffer.position(0);
+		// 重置写位置
+		buffer.limit(0);
+		// 重置标记位置
 		mark = 0;
 	}
 
 	public final void release() {
-		clear();
-		BYTE_BUFFER_UNITS.offer(this);
-		if (next != null) {
-			next.release();
-			next = null;
+		// 特殊值标记是否已释放
+		if (mark != Integer.MIN_VALUE) {
+			buffer.position(0);
+			buffer.limit(0);
+			mark = Integer.MIN_VALUE;
+			if (next != null) {
+				next.release();
+				next = null;
+			}
+			BYTE_BUFFER_UNITS.offer(this);
+		} else {
+			throw new IllegalStateException("重复释放");
 		}
-		// TODO DataBufferUnit 缓存太多之后释放部分
 	}
 
 	@Override

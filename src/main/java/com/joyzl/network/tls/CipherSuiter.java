@@ -539,32 +539,32 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 	}
 
 	/**
-	 * 解密，缓存数据将被解密后的数据替代
+	 * 解密
 	 */
-	public void decryptFinal(DataBuffer buffer, DataBuffer data) throws Exception {
+	public void decryptFinal(DataBuffer in, DataBuffer out) throws Exception {
 
-		final ByteBuffer output = ByteBuffer.allocate(decryptCipher.getOutputSize(buffer.readable()));
-		DataBufferUnit i = buffer.take();
+		final ByteBuffer output = ByteBuffer.allocate(decryptCipher.getOutputSize(in.readable()));
+		DataBufferUnit i = in.take();
 
 		while (i != null) {
 			decryptCipher.update(i.buffer(), output);
 			i.release();
-			i = buffer.take();
+			i = in.take();
 		}
 
 		decryptCipher.doFinal(EMPTY, output);
 		decryptSequence++;
 
-		data.write(output.flip());
+		out.write(output.flip());
 	}
 
 	/**
-	 * 解密，缓存数据将被解密后的数据替代
+	 * 解密
 	 */
-	public void decryptFinal(DataBuffer buffer, DataBuffer data, int length) throws Exception {
+	public void decryptFinal(DataBuffer in, DataBuffer out, int length) throws Exception {
 
 		final ByteBuffer output = ByteBuffer.allocate(decryptCipher.getOutputSize(length));
-		DataBufferUnit i = buffer.take();
+		DataBufferUnit i = in.take();
 
 		while (i != null && length > 0) {
 			if (i.readable() <= length) {
@@ -579,13 +579,13 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 				length = 0;
 				break;
 			}
-			i = buffer.take();
+			i = in.take();
 		}
 
 		decryptCipher.doFinal(EMPTY, output);
 		decryptSequence++;
 
-		data.write(output.flip());
+		out.write(output.flip());
 	}
 
 	/**

@@ -6,228 +6,115 @@ import com.joyzl.network.buffer.DataBuffer;
 
 public class HandshakeCoder extends TLS {
 
-	/**
-	 * <pre>
-	 * ClientHello
-	 * Certificate
-	 * CertificateURL
-	 * ClientKeyExchange
-	 * CertificateVerify
-	 * EndOfEarlyData
-	 * Finished
-	 * KeyUpdate
-	 * </pre>
-	 */
-	public static void encodeByClient(Handshake message, DataBuffer buffer) throws IOException {
+	public static void encode(Handshake message, DataBuffer buffer) throws IOException {
+		int position, length;
+
 		// HandshakeType 1Byte
 		buffer.writeByte(message.msgType());
 		// Length 3Byte(uint24)
-		int position = buffer.readable();
+		position = buffer.readable();
 		buffer.writeMedium(0);
 		// SUB Handshake
-		if (message.msgType() == Handshake.CLIENT_HELLO) {
+		if (message.msgType() == Handshake.HELLO_REQUEST) {
+		} else if (message.msgType() == Handshake.CLIENT_HELLO) {
 			encode((ClientHello) message, buffer);
+		} else if (message.msgType() == Handshake.SERVER_HELLO) {
+			encode((ServerHello) message, buffer);
 		} else if (message.msgType() == Handshake.CERTIFICATE) {
 			encode((Certificate) message, buffer);
 		} else if (message.msgType() == Handshake.CERTIFICATE_URL) {
 			encode((CertificateURL) message, buffer);
+		} else if (message.msgType() == Handshake.CERTIFICATE_STATUS) {
+			encode((CertificateStatus) message, buffer);
 		} else if (message.msgType() == Handshake.CERTIFICATE_VERIFY) {
 			encode((CertificateVerify) message, buffer);
-		} else if (message.msgType() == Handshake.CLIENT_KEY_EXCHANGE) {
-			encode((ClientKeyExchange) message, buffer);
-		} else if (message.msgType() == Handshake.END_OF_EARLY_DATA) {
-			encode((EndOfEarlyData) message, buffer);
-		} else if (message.msgType() == Handshake.FINISHED) {
-			encode((Finished) message, buffer);
-		} else if (message.msgType() == Handshake.KEY_UPDATE) {
-			encode((KeyUpdate) message, buffer);
-		} else {
-			throw new UnsupportedOperationException("TLS 不支持的握手消息类型:" + message.msgType());
-		}
-		if (message.hasExtensions()) {
-			// Extensions <8..2^16-1>
-			ExtensionCoder.encodeByClient((HandshakeExtensions) message, buffer);
-		}
-		// SET LENGTH
-		int length = buffer.readable() - position - 3;
-		buffer.set(position++, (byte) (length >>> 16));
-		buffer.set(position++, (byte) (length >>> 8));
-		buffer.set(position, (byte) (length));
-	}
-
-	/**
-	 * <pre>
-	 * ServerHello
-	 * HelloRetryRequest
-	 * EncryptedExtensions
-	 * Certificate
-	 * ServerKeyExchange
-	 * CertificateRequest
-	 * CertificateVerify
-	 * ServerHelloDone
-	 * NewSessionTicket
-	 * Finished
-	 * HelloRequest
-	 * KeyUpdate
-	 * </pre>
-	 */
-	public static void encodeByServer(Handshake message, DataBuffer buffer) throws IOException {
-		// HandshakeType 1Byte
-		buffer.writeByte(message.msgType());
-		// Length 3Byte(uint24)
-		int position = buffer.readable();
-		buffer.writeMedium(0);
-		// SUB Handshake
-		if (message.msgType() == Handshake.SERVER_HELLO) {
-			encode((ServerHello) message, buffer);
-		} else if (message.msgType() == Handshake.NEW_SESSION_TICKET) {
-			encode((NewSessionTicket) message, buffer);
-		} else if (message.msgType() == Handshake.ENCRYPTED_EXTENSIONS) {
-			encode((EncryptedExtensions) message, buffer);
-		} else if (message.msgType() == Handshake.CERTIFICATE) {
-			encode((Certificate) message, buffer);
-		} else if (message.msgType() == Handshake.SERVER_KEY_EXCHANGE) {
-			encode((ServerKeyExchange) message, buffer);
 		} else if (message.msgType() == Handshake.CERTIFICATE_REQUEST) {
 			encode((CertificateRequest) message, buffer);
+		} else if (message.msgType() == Handshake.CLIENT_KEY_EXCHANGE) {
+			encode((ClientKeyExchange) message, buffer);
+		} else if (message.msgType() == Handshake.ENCRYPTED_EXTENSIONS) {
+		} else if (message.msgType() == Handshake.SERVER_KEY_EXCHANGE) {
+			encode((ServerKeyExchange) message, buffer);
 		} else if (message.msgType() == Handshake.SERVER_HELLO_DONE) {
 			encode((ServerHelloDone) message, buffer);
-		} else if (message.msgType() == Handshake.CERTIFICATE_VERIFY) {
-			encode((CertificateVerify) message, buffer);
-		} else if (message.msgType() == Handshake.FINISHED) {
-			encode((Finished) message, buffer);
-		} else if (message.msgType() == Handshake.HELLO_REQUEST) {
-			encode((HelloRequest) message, buffer);
+		} else if (message.msgType() == Handshake.END_OF_EARLY_DATA) {
+		} else if (message.msgType() == Handshake.NEW_SESSION_TICKET) {
+			encode((NewSessionTicket) message, buffer);
+		} else if (message.msgType() == Handshake.MESSAGE_HASH) {
+			encode((MessageHash) message, buffer);
 		} else if (message.msgType() == Handshake.KEY_UPDATE) {
 			encode((KeyUpdate) message, buffer);
+		} else if (message.msgType() == Handshake.FINISHED) {
+			encode((Finished) message, buffer);
 		} else {
-			throw new UnsupportedOperationException("TLS 不支持的握手消息类型:" + message.msgType());
+			throw new UnsupportedOperationException("TLS:未知的握手消息类型" + message.msgType());
 		}
 		if (message.hasExtensions()) {
 			// Extensions <8..2^16-1>
-			ExtensionCoder.encodeByServer((HandshakeExtensions) message, buffer);
+			ExtensionCoder.encode((HandshakeExtensions) message, buffer);
 		}
+
 		// SET LENGTH
-		int length = buffer.readable() - position - 3;
+		length = buffer.readable() - position - 3;
 		buffer.set(position++, (byte) (length >>> 16));
 		buffer.set(position++, (byte) (length >>> 8));
 		buffer.set(position, (byte) (length));
 	}
 
-	/**
-	 * <pre>
-	 * ServerHello
-	 * HelloRetryRequest
-	 * EncryptedExtensions
-	 * Certificate
-	 * ServerKeyExchange
-	 * CertificateRequest
-	 * CertificateVerify
-	 * ServerHelloDone
-	 * NewSessionTicket
-	 * Finished
-	 * HelloRequest
-	 * KeyUpdate
-	 * </pre>
-	 */
-	public static Handshake decodeByClient(DataBuffer buffer) throws IOException {
-		buffer.mark();
+	public static Handshake decode(DataBuffer buffer) throws IOException {
+		int type, length;
+		Handshake message;
+
 		// HandshakeType 1Byte
-		final int type = buffer.readByte();
-		// uint24 length
-		int length = buffer.readUnsignedMedium();
+		type = buffer.readByte();
+		// uint24 length 3Byte
+		length = buffer.readUnsignedMedium();
 		if (buffer.readable() >= length) {
-			final Handshake message;
-			if (type == Handshake.SERVER_HELLO) {
+			if (type == Handshake.CLIENT_HELLO) {
+				message = decodeClientHello(buffer);
+			} else if (type == Handshake.SERVER_HELLO) {
 				message = decodeServerHello(buffer);
 			} else if (type == Handshake.NEW_SESSION_TICKET) {
 				message = decodeNewSessionTicket(buffer);
 			} else if (type == Handshake.ENCRYPTED_EXTENSIONS) {
-				message = decodeEncryptedExtensions(buffer);
-			} else if (type == Handshake.CERTIFICATE) {
-				message = decodeCertificate(buffer);
-			} else if (type == Handshake.SERVER_KEY_EXCHANGE) {
-				message = decodeServerKeyExchange(buffer);
-			} else if (type == Handshake.CERTIFICATE_REQUEST) {
-				message = decodeCertificateRequest(buffer);
-			} else if (type == Handshake.SERVER_HELLO_DONE) {
-				message = decodeServerHelloDone(buffer);
-			} else if (type == Handshake.CERTIFICATE_VERIFY) {
-				message = decodeCertificateVerify(buffer);
-			} else if (type == Handshake.FINISHED) {
-				message = decodeFinished(buffer);
-			} else if (type == Handshake.HELLO_REQUEST) {
-				message = decodeHelloRequest(buffer);
-			} else if (type == Handshake.KEY_UPDATE) {
-				message = decodeKeyUpdate(buffer);
-			} else {
-				throw new UnsupportedOperationException("TLS 不支持的握手消息类型:" + type);
-			}
-			if (message instanceof HandshakeExtensions) {
-				// Extensions <8..2^16-1>
-				ExtensionCoder.decodeByClient((HandshakeExtensions) message, buffer);
-			}
-			return message;
-		}
-		buffer.reset();
-		return null;
-	}
-
-	/**
-	 * <pre>
-	 * ClientHello
-	 * Certificate
-	 * CertificateURL
-	 * ClientKeyExchange
-	 * CertificateVerify
-	 * EndOfEarlyData
-	 * Finished
-	 * KeyUpdate
-	 * </pre>
-	 */
-	public static Handshake decodeByServer(DataBuffer buffer) throws IOException {
-		buffer.mark();
-		// HandshakeType 1Byte
-		final int type = buffer.readByte();
-		// uint24 length
-		int length = buffer.readUnsignedMedium();
-		if (buffer.readable() >= length) {
-			final Handshake message;
-			if (type == Handshake.CLIENT_HELLO) {
-				message = decodeClientHello(buffer);
-			} else if (type == Handshake.END_OF_EARLY_DATA) {
-				message = decodeEndOfEarlyData(buffer);
+				message = new EncryptedExtensions();
 			} else if (type == Handshake.CERTIFICATE) {
 				message = decodeCertificate(buffer);
 			} else if (type == Handshake.CERTIFICATE_URL) {
 				message = decodeCertificateURL(buffer);
+			} else if (type == Handshake.CERTIFICATE_STATUS) {
+				message = decodeCertificateStatus(buffer);
+			} else if (type == Handshake.CERTIFICATE_REQUEST) {
+				message = decodeCertificateRequest(buffer);
+			} else if (type == Handshake.SERVER_KEY_EXCHANGE) {
+				message = decodeServerKeyExchange(buffer);
+			} else if (type == Handshake.SERVER_HELLO_DONE) {
+				message = decodeServerHelloDone(buffer);
 			} else if (type == Handshake.CERTIFICATE_VERIFY) {
 				message = decodeCertificateVerify(buffer);
+			} else if (type == Handshake.END_OF_EARLY_DATA) {
+				message = EndOfEarlyData.INSTANCE;
 			} else if (type == Handshake.CLIENT_KEY_EXCHANGE) {
 				message = decodeClientKeyExchange(buffer);
-			} else if (type == Handshake.FINISHED) {
-				message = decodeFinished(buffer);
+			} else if (type == Handshake.HELLO_REQUEST) {
+				message = HelloRequest.INSTANCE;
+			} else if (type == Handshake.MESSAGE_HASH) {
+				message = decodeMessageHash(buffer);
 			} else if (type == Handshake.KEY_UPDATE) {
 				message = decodeKeyUpdate(buffer);
+			} else if (type == Handshake.FINISHED) {
+				message = decodeFinished(buffer, length);
 			} else {
-				throw new UnsupportedOperationException("TLS 不支持的握手消息类型:" + type);
+				throw new UnsupportedOperationException("TLS:未知的握手消息类型" + type);
 			}
 			if (message instanceof HandshakeExtensions) {
 				// Extensions <8..2^16-1>
-				ExtensionCoder.decodeByServer((HandshakeExtensions) message, buffer);
+				ExtensionCoder.decode((HandshakeExtensions) message, buffer);
 			}
-			return message;
+		} else {
+			throw new IllegalArgumentException("TLS:数据缺失");
 		}
-		buffer.reset();
-		return null;
-	}
-
-	private static void encode(HelloRequest message, DataBuffer buffer) throws IOException {
-		// EMPTY content
-	}
-
-	private static HelloRequest decodeHelloRequest(DataBuffer buffer) throws IOException {
-		return HelloRequest.INSTANCE;
+		return message;
 	}
 
 	private static void encode(ClientHello message, DataBuffer buffer) throws IOException {
@@ -253,23 +140,26 @@ public class HandshakeCoder extends TLS {
 		// Version 2Byte
 		message.setVersion(buffer.readShort());
 		// Random 32Byte
-		final byte[] random = new byte[32];
-		buffer.readFully(random);
-		message.setRandom(random);
-		// SessionID
-		final byte[] session = new byte[buffer.readUnsignedShort()];
-		buffer.readFully(session);
-		message.setSessionId(session);
-		// CipherSuites
-		final short[] suites = new short[buffer.readUnsignedShort() / 2];
-		for (int index = 0; index < suites.length; index++) {
-			suites[index] = buffer.readShort();
+		message.setRandom(new byte[32]);
+		buffer.readFully(message.getRandom());
+		// SessionID 0/32Byte
+		int size = buffer.readUnsignedShort();
+		if (size > 0 && size <= 32) {
+			message.setSessionId(new byte[size]);
+			buffer.readFully(message.getSessionId());
 		}
-		message.setCipherSuites(suites);
+		// CipherSuites
+		size = buffer.readUnsignedShort();
+		message.setCipherSuites(new short[size / 2]);
+		for (int index = 0; index < size / 2; index++) {
+			message.getCipherSuites()[index] = buffer.readShort();
+		}
 		// Compression Methods
-		final byte[] methods = new byte[buffer.readUnsignedShort()];
-		buffer.readFully(methods);
-		message.setCompressionMethods(methods);
+		size = buffer.readUnsignedShort();
+		if (size > 0) {
+			message.setCompressionMethods(new byte[size]);
+			buffer.readFully(message.getCompressionMethods());
+		}
 		return message;
 	}
 
@@ -291,13 +181,15 @@ public class HandshakeCoder extends TLS {
 		final ServerHello message = new ServerHello();
 		// Version 2Byte
 		message.setVersion(buffer.readShort());
-		byte[] opaque;
 		// Random 32Byte
-		buffer.readFully(opaque = new byte[32]);
-		message.setRandom(opaque);
+		message.setRandom(new byte[32]);
+		buffer.readFully(message.getRandom());
 		// SessionID
-		buffer.readFully(opaque = new byte[buffer.readUnsignedByte()]);
-		message.setSessionId(opaque);
+		int size = buffer.readUnsignedByte();
+		if (size > 0 && size <= 32) {
+			message.setSessionId(new byte[size]);
+			buffer.readFully(message.getSessionId());
+		}
 		// CipherSuite
 		message.setCipherSuite(buffer.readShort());
 		// Compression Method
@@ -320,54 +212,56 @@ public class HandshakeCoder extends TLS {
 
 	private static NewSessionTicket decodeNewSessionTicket(DataBuffer buffer) throws IOException {
 		final NewSessionTicket message = new NewSessionTicket();
-		byte[] opaque;
 		// uint32 ticket_lifetime;
 		message.setLifetime(buffer.readInt());
 		// uint32 ticket_age_add;
 		message.setAgeAdd(buffer.readInt());
 		// opaque ticket_nonce<0..255>;
-		buffer.readFully(opaque = new byte[buffer.readUnsignedShort()]);
-		message.setNonce(opaque);
+		int size = buffer.readUnsignedShort();
+		if (size > 0 && size < 256) {
+			message.setNonce(new byte[size]);
+			buffer.readFully(message.getNonce());
+		}
 		// opaque ticket<1..2^16-1>;
-		buffer.readFully(opaque = new byte[buffer.readUnsignedShort()]);
-		message.setTicket(opaque);
-		return message;
-	}
-
-	private static void encode(EndOfEarlyData message, DataBuffer buffer) throws IOException {
-		// EMPTY content
-	}
-
-	private static EndOfEarlyData decodeEndOfEarlyData(DataBuffer buffer) throws IOException {
-		return EndOfEarlyData.INSTANCE;
-	}
-
-	private static void encode(EncryptedExtensions message, DataBuffer buffer) throws IOException {
-		// TODO
-	}
-
-	private static EncryptedExtensions decodeEncryptedExtensions(DataBuffer buffer) throws IOException {
-		final EncryptedExtensions message = new EncryptedExtensions();
-		// TODO
+		size = buffer.readUnsignedShort();
+		message.setTicket(new byte[size]);
+		buffer.readFully(message.getTicket());
 		return message;
 	}
 
 	private static void encode(Certificate message, DataBuffer buffer) throws IOException {
-		if (message.getContext() != null) {
-			buffer.writeShort(message.getContext().length);
-			buffer.write(message.getContext());
-		}
+		buffer.writeByte(message.getContext().length);
+		buffer.write(message.getContext());
+
 		CertificateEntry entry;
 		for (int index = 0; index < message.getCertificates().length; index++) {
 			entry = message.getCertificates()[index];
+			buffer.writeByte(entry.type());
 			buffer.writeShort(entry.getData().length);
 			buffer.write(entry.getData());
+			ExtensionCoder.encode(entry, buffer);
 		}
 	}
 
 	private static Certificate decodeCertificate(DataBuffer buffer) throws IOException {
 		final Certificate message = new Certificate();
-		// TODO
+		// opaque certificate_request_context<0..2^8-1>;
+		int length = buffer.readUnsignedByte();
+		if (length > 0) {
+			message.setContext(new byte[length]);
+			buffer.readFully(message.getContext());
+		}
+		// CertificateEntry certificate_list<0..2^24-1>;
+		length = buffer.readUnsignedMedium();
+		length = buffer.readable() - length;
+		CertificateEntry entry;
+		while (buffer.readable() > length) {
+			entry = new CertificateEntry(buffer.readByte());
+			entry.setData(new byte[buffer.readUnsignedShort()]);
+			buffer.readFully(entry.getData());
+			ExtensionCoder.decode(entry, buffer);
+			message.add(entry);
+		}
 		return message;
 	}
 
@@ -439,11 +333,12 @@ public class HandshakeCoder extends TLS {
 		buffer.write(message.getVerifyData());
 	}
 
-	private static Finished decodeFinished(DataBuffer buffer) throws IOException {
+	private static Finished decodeFinished(DataBuffer buffer, int length) throws IOException {
 		final Finished message = new Finished();
-		byte[] opaque;
-		buffer.readFully(opaque = new byte[buffer.readUnsignedShort()]);
-		message.setVerifyData(opaque);
+		if (length > 0) {
+			message.setVerifyData(new byte[length]);
+			buffer.readFully(message.getVerifyData());
+		}
 		return message;
 	}
 

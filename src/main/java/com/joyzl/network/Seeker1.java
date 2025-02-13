@@ -1,11 +1,11 @@
-package com.joyzl.network.http;
+package com.joyzl.network;
 
 import java.util.Arrays;
 
 /**
  * 字符串常量查找，不区分大小写
  * 
- * @deprecated {@link Seeker}
+ * @deprecated {@link StringSeeker}
  * @author ZhangXi 2024年11月22日
  */
 @Deprecated

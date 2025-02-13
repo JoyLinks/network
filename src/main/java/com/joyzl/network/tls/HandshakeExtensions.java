@@ -8,10 +8,11 @@ import java.util.List;
  * 
  * @author ZhangXi 2024年12月13日
  */
-public abstract class HandshakeExtensions extends Handshake {
+public abstract class HandshakeExtensions extends Handshake implements Extensions {
 
 	private List<Extension> extensions = new ArrayList<>();
 
+	@Override
 	public boolean isHelloRetryRequest() {
 		return false;
 	}
@@ -21,10 +22,12 @@ public abstract class HandshakeExtensions extends Handshake {
 		return !extensions.isEmpty();
 	}
 
+	@Override
 	public List<Extension> getExtensions() {
 		return extensions;
 	}
 
+	@Override
 	public void setExtensions(List<Extension> value) {
 		if (value != extensions) {
 			extensions.clear();

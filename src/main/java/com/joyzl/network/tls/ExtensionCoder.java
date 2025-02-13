@@ -5,24 +5,17 @@ import java.io.IOException;
 import com.joyzl.network.buffer.DataBuffer;
 
 /**
- * 特定扩展字段编解码
+ * 扩展字段编解码
+ * 
+ * <pre>
+ * RFC 7685 A Transport Layer Security (TLS) ClientHello Padding Extension
+ * </pre>
  * 
  * @author ZhangXi 2024年12月19日
  */
 public class ExtensionCoder {
 
-	// 这些定义的扩展如此混乱不堪
-	/*-
-	 * server_name 				C-S-C
-	 * max_fragment_length		C-S-C
-	 * client_certificate_url	C-S-C
-	 * trusted_ca_keys			C-S-C
-	 * truncated_hmac			C-S-C
-	 * status_request			C-S-C
-	 * psk_key_exchange_modes	C-S
-	 */
-
-	public static void encodeByServer(HandshakeExtensions extensions, DataBuffer buffer) throws IOException {
+	public static void encode(Extensions extensions, DataBuffer buffer) throws IOException {
 		int p1, p2, length;
 		// Length 2Byte
 		p1 = buffer.readable();
@@ -37,6 +30,7 @@ public class ExtensionCoder {
 			// opaque extension_data<0..2^16-1>;
 			p2 = buffer.readable();
 			buffer.writeShort(0);
+
 			// SUB Extensions
 			if (extension.type() == Extension.SERVER_NAME) {
 				encode((ServerNames) extension, buffer);
@@ -68,103 +62,6 @@ public class ExtensionCoder {
 				encode((ClientCertificateType) extension, buffer);
 			} else if (extension.type() == Extension.SERVER_CERTIFICATE_TYPE) {
 				encode((ServerCertificateType) extension, buffer);
-			} else if (extension.type() == Extension.PADDING) {
-				encode((Padding) extension, buffer);
-			} else if (extension.type() == Extension.EXTENDED_MASTER_SECRET) {
-				encode((ExtendedMasterSecret) extension, buffer);
-			} else if (extension.type() == Extension.COMPRESS_CERTIFICATE) {
-				encode((CompressCertificate) extension, buffer);
-			} else if (extension.type() == Extension.SESSION_TICKET) {
-				encode((SessionTicket) extension, buffer);
-			} else if (extension.type() == Extension.PRE_SHARED_KEY) {
-				encodePreSharedKey2((PreSharedKey) extension, buffer);
-			} else if (extension.type() == Extension.EARLY_DATA) {
-				encode((EarlyData) extension, buffer);
-			} else if (extension.type() == Extension.SUPPORTED_VERSIONS) {
-				encode((SupportedVersions) extension, buffer);
-			} else if (extension.type() == Extension.COOKIE) {
-				encode((Cookie) extension, buffer);
-			} else if (extension.type() == Extension.PSK_KEY_EXCHANGE_MODES) {
-				encode((PskKeyExchangeModes) extension, buffer);
-			} else if (extension.type() == Extension.CERTIFICATE_AUTHORITIES) {
-				encode((CertificateAuthorities) extension, buffer);
-			} else if (extension.type() == Extension.OID_FILTERS) {
-				encode((OIDFilters) extension, buffer);
-			} else if (extension.type() == Extension.POST_HANDSHAKE_AUTH) {
-				encode((PostHandshakeAuth) extension, buffer);
-			} else if (extension.type() == Extension.SIGNATURE_ALGORITHMS_CERT) {
-				encode((SignatureAlgorithmsCert) extension, buffer);
-			} else if (extension.type() == Extension.KEY_SHARE) {
-				encodeKeyShare2((KeyShare) extension, buffer);
-				// encodeKeyShare3((KeyShare) extension, buffer);
-			} else if (extension.type() == Extension.RENEGOTIATION_INFO) {
-				encode((RenegotiationInfo) extension, buffer);
-			} else if (extension.type() == Extension.APPLICATION_SETTINGS) {
-				encode((ApplicationSettings) extension, buffer);
-			} else if (extension.type() == Extension.ENCRYPTED_CLIENT_HELLO) {
-				encode((EncryptedClientHello) extension, buffer);
-			} else {
-				encode((Reserved) extension, buffer);
-			}
-			// SET Length
-			length = buffer.readable() - p2 - 2;
-			buffer.set(p2++, (byte) (length >>> 8));
-			buffer.set(p2, (byte) length);
-		}
-		// SET Length
-		length = buffer.readable() - p1 - 2;
-		buffer.set(p1++, (byte) (length >>> 8));
-		buffer.set(p1, (byte) length);
-	}
-
-	public static void encodeByClient(HandshakeExtensions extensions, DataBuffer buffer) throws IOException {
-		int p1, p2, length;
-		// Length 2Byte
-		p1 = buffer.readable();
-		buffer.writeShort(0);
-		// SUB Extensions
-		Extension extension;
-		for (int index = 0; index < extensions.getExtensions().size(); index++) {
-			extension = extensions.getExtensions().get(index);
-
-			// Type 2Byte
-			buffer.writeShort(extension.type());
-			// opaque extension_data<0..2^16-1>;
-			p2 = buffer.readable();
-			buffer.writeShort(0);
-			// SUB Extensions
-			if (extension.type() == Extension.SERVER_NAME) {
-				encode((ServerNames) extension, buffer);
-			} else if (extension.type() == Extension.MAX_FRAGMENT_LENGTH) {
-				encode((MaxFragmentLength) extension, buffer);
-			} else if (extension.type() == Extension.CLIENT_CERTIFICATE_URL) {
-				encode((ClientCertificateURL) extension, buffer);
-			} else if (extension.type() == Extension.TRUSTED_CA_KEYS) {
-				encode((TrustedAuthorities) extension, buffer);
-			} else if (extension.type() == Extension.TRUNCATED_HMAC) {
-				encode((TruncatedHMAC) extension, buffer);
-			} else if (extension.type() == Extension.STATUS_REQUEST) {
-				encode((StatusRequest) extension, buffer);
-			} else if (extension.type() == Extension.SUPPORTED_GROUPS) {
-				encode((SupportedGroups) extension, buffer);
-			} else if (extension.type() == Extension.EC_POINT_FORMATS) {
-				encode((ECPointFormats) extension, buffer);
-			} else if (extension.type() == Extension.SIGNATURE_ALGORITHMS) {
-				encode((SignatureAlgorithms) extension, buffer);
-			} else if (extension.type() == Extension.USE_SRTP) {
-				encode((UseSRTP) extension, buffer);
-			} else if (extension.type() == Extension.HEARTBEAT) {
-				encode((Heartbeat) extension, buffer);
-			} else if (extension.type() == Extension.APPLICATION_LAYER_PROTOCOL_NEGOTIATION) {
-				encode((ApplicationLayerProtocolNegotiation) extension, buffer);
-			} else if (extension.type() == Extension.SIGNED_CERTIFICATE_TIMESTAMP) {
-				encode((SignedCertificateTimestamp) extension, buffer);
-			} else if (extension.type() == Extension.CLIENT_CERTIFICATE_TYPE) {
-				encode((ClientCertificateType) extension, buffer);
-			} else if (extension.type() == Extension.SERVER_CERTIFICATE_TYPE) {
-				encode((ServerCertificateType) extension, buffer);
-			} else if (extension.type() == Extension.PADDING) {
-				encode((Padding) extension, buffer);
 			} else if (extension.type() == Extension.EXTENDED_MASTER_SECRET) {
 				encode((ExtendedMasterSecret) extension, buffer);
 			} else if (extension.type() == Extension.COMPRESS_CERTIFICATE) {
@@ -190,7 +87,7 @@ public class ExtensionCoder {
 			} else if (extension.type() == Extension.SIGNATURE_ALGORITHMS_CERT) {
 				encode((SignatureAlgorithmsCert) extension, buffer);
 			} else if (extension.type() == Extension.KEY_SHARE) {
-				encodeKeyShare1((KeyShare) extension, buffer);
+				encode((KeyShare) extension, buffer);
 			} else if (extension.type() == Extension.RENEGOTIATION_INFO) {
 				encode((RenegotiationInfo) extension, buffer);
 			} else if (extension.type() == Extension.APPLICATION_SETTINGS) {
@@ -198,7 +95,6 @@ public class ExtensionCoder {
 			} else if (extension.type() == Extension.ENCRYPTED_CLIENT_HELLO) {
 				encode((EncryptedClientHello) extension, buffer);
 			} else {
-				encode((Reserved) extension, buffer);
 			}
 			// SET Length
 			length = buffer.readable() - p2 - 2;
@@ -206,15 +102,21 @@ public class ExtensionCoder {
 			buffer.set(p2, (byte) length);
 		}
 		if (extensions.msgType() == Handshake.CLIENT_HELLO) {
+			// RFC7685
 			// AUTO Padding ClientHello >= 512
-			// Record 5Byte , Handshake 4Byte
-			if (buffer.readable() < 512 + 5) {
-				final Padding padding = new Padding(517 - buffer.readable());
+			if (buffer.readable() < 512) {
+				length = 512 - buffer.readable();
+				if (length < 4) {
+					// Padding type + length = 4 Byte
+					length = 0;
+				}
 				// Type 2Byte
-				buffer.writeShort(padding.type());
+				buffer.writeShort(Extension.PADDING);
 				// opaque extension_data<0..2^16-1>;
-				buffer.writeShort(padding.getSiez() - 4);
-				encode(padding, buffer);
+				buffer.writeShort(length);
+				while (length-- > 0) {
+					buffer.writeByte(0);
+				}
 			}
 		}
 		// SET Length
@@ -223,20 +125,20 @@ public class ExtensionCoder {
 		buffer.set(p1, (byte) length);
 	}
 
-	public static void decodeByClient(HandshakeExtensions extensions, DataBuffer buffer) throws IOException {
+	public static void decode(Extensions extensions, DataBuffer buffer) throws IOException {
 		// Length 2Byte
 		int length = buffer.readUnsignedShort();
 		// 计算扩展字段全部解码后的剩余字节
 		length = buffer.readable() - length;
 
-		int len;
+		int size;
 		short type;
 		Extension extension;
 		while (buffer.readable() > length) {
 			// Type 2Byte
 			type = buffer.readShort();
 			// opaque extension_data<0..2^16-1>;
-			len = buffer.readUnsignedShort();
+			size = buffer.readUnsignedShort();
 			// SUB Extension
 			if (type == Extension.SERVER_NAME) {
 				extension = decodeServerNames(buffer);
@@ -249,7 +151,7 @@ public class ExtensionCoder {
 			} else if (type == Extension.TRUNCATED_HMAC) {
 				extension = decodeTruncatedHMAC(buffer);
 			} else if (type == Extension.STATUS_REQUEST) {
-				extension = decodeStatusRequest(buffer, len);
+				extension = decodeStatusRequest(buffer, size);
 			} else if (type == Extension.SUPPORTED_GROUPS) {
 				extension = decodeSupportedGroups(buffer);
 			} else if (type == Extension.EC_POINT_FORMATS) {
@@ -265,11 +167,9 @@ public class ExtensionCoder {
 			} else if (type == Extension.SIGNED_CERTIFICATE_TIMESTAMP) {
 				extension = decodeSignedCertificateTimestamp(buffer);
 			} else if (type == Extension.CLIENT_CERTIFICATE_TYPE) {
-				extension = decodeClientCertificateType(buffer, len);
+				extension = decodeClientCertificateType(buffer, size);
 			} else if (type == Extension.SERVER_CERTIFICATE_TYPE) {
-				extension = decodeServerCertificateType(buffer, len);
-			} else if (type == Extension.PADDING) {
-				extension = decodePadding(buffer, len);
+				extension = decodeServerCertificateType(buffer, size);
 			} else if (type == Extension.EXTENDED_MASTER_SECRET) {
 				extension = decodeExtendedMasterSecret(buffer);
 			} else if (type == Extension.COMPRESS_CERTIFICATE) {
@@ -295,10 +195,16 @@ public class ExtensionCoder {
 			} else if (type == Extension.SIGNATURE_ALGORITHMS_CERT) {
 				extension = decodeSignatureAlgorithmsCert(buffer);
 			} else if (type == Extension.KEY_SHARE) {
-				if (extensions.isHelloRetryRequest()) {
-					extension = decodeKeyShare2(buffer);
+				if (extensions.msgType() == Handshake.CLIENT_HELLO) {
+					extension = decodeKeyShareClientHello(buffer);
+				} else if (extensions.msgType() == Handshake.SERVER_HELLO) {
+					if (extensions.isHelloRetryRequest()) {
+						extension = decodeKeyShareHelloRetryRequest(buffer);
+					} else {
+						extension = decodeKeyShareServerHello(buffer);
+					}
 				} else {
-					extension = decodeKeyShare3(buffer);
+					throw new IOException("TLS:混乱的扩展");
 				}
 			} else if (type == Extension.RENEGOTIATION_INFO) {
 				extension = decodeRenegotiationInfo(buffer);
@@ -307,93 +213,8 @@ public class ExtensionCoder {
 			} else if (type == Extension.ENCRYPTED_CLIENT_HELLO) {
 				extension = decodeEncryptedClientHello(buffer);
 			} else {
-				extension = decodeReserved(buffer, len);
-			}
-			extensions.getExtensions().add(extension);
-		}
-	}
-
-	public static void decodeByServer(HandshakeExtensions extensions, DataBuffer buffer) throws IOException {
-		// Length 2Byte
-		int length = buffer.readUnsignedShort();
-		// 计算扩展字段全部解码后的剩余字节
-		length = buffer.readable() - length;
-
-		int len;
-		short type;
-		Extension extension;
-		while (buffer.readable() > length) {
-			// Type 2Byte
-			type = buffer.readShort();
-			// opaque extension_data<0..2^16-1>;
-			len = buffer.readUnsignedShort();
-			// SUB Extension
-			if (type == Extension.SERVER_NAME) {
-				extension = decodeServerNames(buffer);
-			} else if (type == Extension.MAX_FRAGMENT_LENGTH) {
-				extension = decodeMaxFragmentLength(buffer);
-			} else if (type == Extension.CLIENT_CERTIFICATE_URL) {
-				extension = decodeClientCertificateURL(buffer);
-			} else if (type == Extension.TRUSTED_CA_KEYS) {
-				extension = decodeTrustedCAKeys(buffer);
-			} else if (type == Extension.TRUNCATED_HMAC) {
-				extension = decodeTruncatedHMAC(buffer);
-			} else if (type == Extension.STATUS_REQUEST) {
-				extension = decodeStatusRequest(buffer, len);
-			} else if (type == Extension.SUPPORTED_GROUPS) {
-				extension = decodeSupportedGroups(buffer);
-			} else if (type == Extension.EC_POINT_FORMATS) {
-				extension = decodeECPointFormats(buffer);
-			} else if (type == Extension.SIGNATURE_ALGORITHMS) {
-				extension = decodeSignatureAlgorithms(buffer);
-			} else if (type == Extension.USE_SRTP) {
-				extension = decodeUseSrtp(buffer);
-			} else if (type == Extension.HEARTBEAT) {
-				extension = decodeHeartbeat(buffer);
-			} else if (type == Extension.APPLICATION_LAYER_PROTOCOL_NEGOTIATION) {
-				extension = decodeApplicationLayerProtocolNegotiation(buffer);
-			} else if (type == Extension.SIGNED_CERTIFICATE_TIMESTAMP) {
-				extension = decodeSignedCertificateTimestamp(buffer);
-			} else if (type == Extension.CLIENT_CERTIFICATE_TYPE) {
-				extension = decodeClientCertificateType(buffer, len);
-			} else if (type == Extension.SERVER_CERTIFICATE_TYPE) {
-				extension = decodeServerCertificateType(buffer, len);
-			} else if (type == Extension.PADDING) {
-				extension = decodePadding(buffer, len);
-			} else if (type == Extension.EXTENDED_MASTER_SECRET) {
-				extension = decodeExtendedMasterSecret(buffer);
-			} else if (type == Extension.COMPRESS_CERTIFICATE) {
-				extension = decodeCompressCertificate(buffer);
-			} else if (type == Extension.SESSION_TICKET) {
-				extension = decodeSessionTicket(buffer);
-			} else if (type == Extension.PRE_SHARED_KEY) {
-				extension = decodePreSharedKey1(buffer);
-			} else if (type == Extension.EARLY_DATA) {
-				extension = decodeEarlyData2(buffer);
-			} else if (type == Extension.SUPPORTED_VERSIONS) {
-				extension = decodeSupportedVersions(buffer);
-			} else if (type == Extension.COOKIE) {
-				extension = decodeCookie(buffer);
-			} else if (type == Extension.PSK_KEY_EXCHANGE_MODES) {
-				extension = decodePskKeyExchangeModes(buffer);
-			} else if (type == Extension.CERTIFICATE_AUTHORITIES) {
-				extension = decodeCertificateAuthorities(buffer);
-			} else if (type == Extension.OID_FILTERS) {
-				extension = decodeOIDFilters(buffer);
-			} else if (type == Extension.POST_HANDSHAKE_AUTH) {
-				extension = decodePostHandshakeAuth(buffer);
-			} else if (type == Extension.SIGNATURE_ALGORITHMS_CERT) {
-				extension = decodeSignatureAlgorithmsCert(buffer);
-			} else if (type == Extension.KEY_SHARE) {
-				extension = decodeKeyShare1(buffer);
-			} else if (type == Extension.RENEGOTIATION_INFO) {
-				extension = decodeRenegotiationInfo(buffer);
-			} else if (type == Extension.RENEGOTIATION_INFO) {
-				extension = decodeApplicationSettings(buffer);
-			} else if (type == Extension.ENCRYPTED_CLIENT_HELLO) {
-				extension = decodeEncryptedClientHello(buffer);
-			} else {
-				extension = decodeReserved(buffer, len);
+				buffer.skipBytes(size);
+				continue;
 			}
 			extensions.getExtensions().add(extension);
 		}
@@ -558,14 +379,6 @@ public class ExtensionCoder {
 		// }
 	}
 
-	/** RFC 7685 */
-	private static void encode(Padding extension, DataBuffer buffer) throws IOException {
-		int size = extension.getSiez() - 4;
-		while (size-- > 0) {
-			buffer.writeByte(0);
-		}
-	}
-
 	/** RFC 7627 */
 	private static void encode(ExtendedMasterSecret extension, DataBuffer buffer) throws IOException {
 		// EMPTY
@@ -585,37 +398,69 @@ public class ExtensionCoder {
 		buffer.write(extension.getTicket());
 	}
 
-	/** RFC 8446 client_shares TO Server */
-	private static void encodeKeyShare1(KeyShare extension, DataBuffer buffer) throws IOException {
-		int length = 0;
-		KeyShareEntry item;
-		for (int index = 0; index < extension.size(); index++) {
-			item = extension.get(index);
-			length += item.getKeyExchange().length;
-			length += 4;
-		}
-		// Length 2Byte
-		buffer.writeShort(length);
-		for (int index = 0; index < extension.size(); index++) {
-			item = extension.get(index);
-			buffer.writeShort(item.group());
-			buffer.writeShort(item.getKeyExchange().length);
-			buffer.write(item.getKeyExchange());
+	/** RFC 8446 */
+	private static void encode(KeyShare extension, DataBuffer buffer) throws IOException {
+		if (extension instanceof KeyShareClientHello) {
+			final KeyShareClientHello s = (KeyShareClientHello) extension;
+			int length = 0;
+			KeyShareEntry item;
+			for (int index = 0; index < s.size(); index++) {
+				item = s.get(index);
+				length += item.getKeyExchange().length;
+				length += 4;
+			}
+			// Length 2Byte
+			buffer.writeShort(length);
+			// client_shares
+			for (int index = 0; index < s.size(); index++) {
+				item = s.get(index);
+				buffer.writeShort(item.group());
+				buffer.writeShort(item.getKeyExchange().length);
+				buffer.write(item.getKeyExchange());
+			}
+		} else
+		//
+		if (extension instanceof KeyShareHelloRetryRequest) {
+			final KeyShareHelloRetryRequest s = (KeyShareHelloRetryRequest) extension;
+			buffer.writeShort(s.selectedGroup());
+		} else
+		//
+		if (extension instanceof KeyShareServerHello) {
+			final KeyShareServerHello s = (KeyShareServerHello) extension;
+			buffer.writeShort(s.serverShare().group());
+			buffer.writeShort(s.serverShare().getKeyExchange().length);
+			buffer.write(s.serverShare().getKeyExchange());
 		}
 	}
 
-	/** RFC 8446 selected_group TO Client */
-	private static void encodeKeyShare2(KeyShare extension, DataBuffer buffer) throws IOException {
-		final KeyShareEntry item = extension.get(0);
-		buffer.writeShort(item.group());
+	/** RFC 8446 */
+	private static KeyShare decodeKeyShareClientHello(DataBuffer buffer) throws IOException {
+		final KeyShareClientHello s = new KeyShareClientHello();
+		int length = buffer.readShort();
+		if (length > 0) {
+			short group;
+			byte[] keyExchange;
+			while (length > 0) {
+				group = buffer.readShort();
+				buffer.readFully(keyExchange = new byte[buffer.readShort()]);
+				s.add(new KeyShareEntry(group, keyExchange));
+				length -= keyExchange.length + 4;
+			}
+		}
+		return s;
 	}
 
-	/** RFC 8446 server_share TO Client */
-	private static void encodeKeyShare3(KeyShare extension, DataBuffer buffer) throws IOException {
-		final KeyShareEntry item = extension.get(0);
-		buffer.writeShort(item.group());
-		buffer.writeShort(item.getKeyExchange().length);
-		buffer.write(item.getKeyExchange());
+	/** RFC 8446 */
+	private static KeyShare decodeKeyShareServerHello(DataBuffer buffer) throws IOException {
+		final KeyShareEntry entry = new KeyShareEntry(buffer.readShort());
+		entry.setKeyExchange(new byte[buffer.readShort()]);
+		buffer.readFully(entry.getKeyExchange());
+		return new KeyShareServerHello(entry);
+	}
+
+	/** RFC 8446 */
+	private static KeyShare decodeKeyShareHelloRetryRequest(DataBuffer buffer) throws IOException {
+		return new KeyShareHelloRetryRequest(buffer.readShort());
 	}
 
 	/** RFC 5746 */
@@ -709,16 +554,6 @@ public class ExtensionCoder {
 	/** RFC ??? */
 	private static void encode(EncryptedClientHello extension, DataBuffer buffer) throws IOException {
 		// TODO
-	}
-
-	private static void encode(Reserved extension, DataBuffer buffer) throws IOException {
-		buffer.write(extension.getData());
-	}
-
-	private static Reserved decodeReserved(DataBuffer buffer, int length) throws IOException {
-		final Reserved extension = new Reserved();
-		buffer.skipBytes(length);
-		return extension;
 	}
 
 	/** RFC 6066 */
@@ -830,13 +665,12 @@ public class ExtensionCoder {
 	private static ApplicationLayerProtocolNegotiation decodeApplicationLayerProtocolNegotiation(DataBuffer buffer) throws IOException {
 		final ApplicationLayerProtocolNegotiation extension = new ApplicationLayerProtocolNegotiation();
 		int length = buffer.readShort();
-		if (length > 0) {
-			byte[] opaque;
-			while (length > 0) {
-				buffer.readFully(opaque = new byte[buffer.readByte()]);
-				extension.add(opaque);
-				length -= opaque.length;
-			}
+		byte[] opaque;
+		while (length > 0) {
+			buffer.readFully(opaque = new byte[buffer.readByte()]);
+			extension.add(opaque);
+			length -= opaque.length;
+			length--;
 		}
 		return extension;
 	}
@@ -872,14 +706,6 @@ public class ExtensionCoder {
 		return extension;
 	}
 
-	/** RFC 7685 */
-	private static Padding decodePadding(DataBuffer buffer, int length) throws IOException {
-		final Padding extension = new Padding();
-		buffer.skipBytes(length);
-		extension.setSiez(length + 4);
-		return extension;
-	}
-
 	/** RFC 7627 */
 	private static ExtendedMasterSecret decodeExtendedMasterSecret(DataBuffer buffer) throws IOException {
 		return ExtendedMasterSecret.INSTANCE;
@@ -900,41 +726,6 @@ public class ExtensionCoder {
 		final SessionTicket extension = new SessionTicket();
 		extension.setTicket(new byte[buffer.readShort()]);
 		buffer.readFully(extension.getTicket());
-		return extension;
-	}
-
-	/** RFC 8446 client_shares TO Server */
-	private static KeyShare decodeKeyShare1(DataBuffer buffer) throws IOException {
-		final KeyShare extension = new KeyShare();
-		int length = buffer.readShort();
-		if (length > 0) {
-			short group;
-			byte[] keyExchange;
-			while (length > 0) {
-				group = buffer.readShort();
-				buffer.readFully(keyExchange = new byte[buffer.readShort()]);
-				extension.add(new KeyShareEntry(group, keyExchange));
-				length -= keyExchange.length + 4;
-			}
-		}
-		return extension;
-	}
-
-	/** RFC 8446 selected_group TO Client */
-	private static KeyShare decodeKeyShare2(DataBuffer buffer) throws IOException {
-		final KeyShare extension = new KeyShare();
-		final short group = buffer.readShort();
-		extension.add(new KeyShareEntry(group));
-		return extension;
-	}
-
-	/** RFC 8446 server_share TO Client */
-	private static KeyShare decodeKeyShare3(DataBuffer buffer) throws IOException {
-		final KeyShare extension = new KeyShare();
-		final short group = buffer.readShort();
-		final byte[] keyExchange = new byte[buffer.readShort()];
-		buffer.readFully(keyExchange);
-		extension.add(new KeyShareEntry(group, keyExchange));
 		return extension;
 	}
 

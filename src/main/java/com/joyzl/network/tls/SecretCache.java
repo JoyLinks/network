@@ -28,7 +28,11 @@ public class SecretCache extends DeriveSecret {
 	}
 
 	public boolean hasKey() {
-		return handshake != null && master != null;
+		return master != null;
+	}
+
+	public boolean handshaked() {
+		return clientTraffic != null || serverTraffic != null;
 	}
 
 	/**
@@ -67,13 +71,19 @@ public class SecretCache extends DeriveSecret {
 		return exporterMaster(master, hash());
 	}
 
+	public void done() {
+		hashReset();
+		handshake = null;
+		clientTraffic = null;
+		serverTraffic = null;
+	}
+
 	public byte[] resumption(byte[] nonce) throws Exception {
 		master = resumptionMaster(master, hash());
-		handshake = resumption(master, nonce);
-
-		hashReset();
-		early = early(handshake);
-		return handshake;
+		nonce = resumption(master, nonce);
+		done();
+		early = early(nonce);
+		return nonce;
 	}
 
 	public byte[] resumptionBinderKey() throws Exception {

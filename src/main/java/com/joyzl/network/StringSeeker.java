@@ -1,4 +1,4 @@
-package com.joyzl.network.http;
+package com.joyzl.network;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -12,12 +12,12 @@ import java.util.Comparator;
  * 
  * @author ZhangXi 2024年11月22日
  */
-public class Seeker {
+public class StringSeeker {
 
 	/** 相同长度分组，每组按字符排序 */
 	private final String[][] constants;
 
-	public Seeker(String[] strings) {
+	public StringSeeker(String[] strings) {
 		// 字符串排序（长度，字符）
 		Arrays.sort(strings, LENGTH_ORDER);
 		String[] group = new String[strings.length];

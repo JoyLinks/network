@@ -1,19 +1,178 @@
 package com.joyzl.network.tls;
 
 import java.security.SecureRandom;
+import java.util.Arrays;
 
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.chain.ChainHandler;
 
-public class TLSClientHandler implements ChainHandler<Object> {
+public class TLSClientHandler extends RecordHandler {
 
 	private final ChainHandler<Object> handler;
-	private KeyExchange key;
 	private CipherSuiter cipher;
+	private KeyExchange key;
 
 	public TLSClientHandler(ChainHandler<Object> handler) {
 		this.handler = handler;
+	}
+
+	@Override
+	protected ChainHandler<Object> handler() {
+		return handler;
+	}
+
+	@Override
+	protected boolean handshaked() {
+		return cipher.handshaked();
+	}
+
+	@Override
+	protected DataBuffer decrypt(DataBuffer buffer, int length) throws Exception {
+		final DataBuffer data = DataBuffer.instance();
+		if (buffer.readable() == length) {
+			cipher.decryptAdditional(length);
+			cipher.decryptFinal(buffer, data);
+		} else {
+			cipher.decryptAdditional(length);
+			cipher.decryptFinal(buffer, data, length);
+		}
+		return data;
+	}
+
+	@Override
+	protected DataBuffer encrypt(DataBuffer buffer) throws Exception {
+		cipher.encryptFinal(buffer);
+		return buffer;
+	}
+
+	@Override
+	protected void encode(Handshake handshake, DataBuffer buffer) throws Exception {
+		HandshakeCoder.encode(handshake, buffer);
+		cipher.hash(buffer);
+	}
+
+	@Override
+	protected Handshake decode(DataBuffer buffer) throws Exception {
+		buffer.mark();
+		final int type = buffer.readByte();
+		final int length = buffer.readUnsignedMedium();
+		buffer.reset();
+
+		if (type == Handshake.FINISHED) {
+			// 校验服务端的完成哈希
+			// 如果本地校验与服务端相同则置为OK
+
+			final byte[] hash = cipher.serverFinished();
+			cipher.hash(buffer, length + 4);
+			final Finished finished = (Finished) HandshakeCoder.decode(buffer);
+			if (Arrays.equals(hash, finished.getVerifyData())) {
+				finished.setVerifyData(Finished.OK);
+			}
+			return finished;
+		} else {
+			cipher.hash(buffer, length + 4);
+			return HandshakeCoder.decode(buffer);
+		}
+	}
+
+	@Override
+	public void sent(ChainChannel<Object> chain, Object message) throws Exception {
+		if (message instanceof Record) {
+			if (message instanceof Finished) {
+				cipher.encryptReset(cipher.clientApplicationTraffic());
+				handler().connected(chain);
+			} else {
+				chain.receive();
+			}
+		} else {
+			handler().sent(chain, message);
+		}
+	}
+
+	@Override
+	protected void received(ChainChannel<Object> chain, Handshake message) throws Exception {
+		System.out.print('\t');
+		System.out.println(message);
+
+		if (message.msgType() == Handshake.SERVER_HELLO) {
+			final ServerHello serverHello = (ServerHello) message;
+			if (serverHello.isHelloRetryRequest()) {
+				System.out.println("HelloRetryRequest");
+			} else {
+				if (serverHello.getVersion() == TLS.V12) {
+					for (Extension extension : serverHello.getExtensions()) {
+						System.out.print('\t');
+						System.out.print('\t');
+						System.out.println(extension);
+						if (extension.type() == Extension.SUPPORTED_VERSIONS) {
+							final SupportedVersions supportedVersions = (SupportedVersions) extension;
+							if (supportedVersions.size() == 1) {
+								if (supportedVersions.get(0) == TLS.V13) {
+									// OK
+									continue;
+								} else {
+									chain.send(new Alert(Alert.ILLEGAL_PARAMETER));
+									return;
+								}
+							} else {
+								chain.send(new Alert(Alert.ILLEGAL_PARAMETER));
+								return;
+							}
+						} else
+						//
+						if (extension.type() == Extension.KEY_SHARE) {
+							final KeyShareServerHello keyShare = (KeyShareServerHello) extension;
+							if (keyShare.serverShare().group() == key.group()) {
+								cipher.sharedKey(key.sharedKey(keyShare.serverShare().getKeyExchange()));
+							} else {
+								chain.send(new Alert(Alert.ILLEGAL_PARAMETER));
+								return;
+							}
+						}
+					}
+					if (serverHello.getCipherSuite() == cipher.suite()) {
+						cipher.encryptReset(cipher.clientHandshakeTraffic());
+						cipher.decryptReset(cipher.serverHandshakeTraffic());
+					} else {
+
+					}
+				}
+
+			}
+		} else
+		//
+		if (message.msgType() == Handshake.ENCRYPTED_EXTENSIONS) {
+			final EncryptedExtensions extensions = (EncryptedExtensions) message;
+			for (Extension extension : extensions.getExtensions()) {
+				System.out.print('\t');
+				System.out.print('\t');
+				System.out.println(extension);
+
+				if (extension.type() == Extension.APPLICATION_LAYER_PROTOCOL_NEGOTIATION) {
+					final ApplicationLayerProtocolNegotiation alpn = (ApplicationLayerProtocolNegotiation) extension;
+
+				}
+			}
+		} else
+		//
+		if (message.msgType() == Handshake.CERTIFICATE) {
+			final Certificate certificate = (com.joyzl.network.tls.Certificate) message;
+
+		} else
+		//
+		if (message.msgType() == Handshake.CERTIFICATE_VERIFY) {
+
+		} else
+		//
+		if (message.msgType() == Handshake.FINISHED) {
+			final Finished finished = (Finished) message;
+			if (finished.getVerifyData() == Finished.OK) {
+				finished.setVerifyData(cipher.clientFinished());
+				cipher.decryptReset(cipher.serverApplicationTraffic());
+			}
+			chain.send(finished);
+		}
 	}
 
 	@Override
@@ -63,172 +222,15 @@ public class TLSClientHandler implements ChainHandler<Object> {
 		hello.getExtensions().add(new PskKeyExchangeModes(PskKeyExchangeModes.PSK_DHE_KE));
 
 		key = new KeyExchange(NamedGroup.X25519);
-		hello.getExtensions().add(new KeyShare(//
+		hello.getExtensions().add(new KeyShareClientHello(//
 			// new KeyShareEntry((short) 0x2A2A, new byte[] { 0 }), //
 			// new KeyShareEntry((short) 0x11EC, SecureRandom.getSeed(1216)), //
 			new KeyShareEntry(NamedGroup.X25519, key.publicKey())));
 		// hello.getExtensions().add(new KeyShare());
 
 		cipher = new CipherSuiter(CipherSuite.TLS_AES_128_GCM_SHA256);
+
 		chain.send(hello);
-	}
-
-	@Override
-	public DataBuffer encode(ChainChannel<Object> chain, Object message) throws Exception {
-		if (message instanceof Record) {
-			return RecordCoder.encode((Record) message, cipher);
-		} else {
-			// APPLICATION DATA
-			final DataBuffer data = handler.encode(chain, message);
-			return RecordCoder.encodeCiphertext(ApplicationData.DATA, data, cipher);
-		}
-	}
-
-	@Override
-	public void sent(ChainChannel<Object> chain, Object message) throws Exception {
-		chain.receive();
-	}
-
-	private DataBuffer b;
-
-	@Override
-	public Object decode(ChainChannel<Object> chain, DataBuffer buffer) throws Exception {
-		Object message = RecordCoder.decode(buffer, cipher);
-		if (message instanceof DataBuffer) {
-			// TODO 多次解码消息如何返回
-			final DataBuffer data = (DataBuffer) message;
-			while (data.readable() > 0) {
-				message = handler.decode(chain, data);
-				if (message != null) {
-					handler.received(chain, message);
-				} else {
-					break;
-				}
-			}
-			data.release();
-		}
-		return message;
-	}
-
-	@Override
-	public void received(ChainChannel<Object> chain, Object message) throws Exception {
-		System.out.println(message);
-		if (message == null) {
-			// TIMEOUT
-			// handler.received(chain, message);
-		} else {
-			if (message instanceof Record) {
-				final Record record = (Record) message;
-				if (record.contentType() == Record.HANDSHAKE) {
-					final Handshake handshake = (Handshake) message;
-					if (handshake.msgType() == Handshake.SERVER_HELLO) {
-						final ServerHello serverHello = (ServerHello) handshake;
-						if (serverHello.isHelloRetryRequest()) {
-
-						} else {
-							if (serverHello.getVersion() == TLS.V12) {
-								for (Extension extension : serverHello.getExtensions()) {
-									System.out.println(extension);
-									if (extension.type() == Extension.SUPPORTED_VERSIONS) {
-										final SupportedVersions supportedVersions = (SupportedVersions) extension;
-										if (supportedVersions.size() == 1) {
-											if (supportedVersions.get(0) == TLS.V13) {
-												// OK
-											} else {
-												chain.send(new Alert(Alert.ILLEGAL_PARAMETER));
-												return;
-											}
-										} else {
-											chain.send(new Alert(Alert.ILLEGAL_PARAMETER));
-											return;
-										}
-									} else
-									//
-									if (extension.type() == Extension.KEY_SHARE) {
-										final KeyShare keyShare = (KeyShare) extension;
-										if (keyShare.size() == 1) {
-											final KeyShareEntry entry = keyShare.get(0);
-											if (entry.group() == key.group()) {
-												if (entry.getKeyExchange() != null) {
-													cipher.sharedKey(key.sharedKey(entry.getKeyExchange()));
-												} else {
-													chain.send(new Alert(Alert.ILLEGAL_PARAMETER));
-													return;
-												}
-											} else {
-												chain.send(new Alert(Alert.ILLEGAL_PARAMETER));
-												return;
-											}
-										} else {
-											chain.send(new Alert(Alert.ILLEGAL_PARAMETER));
-											return;
-										}
-									}
-								}
-								if (serverHello.getCipherSuite() == cipher.suite()) {
-									cipher.encryptReset(cipher.clientHandshakeTraffic());
-									cipher.decryptReset(cipher.serverHandshakeTraffic());
-								} else {
-
-								}
-							}
-
-						}
-					} else
-					//
-					if (handshake.msgType() == Handshake.ENCRYPTED_EXTENSIONS) {
-						final EncryptedExtensions extensions = (EncryptedExtensions) handshake;
-						for (Extension extension : extensions.getExtensions()) {
-							System.out.println(extension);
-						}
-					} else
-					//
-					if (handshake.msgType() == Handshake.CERTIFICATE) {
-
-					} else
-					//
-					if (handshake.msgType() == Handshake.CERTIFICATE_VERIFY) {
-
-					} else
-					//
-					if (handshake.msgType() == Handshake.FINISHED) {
-						// final Finished finished = new Finished();
-						// finished.setVerifyData(cipher.clientFinished());
-						// chain.send(finished);
-					}
-					chain.receive();
-				} else
-				//
-				if (record.contentType() == Record.APPLICATION_DATA) {
-					chain.receive();
-				} else
-				//
-				if (record.contentType() == Record.CHANGE_CIPHER_SPEC) {
-					chain.receive();
-				} else
-				//
-				if (record.contentType() == Record.HEARTBEAT) {
-				} else
-				//
-				if (record.contentType() == Record.INVALID) {
-				} else
-				//
-				if (record.contentType() == Record.ALERT) {
-				}
-			} else {
-				// handler.received(chain, message);
-			}
-		}
-	}
-
-	@Override
-	public void disconnected(ChainChannel<Object> chain) throws Exception {
-
-	}
-
-	@Override
-	public void error(ChainChannel<Object> chain, Throwable e) {
-		e.printStackTrace();
 	}
 
 	static ClientHello defaultClientHello() {

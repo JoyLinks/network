@@ -96,4 +96,20 @@ public class ApplicationLayerProtocolNegotiation extends Extension {
 	public int size() {
 		return items.length;
 	}
+
+	@Override
+	public String toString() {
+		final StringBuilder sb = new StringBuilder();
+		sb.append(name());
+		if (size() > 0) {
+			sb.append(':');
+			for (int index = 0; index < size(); index++) {
+				if (index > 0) {
+					sb.append(',');
+				}
+				sb.append(getString(index));
+			}
+		}
+		return sb.toString();
+	}
 }

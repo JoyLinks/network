@@ -11,7 +11,10 @@ package com.joyzl.network.tls;
  */
 public class Finished extends Handshake {
 
-	private byte[] verify_data;
+	/** 这个特殊常量标记完成校验成功 */
+	final static byte[] OK = new byte[] { 1, 2 };
+
+	private byte[] verify_data = TLS.EMPTY_BYTES;
 
 	@Override
 	public byte msgType() {

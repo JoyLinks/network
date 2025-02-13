@@ -1,7 +1,5 @@
 package com.joyzl.network.tls;
 
-import java.util.Arrays;
-
 /**
  * 扩展：共享密钥
  * 
@@ -26,49 +24,10 @@ import java.util.Arrays;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class KeyShare extends Extension {
-
-	private final static KeyShareEntry[] EMPTY = new KeyShareEntry[0];
-	private KeyShareEntry[] items = EMPTY;
-
-	public KeyShare() {
-	}
-
-	public KeyShare(KeyShareEntry... value) {
-		set(value);
-	}
+public abstract class KeyShare extends Extension {
 
 	@Override
 	public short type() {
 		return KEY_SHARE;
-	}
-
-	public KeyShareEntry[] get() {
-		return items;
-	}
-
-	public KeyShareEntry get(int index) {
-		return items[index];
-	}
-
-	public void set(KeyShareEntry... value) {
-		if (value == null) {
-			items = EMPTY;
-		} else {
-			items = value;
-		}
-	}
-
-	public void add(KeyShareEntry value) {
-		if (items == EMPTY) {
-			items = new KeyShareEntry[] { value };
-		} else {
-			items = Arrays.copyOf(items, items.length + 1);
-			items[items.length - 1] = value;
-		}
-	}
-
-	public int size() {
-		return items.length;
 	}
 }
