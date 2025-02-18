@@ -50,7 +50,7 @@ public final class ChainSelector {
 		}
 	}
 
-	public static final void initialize(int thead_size) {
+	public static final void initialize() {
 		// NIO.1 READ SELECTOR
 		final Runnable reads = new Runnable() {
 			@Override

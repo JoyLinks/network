@@ -4,46 +4,68 @@ import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.chain.ChainHandler;
 
-public class TLSServerHandler implements ChainHandler<Record> {
+/**
+ * TLSServerHandler
+ * 
+ * @author ZhangXi 2025年2月14日
+ */
+public class TLSServerHandler extends RecordHandler {
+
+	private final ChainHandler<Object> handler;
+
+	public TLSServerHandler(ChainHandler<Object> handler) {
+		this.handler = handler;
+	}
 
 	@Override
-	public void connected(ChainChannel<Record> chain) throws Exception {
+	protected ChainHandler<Object> handler() {
+		return handler;
+	}
+
+	@Override
+	public void connected(ChainChannel<Object> chain) throws Exception {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	public Record decode(ChainChannel<Record> chain, DataBuffer reader) throws Exception {
+	public void sent(ChainChannel<Object> chain, Object message) throws Exception {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	protected boolean handshaked() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	protected DataBuffer decrypt(DataBuffer buffer, int length) throws Exception {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public void received(ChainChannel<Record> chain, Record message) throws Exception {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public DataBuffer encode(ChainChannel<Record> chain, Record message) throws Exception {
+	protected DataBuffer encrypt(DataBuffer buffer) throws Exception {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public void sent(ChainChannel<Record> chain, Record message) throws Exception {
+	protected Handshake decode(DataBuffer buffer) throws Exception {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	protected void encode(Handshake handshake, DataBuffer buffer) throws Exception {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	public void disconnected(ChainChannel<Record> chain) throws Exception {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void error(ChainChannel<Record> chain, Throwable e) {
+	protected void received(ChainChannel<Object> chain, Handshake handshake) throws Exception {
 		// TODO Auto-generated method stub
 
 	}

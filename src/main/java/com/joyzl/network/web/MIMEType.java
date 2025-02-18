@@ -57,6 +57,8 @@ public final class MIMEType {
 	public final static String APPLICATION_ECMA_SCRIPT = "application/ecmascript";
 	/** JavaScript JSON */
 	public final static String APPLICATION_JSON = "application/json";
+	/** xml */
+	public final static String APPLICATION_XML = "application/xml";
 
 	/** 文本文件 */
 	public final static String TEXT_PLAIN = "text/plain";

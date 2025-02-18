@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public abstract class Server<M> extends ChainChannel<M> {
 
-	/** Server从链路 */
+	/** 从链路 */
 	private final ConcurrentHashMap<String, Slave<M>> slaves = new ConcurrentHashMap<>();
 	/** 消息处理对象 */
 	private final ChainHandler<M> handler;

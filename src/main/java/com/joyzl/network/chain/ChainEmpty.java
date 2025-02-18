@@ -20,6 +20,10 @@ public class ChainEmpty<M> extends ChainChannel<M> {
 	public ChainEmpty(ChainHandler<M> h, String k) {
 		super(k);
 		handler = h;
+		connect();
+	}
+
+	void connect() {
 		try {
 			handler().connected(this);
 		} catch (Exception e) {

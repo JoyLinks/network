@@ -12,20 +12,41 @@ import com.joyzl.network.chain.ChainChannel;
  */
 abstract class RecordCoder extends TLS {
 
+	/**
+	 * 指示当前连接是否已握手（已收到对端公钥）
+	 */
 	protected abstract boolean handshaked();
 
+	/**
+	 * 解密缓存数据中指定部分，并通过新的缓存对象返回解密后的数据。<br>
+	 * 不要释放传入的缓存对象，其中可能还有后续消息的数据。
+	 */
 	protected abstract DataBuffer decrypt(DataBuffer buffer, int length) throws Exception;
 
+	/**
+	 * 加密全部缓存数据，并返回加密后的数据。<br>
+	 * 如果返回新的缓存对象，应将传入的缓存对象释放。
+	 */
 	protected abstract DataBuffer encrypt(DataBuffer buffer) throws Exception;
 
+	/**
+	 * 解码数据为握手消息对象，并执行必要的消息哈希计算已用于密钥导出计划。
+	 */
 	protected abstract Handshake decode(DataBuffer buffer) throws Exception;
 
+	/**
+	 * 编码握手消息对象为数据，获取必要的消息哈希结果按需导出流量密钥。
+	 */
 	protected abstract void encode(Handshake handshake, DataBuffer buffer) throws Exception;
 
+	/**
+	 * 通知接收到的握手消息，执行必要的协商处理。
+	 */
 	protected abstract void received(ChainChannel<Object> chain, Handshake handshake) throws Exception;
 
 	/**
-	 * 编码除APPLICATION_DATA之外的记录消息，视连接状态加密消息
+	 * 编码除APPLICATION_DATA之外的记录消息，视连接状态加密消息<br>
+	 * APPLICATION_DATA记录将直接由DataBuffer实例包装为记录数据
 	 */
 	protected DataBuffer encode(Record record) throws Exception {
 		// 兼容性消息
@@ -52,6 +73,9 @@ abstract class RecordCoder extends TLS {
 		}
 	}
 
+	/**
+	 * 编码明文记录，如有必要执行分块
+	 */
 	protected DataBuffer encodePlaintext(Record record, DataBuffer data) throws IOException {
 		final DataBuffer buffer = DataBuffer.instance();
 
@@ -79,21 +103,21 @@ abstract class RecordCoder extends TLS {
 	}
 
 	/**
-	 * 编码APPLICATION_DATA的记录消息，始终加密消息
+	 * 编码APPLICATION_DATA的记录消息，始终加密消息，如有必要执行分块和填充
 	 */
 	protected DataBuffer encodeCiphertext(Record record, DataBuffer data) throws Exception {
 		final DataBuffer buffer = DataBuffer.instance();
 
 		while (data.readable() > Record.PLAINTEXT_MAX) {
-			final DataBuffer temp = DataBuffer.instance();
+			DataBuffer temp = DataBuffer.instance();
 			// ContentType + PADDING(0)
 			// 负载已满时无填充数据(padding)
 			data.transfer(temp, Record.PLAINTEXT_MAX);
-			temp.writeByte(Record.APPLICATION_DATA);
+			temp.writeByte(record.contentType());
 
 			// cipher.encryptAdditional(temp.readable());
 			// cipher.encryptFinal(temp);
-			encrypt(temp);
+			temp = encrypt(temp);
 
 			// ContentType 1Byte
 			buffer.writeByte(Record.APPLICATION_DATA);
@@ -106,13 +130,18 @@ abstract class RecordCoder extends TLS {
 			temp.release();
 		}
 
-		// ContentType + PADDING(*)
+		// ContentType 1Byte
 		data.writeByte(record.contentType());
+		// PADDING(*)
 		int p = Record.PLAINTEXT_MAX - data.readable();
-		if (p > 8) {
+		if (p > 16) {
+			p = 16 - (p % 16);
+		} else if (p > 8) {
 			p = 8 - (p % 8);
 		} else if (p > 4) {
 			p = 4 - (p % 4);
+		} else {
+			p = 4 - p;
 		}
 		while (p-- > 0) {
 			data.writeByte(0);
@@ -120,7 +149,7 @@ abstract class RecordCoder extends TLS {
 
 		// cipher.encryptAdditional(data.readable());
 		// cipher.encryptFinal(data);
-		encrypt(data);
+		data = encrypt(data);
 
 		// ContentType 1Byte
 		buffer.writeByte(Record.APPLICATION_DATA);
@@ -130,11 +159,16 @@ abstract class RecordCoder extends TLS {
 		buffer.writeShort(data.readable());
 		// opaque
 		data.transfer(buffer);
+		// buffer.write(data);
 		data.release();
+		// System.out.println(buffer);
 		return buffer;
 	}
 
 	/**
+	 * 解码数据为消息，如果数据不足以解析消息对象则返回null，如果为应用数据之外的消息已记录对象返回；
+	 * 应用数据以DataBuffer返回，注意：不会返回实例化的ApplicationData对象。
+	 * 
 	 * @return null/Record/DataBuffer
 	 */
 	protected Object decode(ChainChannel<Object> chain, DataBuffer buffer) throws Exception {
@@ -165,6 +199,10 @@ abstract class RecordCoder extends TLS {
 					buffer.reset();
 					return null;
 				}
+				// 解密失败
+				if (data == null) {
+					return new Alert(Alert.BAD_RECORD_MAC);
+				}
 				// 删除 zeros 查找 ContentType
 				type = data.backByte();
 				while (type == 0) {
@@ -180,12 +218,16 @@ abstract class RecordCoder extends TLS {
 					}
 				}
 
-				final Record record;
+				Record record;
+				// System.out.println(data);
 				if (type == Record.HANDSHAKE) {
+					// 如果负载包含多项握手消息
+					// 必须返回最后解码的握手消息
+					record = decode(data);
 					while (data.readable() > 0) {
-						received(chain, decode(data));
+						received(chain, (Handshake) record);
+						record = decode(data);
 					}
-					record = null;
 				} else if (type == Record.CHANGE_CIPHER_SPEC) {
 					record = decodeChangeCipherSpec(data);
 				} else if (type == Record.HEARTBEAT) {
@@ -234,13 +276,17 @@ abstract class RecordCoder extends TLS {
 				}
 			}
 		} else {
-			buffer.clear();
-			throw new UnsupportedOperationException();
+			buffer.reset();
+			System.out.println(buffer);
+			// System.out.println(buffer.readASCIIs(buffer.readable()));
+			// buffer.clear();
+			// throw new UnsupportedOperationException();
+			return null;
 		}
 	}
 
 	/**
-	 * 此消息始终明文编码
+	 * 此消息始终明文编码，此方法始终执行完整的记录编码
 	 */
 	protected DataBuffer encode(ChangeCipherSpec message) throws Exception {
 		final DataBuffer buffer = DataBuffer.instance();
@@ -268,24 +314,29 @@ abstract class RecordCoder extends TLS {
 		// HeartbeatMessageType 1Byte
 		buffer.writeByte(message.getMessageType());
 		// payload_length 2Byte(uint16)
-		buffer.writeShort(message.getPayload().length);
 		// opaque payload nByte
+		buffer.writeShort(message.getPayload().length);
 		buffer.write(message.getPayload());
-		// opaque padding
-		int size = 16;
+		// opaque padding >= 16Byte
+		int size = Record.PLAINTEXT_MAX - message.getPayload().length - 3;
+		if (size > 64) {
+			size = 64;
+		}
 		while (size-- > 0) {
-			buffer.writeByte(1);
+			buffer.writeByte(size);
 		}
 	}
 
 	protected HeartbeatMessage decodeHeartbeat(DataBuffer buffer, int length) throws IOException {
 		final HeartbeatMessage message = new HeartbeatMessage();
+		// HeartbeatMessageType 1Byte
 		message.setMessageType(buffer.readByte());
-		final byte[] payload = new byte[buffer.readUnsignedShort()];
-		buffer.readFully(payload);
-		message.setPayload(payload);
+		// payload_length 2Byte(uint16)
+		message.setPayload(new byte[buffer.readUnsignedShort()]);
+		// opaque payload nByte
+		buffer.readFully(message.getPayload());
 		// ignored opaque padding
-		buffer.skipBytes(length - payload.length - 3);
+		buffer.skipBytes(length - message.getPayload().length - 3);
 		return message;
 	}
 

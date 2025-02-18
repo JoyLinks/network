@@ -216,7 +216,7 @@ public class UDPClient<M> extends Client<M> {
 	@Override
 	public void close() {
 		if (datagram_channel.isOpen()) {
-			ChainGroup.off(this);
+			ChainGroup.remove(this);
 			if (datagram_channel.isConnected()) {
 				try {
 					datagram_channel.disconnect();

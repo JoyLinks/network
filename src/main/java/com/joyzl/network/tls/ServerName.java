@@ -1,5 +1,7 @@
 package com.joyzl.network.tls;
 
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 
 class ServerName {
@@ -16,6 +18,11 @@ class ServerName {
 	public ServerName(String name) {
 		type = HOST_NAME;
 		setName(name);
+	}
+
+	public ServerName(SocketAddress remote) {
+		type = HOST_NAME;
+		setName(findServerName(remote));
 	}
 
 	public ServerName(byte type, byte[] name) {
@@ -47,5 +54,24 @@ class ServerName {
 	@Override
 	public String toString() {
 		return new String(name, StandardCharsets.US_ASCII);
+	}
+
+	/**
+	 * 从远端地址中获得服务名称(TLS SNI)
+	 */
+	static String findServerName(SocketAddress address) {
+		if (address instanceof InetSocketAddress) {
+			final InetSocketAddress i = (InetSocketAddress) address;
+			if (i.getHostName() != null) {
+				return i.getHostName();
+			}
+			if (i.getHostString() != null) {
+				return i.getHostString();
+			}
+			if (i.getAddress().getHostName() != null) {
+				return i.getAddress().getHostName();
+			}
+		}
+		return "localhost";
 	}
 }

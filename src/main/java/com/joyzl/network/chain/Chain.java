@@ -29,6 +29,8 @@ public abstract class Chain {
 	private volatile int type;
 	// 链路令牌
 	private volatile String token;
+	// 链路关联上下文
+	private Object context;
 
 	/**
 	 * 创建新链路
@@ -115,15 +117,21 @@ public abstract class Chain {
 
 	/**
 	 * 获取链路关联的令牌
-	 * 
-	 * @return String /null
 	 */
 	public String getToken() {
 		return token;
 	}
 
+	/**
+	 * 设置链路关联的令牌
+	 */
 	public void setToken(String value) {
 		token = value;
+	}
+
+	@SuppressWarnings("unchecked")
+	public <T> T context() {
+		return (T) context;
 	}
 
 	@Override

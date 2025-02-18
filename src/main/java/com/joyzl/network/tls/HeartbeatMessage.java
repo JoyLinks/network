@@ -26,6 +26,13 @@ public class HeartbeatMessage extends Record {
 	private byte type = HEARTBEAT_REQUEST;
 	private byte[] payload = TLS.EMPTY_BYTES;
 
+	public HeartbeatMessage() {
+	}
+
+	public HeartbeatMessage(byte type) {
+		this.type = type;
+	}
+
 	@Override
 	public byte contentType() {
 		return HEARTBEAT;
@@ -36,7 +43,11 @@ public class HeartbeatMessage extends Record {
 	}
 
 	public void setPayload(byte[] value) {
-		payload = value;
+		if (value == null) {
+			payload = TLS.EMPTY_BYTES;
+		} else {
+			payload = value;
+		}
 	}
 
 	public byte getMessageType() {
@@ -45,15 +56,5 @@ public class HeartbeatMessage extends Record {
 
 	public void setMessageType(byte value) {
 		type = value;
-	}
-
-	/**
-	 * REQUEST -> RESPONSE
-	 */
-	public HeartbeatMessage exchange() {
-		if (type == HEARTBEAT_REQUEST) {
-			type = HEARTBEAT_RESPONSE;
-		}
-		return this;
 	}
 }

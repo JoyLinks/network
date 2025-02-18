@@ -993,6 +993,29 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 		return write.backByte();
 	}
 
+	/**
+	 * 从缓存尾部丢弃数据
+	 */
+	public void backSkip(int size) {
+		while (size > 0) {
+			if (write.readable() <= size) {
+				size -= write.readable();
+				// LAST - 1
+				DataBufferUnit unit = read;
+				while (unit.next() != write) {
+					unit = unit.next();
+				}
+				if (mark == null) {
+					write.release();
+				}
+				write = unit;
+			} else {
+				write.writeIndex(write.writeIndex() - size);
+				size = 0;
+			}
+		}
+	}
+
 	////////////////////////////////////////////////////////////////////////////////
 
 	@Override

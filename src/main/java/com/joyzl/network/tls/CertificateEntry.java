@@ -38,6 +38,21 @@ public class CertificateEntry implements Extensions {
 	}
 
 	@Override
+	public int extensionSize() {
+		return extensions.size();
+	}
+
+	@Override
+	public void addExtension(Extension extension) {
+		extensions.add(extension);
+	}
+
+	@Override
+	public Extension getExtension(int index) {
+		return extensions.get(index);
+	}
+
+	@Override
 	public List<Extension> getExtensions() {
 		return extensions;
 	}

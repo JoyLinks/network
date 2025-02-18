@@ -35,8 +35,10 @@ public final class Executor {
 	}
 
 	public static final void initialize(int thead_size) {
-		// 如果业务非常简单，执行时间非常短，不需要与外部网元交互、访问数据库和磁盘，不需要等待其它资源，则建议直接在业务ChannelHandler中执行，不需要再启业务的线程或者线程池。避免线程上下文切换，也不存在线程并发问题。
-		// 使用自己的线程池的时候注意限流，不然容易高并发情况下容易引起内存泄露。线程池提交任务是异步无阻塞的。高并发情况下可能造成大量的请求积压在线程池的队列里，耗完内存。
+		// 如果业务非常简单，执行时间非常短，不需要与外部网元交互、访问数据库和磁盘，不需要等待其它资源，
+		// 则建议直接在业务ChannelHandler中执行，不需要再启业务的线程或者线程池。避免线程上下文切换，也不存在线程并发问题。
+		// 使用自己的线程池的时候注意限流，不然容易高并发情况下容易引起内存泄露。
+		// 线程池提交任务是异步无阻塞的。高并发情况下可能造成大量的请求积压在线程池的队列里，耗完内存。
 		// tomcat也使用了线程池，但是他有限制连接数。所以使用自己线程池的时候要么也限流，要么实现自己线程池，当任务超过一定量的提交任务时阻塞。
 
 		if (size > 0) {
@@ -51,9 +53,8 @@ public final class Executor {
 
 		try {
 			// 初始化NIO.1线程
-			ChainSelector.initialize(2);
-
-			thead_size -= 1;
+			ChainSelector.initialize();
+			thead_size -= 3;
 
 			// 初始化NIO.2线程
 			CHANNEL_GROUP = AsynchronousChannelGroup.withFixedThreadPool(thead_size / 2, new ThreadFactory("nio.2-"));

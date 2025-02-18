@@ -7,11 +7,17 @@ import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.chain.ChainHandler;
 
+/**
+ * TLSClientHandler
+ * 
+ * @author ZhangXi 2025年2月14日
+ */
 public class TLSClientHandler extends RecordHandler {
 
 	private final ChainHandler<Object> handler;
 	private CipherSuiter cipher;
 	private KeyExchange key;
+	private String sni;
 
 	public TLSClientHandler(ChainHandler<Object> handler) {
 		this.handler = handler;
@@ -42,6 +48,7 @@ public class TLSClientHandler extends RecordHandler {
 
 	@Override
 	protected DataBuffer encrypt(DataBuffer buffer) throws Exception {
+		cipher.encryptAdditional(buffer.readable() + cipher.tagLength());
 		cipher.encryptFinal(buffer);
 		return buffer;
 	}
@@ -49,7 +56,28 @@ public class TLSClientHandler extends RecordHandler {
 	@Override
 	protected void encode(Handshake handshake, DataBuffer buffer) throws Exception {
 		HandshakeCoder.encode(handshake, buffer);
-		cipher.hash(buffer);
+		if (handshake.msgType() == Handshake.CLIENT_HELLO) {
+			final ClientHello clientHello = (ClientHello) handshake;
+			final Extension extension = clientHello.lastExtension();
+			if (extension != null && extension instanceof OfferedPsks) {
+				final OfferedPsks offeredPsks = (OfferedPsks) extension;
+				// Transcript-Hash(Truncate(ClientHello1))
+				buffer.backSkip(offeredPsks.bindersLength());
+				cipher.hash(buffer);
+				// PskBinderEntry
+				PskIdentity identity;
+				for (int index = 0; index < offeredPsks.size(); index++) {
+					identity = offeredPsks.get(index);
+					cipher.resumption(identity.getNonce());
+					identity.setBinder(cipher.resumptionBinderKey());
+				}
+				ExtensionCoder.encodeBinders(offeredPsks, buffer);
+			} else {
+				cipher.hash(buffer);
+			}
+		} else {
+			cipher.hash(buffer);
+		}
 	}
 
 	@Override
@@ -65,6 +93,7 @@ public class TLSClientHandler extends RecordHandler {
 
 			final byte[] hash = cipher.serverFinished();
 			cipher.hash(buffer, length + 4);
+
 			final Finished finished = (Finished) HandshakeCoder.decode(buffer);
 			if (Arrays.equals(hash, finished.getVerifyData())) {
 				finished.setVerifyData(Finished.OK);
@@ -79,8 +108,10 @@ public class TLSClientHandler extends RecordHandler {
 	@Override
 	public void sent(ChainChannel<Object> chain, Object message) throws Exception {
 		if (message instanceof Record) {
+			System.out.println(message);
 			if (message instanceof Finished) {
-				cipher.encryptReset(cipher.clientApplicationTraffic());
+				cipher.encryptReset(cipher.clientTraffic());
+				cipher.resumptionMaster();
 				handler().connected(chain);
 			} else {
 				chain.receive();
@@ -132,7 +163,9 @@ public class TLSClientHandler extends RecordHandler {
 						}
 					}
 					if (serverHello.getCipherSuite() == cipher.suite()) {
+						System.out.println("ENCRYPT RESET:clientHandshakeTraffic");
 						cipher.encryptReset(cipher.clientHandshakeTraffic());
+						System.out.println("DECRYPT RESET:serverHandshakeTraffic");
 						cipher.decryptReset(cipher.serverHandshakeTraffic());
 					} else {
 
@@ -165,75 +198,74 @@ public class TLSClientHandler extends RecordHandler {
 
 		} else
 		//
+		if (message.msgType() == Handshake.NEW_SESSION_TICKET) {
+			final NewSessionTicket newSessionTicket = (com.joyzl.network.tls.NewSessionTicket) message;
+			SessionTickets.put(sni, key.group(), cipher.suite(), newSessionTicket);
+			chain.receive();
+		} else
+		//
 		if (message.msgType() == Handshake.FINISHED) {
 			final Finished finished = (Finished) message;
 			if (finished.getVerifyData() == Finished.OK) {
 				finished.setVerifyData(cipher.clientFinished());
+
 				cipher.decryptReset(cipher.serverApplicationTraffic());
+				cipher.clientApplicationTraffic();
+				cipher.exporterMaster();
+
+				chain.send(finished);
+			} else {
+				chain.send(new Alert(Alert.DECRYPT_ERROR));
 			}
-			chain.send(finished);
 		}
 	}
 
 	@Override
 	public void connected(ChainChannel<Object> chain) throws Exception {
+		sni = ServerName.findServerName(chain.getRemoteAddress());
+
 		final ClientHello hello = new ClientHello();
 		hello.setVersion(TLS.V12);
 		hello.setRandom(SecureRandom.getSeed(32));
 		hello.setSessionId(SecureRandom.getSeed(32));
 		// AEAD HKDF
-		hello.setCipherSuites(CipherSuite.V13);
+		hello.setCipherSuites(CipherSuite.V13_ALL);
 		hello.setCompressionMethods(CompressionMethod.METHODS);
 		// Extensions
-		// hello.getExtensions().add(new Reserved((short) 0x0A0A));
-		hello.getExtensions().add(new ServerNames(new ServerName("developer.mozilla.org")));
-		hello.getExtensions().add(new StatusRequest(new OCSPStatusRequest()));
-		hello.getExtensions().add(new SignatureAlgorithms(//
-			SignatureAlgorithms.ECDSA_SECP256R1_SHA256, //
-			SignatureAlgorithms.RSA_PSS_RSAE_SHA256, //
-			SignatureAlgorithms.RSA_PKCS1_SHA256, //
-			SignatureAlgorithms.ECDSA_SECP384R1_SHA384, //
-			SignatureAlgorithms.RSA_PSS_PSS_SHA384, //
-			SignatureAlgorithms.RSA_PKCS1_SHA384, //
-			SignatureAlgorithms.RSA_PSS_RSAE_SHA512, //
-			SignatureAlgorithms.RSA_PKCS1_SHA512));
-		hello.getExtensions().add(new ECPointFormats(ECPointFormats.UNCOMPRESSED));
-		// ENCRYPTED_CLIENT_HELLO
-		hello.getExtensions().add(new SupportedGroups(//
-			// (short) 0x2A2A, (short) 0x11EC, //
-			NamedGroup.X25519, //
-			NamedGroup.SECP256R1, //
-			NamedGroup.SECP384R1));
-		hello.getExtensions().add(new SessionTicket());
-		hello.getExtensions().add(new ApplicationLayerProtocolNegotiation(//
-			ApplicationLayerProtocolNegotiation.H2, //
+		hello.addExtension(new ServerNames(new ServerName(sni)));
+		hello.addExtension(new StatusRequest(new OCSPStatusRequest()));
+		hello.addExtension(new SignatureAlgorithms(SignatureAlgorithms.ALL));
+		hello.addExtension(new ECPointFormats(ECPointFormats.UNCOMPRESSED));
+		hello.addExtension(new SupportedGroups(NamedGroup.ALL));
+		hello.addExtension(new SessionTicket());
+		hello.addExtension(new ApplicationLayerProtocolNegotiation(//
+			// ApplicationLayerProtocolNegotiation.H2, //
 			ApplicationLayerProtocolNegotiation.HTTP_1_1));
-		hello.getExtensions().add(new ApplicationSettings(ApplicationSettings.H2));
-		hello.getExtensions().add(new SupportedVersions(//
-			// (short) 0x0A0A, //
-			TLS.V13, //
-			TLS.V12));
-		hello.getExtensions().add(new ExtendedMasterSecret());
-		hello.getExtensions().add(new RenegotiationInfo());
-		hello.getExtensions().add(new SignedCertificateTimestamp());
-		hello.getExtensions().add(new CompressCertificate(CompressCertificate.BROTLI));
-		// hello.getExtensions().add(new Reserved((short) 0x9A9A));
-
-		hello.getExtensions().add(new PskKeyExchangeModes(PskKeyExchangeModes.PSK_DHE_KE));
+		hello.addExtension(new ApplicationSettings(ApplicationSettings.HTTP_1_1));
+		hello.addExtension(new SupportedVersions(TLS.ALL_VERSIONS));
+		hello.addExtension(new ExtendedMasterSecret());
+		hello.addExtension(new RenegotiationInfo());
+		hello.addExtension(new SignedCertificateTimestamp());
+		hello.addExtension(new CompressCertificate(CompressCertificate.BROTLI));
+		hello.addExtension(new Heartbeat(Heartbeat.PEER_NOT_ALLOWED_TO_SEND));
+		hello.addExtension(new PskKeyExchangeModes(PskKeyExchangeModes.PSK_DHE_KE));
 
 		key = new KeyExchange(NamedGroup.X25519);
-		hello.getExtensions().add(new KeyShareClientHello(//
-			// new KeyShareEntry((short) 0x2A2A, new byte[] { 0 }), //
-			// new KeyShareEntry((short) 0x11EC, SecureRandom.getSeed(1216)), //
-			new KeyShareEntry(NamedGroup.X25519, key.publicKey())));
-		// hello.getExtensions().add(new KeyShare());
+		hello.addExtension(new KeyShareClientHello(new KeyShareEntry(NamedGroup.X25519, key.publicKey())));
 
+		// PSK
+		final NewSessionTicket ticket = SessionTickets.get(sni, NamedGroup.X25519, CipherSuite.TLS_AES_128_GCM_SHA256);
+		if (ticket != null) {
+			final OfferedPsks psk = new OfferedPsks();
+			final PskIdentity pskIdentity = new PskIdentity();
+			pskIdentity.setTicketAge(ticket.obfuscatedTicketAge());
+			pskIdentity.setIdentity(ticket.getTicket());
+			pskIdentity.setNonce(ticket.getNonce());
+			psk.add(pskIdentity);
+			System.out.println("==========0-RTT==========");
+		}
 		cipher = new CipherSuiter(CipherSuite.TLS_AES_128_GCM_SHA256);
 
 		chain.send(hello);
-	}
-
-	static ClientHello defaultClientHello() {
-		return null;
 	}
 }

@@ -23,6 +23,21 @@ public abstract class HandshakeExtensions extends Handshake implements Extension
 	}
 
 	@Override
+	public int extensionSize() {
+		return extensions.size();
+	}
+
+	@Override
+	public void addExtension(Extension extension) {
+		extensions.add(extension);
+	}
+
+	@Override
+	public Extension getExtension(int index) {
+		return extensions.get(index);
+	}
+
+	@Override
 	public List<Extension> getExtensions() {
 		return extensions;
 	}
@@ -33,5 +48,12 @@ public abstract class HandshakeExtensions extends Handshake implements Extension
 			extensions.clear();
 			extensions.addAll(value);
 		}
+	}
+
+	public Extension lastExtension() {
+		if (extensions.size() > 0) {
+			return extensions.get(extensions.size() - 1);
+		}
+		return null;
 	}
 }

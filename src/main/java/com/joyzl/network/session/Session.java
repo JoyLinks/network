@@ -1,62 +1,43 @@
-/*-
- * www.joyzl.net
- * 中翌智联（重庆）科技有限公司
- * Copyright © JOY-Links Company. All rights reserved.
- */
 package com.joyzl.network.session;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 网络会话状态
- * <p>
- * 必须预先定义所需的Session实例，不应让程序动态创建Session
+ * 会话
  * 
  * <pre>
- * public final static Session&lt;User&gt; USER = new Session&lt;&gt;();
+ * public final static Session&lt;User&gt; USER = new SessionRefreshable&lt;&gt;();
  * USER.set("session id / token", new User());
  * User user = USER.get("session id / token");
  * </pre>
  * 
- * @author ZhangXi
- * @date 2022年3月11日
+ * @author ZhangXi 2025年2月16日
  */
-public final class Session<T> {
+public abstract class Session<T> {
 
-	// 实现方法：预先定义Session，每个Session内部维持一个Map；
-	// 用户连接或登录生成会话Token，可在每个Session对应一个值；
-	// 过期控制并不十分严格；
-
+	/** 所有实例化的会话容器，此列表用于守护进程 */
 	private final static List<Session<?>> SESSIONS = new ArrayList<>();
-	private final static Map<String, Token> TOKENS = new ConcurrentHashMap<>();
 
-	/** 过期时间,默认1小时 */
-	public final static long TIMEOUT = 1 * 60 * 60 * 1000;
 	/** 会话过期检查 */
-	public final static Runnable DAEMON_CHECK = new Runnable() {
+	public final static Runnable SESSION_DAEMON = new Runnable() {
 		@Override
 		public void run() {
 			Session<?> session;
-			Entry<String, Token> entry;
-
-			final long time = System.currentTimeMillis();
-			final Iterator<Entry<String, Token>> iterator = TOKENS.entrySet().iterator();
-			while (iterator.hasNext()) {
-				entry = iterator.next();
-				if (time - entry.getValue().time() > TIMEOUT) {
-					continue;
-				} else {
-					iterator.remove();
-					for (int index = 0; index < SESSIONS.size(); index++) {
-						session = SESSIONS.get(index);
-						session.remove(entry.getValue());
+			final long timestamp = System.currentTimeMillis();
+			try {
+				for (int index = 0; index < SESSIONS.size(); index++) {
+					session = SESSIONS.get(index);
+					if (session.VALUES.isEmpty()) {
+						continue;
 					}
+					session.check(timestamp);
 				}
+			} catch (Exception e) {
+
 			}
 		}
 
@@ -68,44 +49,73 @@ public final class Session<T> {
 
 	////////////////////////////////////////////////////////////////////////////////
 
-	private final Map<Token, T> values = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Object, Timely<T>> VALUES = new ConcurrentHashMap<>();
 
 	public Session() {
-		SESSIONS.add(this);
-	}
-
-	public final T get(String token) {
-		if (token == null) {
-			return null;
-		}
-		final Token t = TOKENS.get(token);
-		if (t == null) {
-			return null;
-		} else {
-			return get(t);
+		synchronized (SESSIONS) {
+			SESSIONS.add(this);
 		}
 	}
 
-	public final T set(String token, T value) {
-		Token t = TOKENS.get(token);
-		if (t == null) {
-			t = new Token(token);
-			TOKENS.put(token, t);
+	/**
+	 * 包装当前值为具有时效性检查接口的对象
+	 * 
+	 * @see Timely
+	 * @return 如果值已实现时效性接口可直接返回
+	 */
+	protected abstract Timely<T> wrap(T t);
+
+	/**
+	 * 指定时戳检查时效性，过期对象将被移除
+	 */
+	protected void check(long timestamp) {
+		final Iterator<Entry<Object, Timely<T>>> iterator = VALUES.entrySet().iterator();
+		while (iterator.hasNext()) {
+			if (iterator.next().getValue().valid(timestamp)) {
+				continue;
+			} else {
+				iterator.remove();
+			}
 		}
-		return set(t, value);
 	}
 
-	final T get(Token token) {
-		token.refresh();
-		return values.get(token);
+	/**
+	 * 指定键设置值，返回之前设置的值，如果已过期则返回空(null)
+	 * 
+	 * @param key 键可为任意对象，应确保有合理的哈希值(Object.hashCode())
+	 * @param value 要设置的值
+	 * @return 返回之前设置的值，如果已过期则返回空(null)
+	 */
+	public T set(Object key, T value) {
+		final Timely<T> previous = VALUES.put(key, null);
+		if (previous != null) {
+			if (previous.valid(System.currentTimeMillis())) {
+				return previous.value();
+			}
+		}
+		return null;
 	}
 
-	final T set(Token token, T value) {
-		token.refresh();
-		return values.put(token, value);
+	/**
+	 * 指定键获取值，如果已过期则返回空(null)
+	 * 
+	 * @param key 键可为任意对象，应确保有合理的哈希值(Object.hashCode())
+	 * @return 键关联的值，如果已过期返回空(null)
+	 */
+	public T get(Object key) {
+		final Timely<T> current = VALUES.get(key);
+		if (current != null) {
+			if (current.valid(System.currentTimeMillis())) {
+				return current.value();
+			}
+		}
+		return null;
 	}
 
-	final T remove(Token token) {
-		return values.remove(token);
+	/**
+	 * 获取键值对数量
+	 */
+	public int size() {
+		return VALUES.size();
 	}
 }

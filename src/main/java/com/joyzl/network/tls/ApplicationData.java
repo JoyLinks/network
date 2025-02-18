@@ -22,9 +22,11 @@ package com.joyzl.network.tls;
  */
 public class ApplicationData extends Record {
 
-	final static ApplicationData EMPTY = new ApplicationData();
+	final static ApplicationData INSTANCE = new ApplicationData();
 
 	private ApplicationData() {
+		// 无须额外实例化此对象
+		// 在记录层编码解码时包装或剥离
 	}
 
 	@Override

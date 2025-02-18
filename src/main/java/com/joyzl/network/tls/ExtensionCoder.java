@@ -17,16 +17,19 @@ public class ExtensionCoder {
 
 	public static void encode(Extensions extensions, DataBuffer buffer) throws IOException {
 		int p1, p2, length;
+
 		// Length 2Byte
 		p1 = buffer.readable();
 		buffer.writeShort(0);
+
 		// SUB Extensions
 		Extension extension;
-		for (int index = 0; index < extensions.getExtensions().size(); index++) {
-			extension = extensions.getExtensions().get(index);
+		for (int index = 0; index < extensions.extensionSize(); index++) {
+			extension = extensions.getExtension(index);
 
 			// Type 2Byte
 			buffer.writeShort(extension.type());
+
 			// opaque extension_data<0..2^16-1>;
 			p2 = buffer.readable();
 			buffer.writeShort(0);
@@ -69,7 +72,13 @@ public class ExtensionCoder {
 			} else if (extension.type() == Extension.SESSION_TICKET) {
 				encode((SessionTicket) extension, buffer);
 			} else if (extension.type() == Extension.PRE_SHARED_KEY) {
-				encodePreSharedKey1((PreSharedKey) extension, buffer);
+				if (extensions.msgType() == Handshake.SERVER_HELLO) {
+					encode((PreSharedKeySelected) extension, buffer);
+				} else if (extensions.msgType() == Handshake.CLIENT_HELLO) {
+					encode((OfferedPsks) extension, buffer);
+				} else {
+					throw new IOException("TLS:混乱的扩展");
+				}
 			} else if (extension.type() == Extension.EARLY_DATA) {
 				encode((EarlyData) extension, buffer);
 			} else if (extension.type() == Extension.SUPPORTED_VERSIONS) {
@@ -87,7 +96,17 @@ public class ExtensionCoder {
 			} else if (extension.type() == Extension.SIGNATURE_ALGORITHMS_CERT) {
 				encode((SignatureAlgorithmsCert) extension, buffer);
 			} else if (extension.type() == Extension.KEY_SHARE) {
-				encode((KeyShare) extension, buffer);
+				if (extensions.msgType() == Handshake.CLIENT_HELLO) {
+					encode((KeyShareClientHello) extension, buffer);
+				} else if (extensions.msgType() == Handshake.SERVER_HELLO) {
+					if (extensions.isHelloRetryRequest()) {
+						encode((KeyShareHelloRetryRequest) extension, buffer);
+					} else {
+						encode((KeyShareServerHello) extension, buffer);
+					}
+				} else {
+					throw new IOException("TLS:混乱的扩展");
+				}
 			} else if (extension.type() == Extension.RENEGOTIATION_INFO) {
 				encode((RenegotiationInfo) extension, buffer);
 			} else if (extension.type() == Extension.APPLICATION_SETTINGS) {
@@ -95,6 +114,7 @@ public class ExtensionCoder {
 			} else if (extension.type() == Extension.ENCRYPTED_CLIENT_HELLO) {
 				encode((EncryptedClientHello) extension, buffer);
 			} else {
+				throw new IOException("TLS:混乱的扩展");
 			}
 			// SET Length
 			length = buffer.readable() - p2 - 2;
@@ -177,7 +197,13 @@ public class ExtensionCoder {
 			} else if (type == Extension.SESSION_TICKET) {
 				extension = decodeSessionTicket(buffer);
 			} else if (type == Extension.PRE_SHARED_KEY) {
-				extension = decodePreSharedKey2(buffer);
+				if (extensions.msgType() == Handshake.SERVER_HELLO) {
+					extension = decodePreSharedKeySelected(buffer);
+				} else if (extensions.msgType() == Handshake.CLIENT_HELLO) {
+					extension = decodeOfferedPsks(buffer);
+				} else {
+					throw new IOException("TLS:混乱的扩展");
+				}
 			} else if (type == Extension.EARLY_DATA) {
 				extension = decodeEarlyData1(buffer);
 			} else if (type == Extension.SUPPORTED_VERSIONS) {
@@ -216,7 +242,7 @@ public class ExtensionCoder {
 				buffer.skipBytes(size);
 				continue;
 			}
-			extensions.getExtensions().add(extension);
+			extensions.addExtension(extension);
 		}
 	}
 
@@ -399,38 +425,36 @@ public class ExtensionCoder {
 	}
 
 	/** RFC 8446 */
-	private static void encode(KeyShare extension, DataBuffer buffer) throws IOException {
-		if (extension instanceof KeyShareClientHello) {
-			final KeyShareClientHello s = (KeyShareClientHello) extension;
-			int length = 0;
-			KeyShareEntry item;
-			for (int index = 0; index < s.size(); index++) {
-				item = s.get(index);
-				length += item.getKeyExchange().length;
-				length += 4;
-			}
-			// Length 2Byte
-			buffer.writeShort(length);
-			// client_shares
-			for (int index = 0; index < s.size(); index++) {
-				item = s.get(index);
-				buffer.writeShort(item.group());
-				buffer.writeShort(item.getKeyExchange().length);
-				buffer.write(item.getKeyExchange());
-			}
-		} else
-		//
-		if (extension instanceof KeyShareHelloRetryRequest) {
-			final KeyShareHelloRetryRequest s = (KeyShareHelloRetryRequest) extension;
-			buffer.writeShort(s.selectedGroup());
-		} else
-		//
-		if (extension instanceof KeyShareServerHello) {
-			final KeyShareServerHello s = (KeyShareServerHello) extension;
-			buffer.writeShort(s.serverShare().group());
-			buffer.writeShort(s.serverShare().getKeyExchange().length);
-			buffer.write(s.serverShare().getKeyExchange());
+	private static void encode(KeyShareClientHello extension, DataBuffer buffer) throws IOException {
+		// 计算长度
+		int length = 0;
+		KeyShareEntry item;
+		for (int index = 0; index < extension.size(); index++) {
+			item = extension.get(index);
+			length += item.getKeyExchange().length;
+			length += 4;
 		}
+		// Length 2Byte
+		buffer.writeShort(length);
+		// client_shares
+		for (int index = 0; index < extension.size(); index++) {
+			item = extension.get(index);
+			buffer.writeShort(item.group());
+			buffer.writeShort(item.getKeyExchange().length);
+			buffer.write(item.getKeyExchange());
+		}
+	}
+
+	/** RFC 8446 */
+	private static void encode(KeyShareServerHello extension, DataBuffer buffer) throws IOException {
+		buffer.writeShort(extension.serverShare().group());
+		buffer.writeShort(extension.serverShare().getKeyExchange().length);
+		buffer.write(extension.serverShare().getKeyExchange());
+	}
+
+	/** RFC 8446 */
+	private static void encode(KeyShareHelloRetryRequest extension, DataBuffer buffer) throws IOException {
+		buffer.writeShort(extension.selectedGroup());
 	}
 
 	/** RFC 8446 */
@@ -470,24 +494,86 @@ public class ExtensionCoder {
 	}
 
 	/** RFC 8446 client_hello */
-	private static void encodePreSharedKey1(PreSharedKey extension, DataBuffer buffer) throws IOException {
+	private static void encode(OfferedPsks extension, DataBuffer buffer) throws IOException {
+		// PskIdentity identities<7..2^16-1>;
+		int length = 0;
 		PskIdentity item;
+		for (int index = 0; index < extension.size(); index++) {
+			item = extension.get(index);
+			length += item.getIdentity().length;
+			length += 6;
+		}
+		// list Length 2Byte
+		buffer.writeShort(length);
 		for (int index = 0; index < extension.size(); index++) {
 			item = extension.get(index);
 			buffer.writeShort(item.getIdentity().length);
 			buffer.write(item.getIdentity());
-			buffer.writeInt(item.getTicket_age());
+			buffer.writeInt(item.getTicketAge());
 		}
+
+		// PskBinderEntry binders<33..2^16-1>;
+		length = extension.size() * (extension.getHashLength() + 1);
+		// list Length 2Byte
+		buffer.writeShort(length);
 		for (int index = 0; index < extension.size(); index++) {
-			item = extension.get(index);
-			buffer.writeShort(item.getBinder().length);
-			buffer.write(item.getBinder());
+			buffer.writeByte(extension.getHashLength());
+			for (length = 0; length < extension.getHashLength(); length++) {
+				buffer.writeByte(0);
+			}
+		}
+	}
+
+	/** RFC 8446 client_hello PskBinderEntry */
+	public static void encodeBinders(OfferedPsks extension, DataBuffer buffer) throws IOException {
+		PskIdentity binder;
+		buffer.writeShort(extension.bindersLength());
+		for (int index = 0; index < extension.size(); index++) {
+			binder = extension.get(index);
+			buffer.writeByte(extension.getHashLength());
+			buffer.write(binder.getBinder());
 		}
 	}
 
 	/** RFC 8446 server_hello */
-	private static void encodePreSharedKey2(PreSharedKey extension, DataBuffer buffer) throws IOException {
+	private static void encode(PreSharedKeySelected extension, DataBuffer buffer) throws IOException {
 		buffer.writeShort(extension.getSelected());
+	}
+
+	/** RFC 8446 client_hello */
+	private static PreSharedKey decodeOfferedPsks(DataBuffer buffer) throws IOException {
+		final OfferedPsks extension = new OfferedPsks();
+		PskIdentity identity;
+
+		// PskIdentity identities<7..2^16-1>;
+		int length = buffer.readUnsignedShort();
+		while (length > 0) {
+			identity = new PskIdentity();
+			identity.setIdentity(new byte[buffer.readUnsignedShort()]);
+			buffer.readFully(identity.getIdentity());
+			identity.setTicketAge(buffer.readInt());
+			extension.add(identity);
+			length -= identity.getIdentity().length + 6;
+		}
+
+		// PskBinderEntry binders<33..2^16-1>;
+		int index = 0;
+		length = buffer.readUnsignedShort();
+		while (length > 0) {
+			identity = extension.get(index++);
+			extension.setHashLength(buffer.readUnsignedByte());
+			identity.setBinder(new byte[extension.getHashLength()]);
+			buffer.readFully(identity.getBinder());
+			length -= identity.getBinder().length + 1;
+		}
+		return extension;
+	}
+
+	/** RFC 8446 server_hello */
+	private static PreSharedKey decodePreSharedKeySelected(DataBuffer buffer) throws IOException {
+		final PreSharedKeySelected extension = new PreSharedKeySelected();
+		extension.setSelected(buffer.readShort());
+		return extension;
 	}
 
 	/** RFC 8446 */
@@ -755,29 +841,6 @@ public class ExtensionCoder {
 	private static EncryptedClientHello decodeEncryptedClientHello(DataBuffer buffer) throws IOException {
 		final EncryptedClientHello extension = new EncryptedClientHello();
 		// TODO
-		return extension;
-	}
-
-	/** RFC 8446 client_hello */
-	private static PreSharedKey decodePreSharedKey1(DataBuffer buffer) throws IOException {
-		final PreSharedKey extension = new PreSharedKey();
-		byte[] data;
-		while (buffer.readable() > 6) {
-			buffer.readFully(data = new byte[buffer.readUnsignedShort()]);
-			extension.add(new PskIdentity(buffer.readInt(), data));
-		}
-		int index = 0;
-		while (buffer.readable() > 32) {
-			buffer.readFully(data = new byte[buffer.readUnsignedShort()]);
-			extension.get(index++).setBinder(data);
-		}
-		return extension;
-	}
-
-	/** RFC 8446 server_hello */
-	private static PreSharedKey decodePreSharedKey2(DataBuffer buffer) throws IOException {
-		final PreSharedKey extension = new PreSharedKey();
-		extension.setSelected(buffer.readShort());
 		return extension;
 	}
 

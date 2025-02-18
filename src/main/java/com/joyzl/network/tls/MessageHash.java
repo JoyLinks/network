@@ -6,5 +6,4 @@ public class MessageHash extends Handshake {
 	public byte msgType() {
 		return MESSAGE_HASH;
 	}
-
 }

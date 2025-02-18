@@ -5,6 +5,8 @@ import java.util.Arrays;
 import com.joyzl.network.Utility;
 
 /**
+ * SNI(Server Name Identification)
+ * 
  * <pre>
  * RFC 6066
  * 

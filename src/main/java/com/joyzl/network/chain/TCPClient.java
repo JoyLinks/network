@@ -87,7 +87,7 @@ public class TCPClient<M> extends TCPLink<M> {
 	@Override
 	public void close() {
 		reset();
-		ChainGroup.off(this);
+		ChainGroup.remove(this);
 		future.cancel(false);
 	}
 

@@ -31,7 +31,7 @@ public final class ChainGroup {
 		}
 	}
 
-	public final static void off(Server<?> chain) {
+	public final static void remove(Server<?> chain) {
 		Server<?> old = SERVERS.remove(chain.key());
 		if (old != null) {
 			old.close();
@@ -45,7 +45,7 @@ public final class ChainGroup {
 		}
 	}
 
-	public final static void off(Client<?> chain) {
+	public final static void remove(Client<?> chain) {
 		Client<?> old = CLIENTS.remove(chain.key());
 		if (old != null) {
 			old.close();

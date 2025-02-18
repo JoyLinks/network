@@ -1,5 +1,7 @@
 package com.joyzl.network.tls;
 
+import com.joyzl.network.Utility;
+
 /**
  * <pre>
  * struct {
@@ -15,10 +17,20 @@ package com.joyzl.network.tls;
  */
 public class NewSessionTicket extends HandshakeExtensions {
 
+	/** 2^32 */
+	final static long MOD = 4294967296L;
+	/** MAX 7Day */
+	public final static int LIFETIME_MAX = 604800;
+
+	private final long timestamp;
 	private int lifetime;
 	private int age_add;
 	private byte[] nonce;
 	private byte[] ticket;
+
+	public NewSessionTicket() {
+		timestamp = System.currentTimeMillis();
+	}
 
 	@Override
 	public byte msgType() {
@@ -55,5 +67,33 @@ public class NewSessionTicket extends HandshakeExtensions {
 
 	public void setLifetime(int value) {
 		lifetime = value;
+	}
+
+	public long timestamp() {
+		return timestamp;
+	}
+
+	public int obfuscatedTicketAge() {
+		long a = age_add & 0xFFFFFFFFL;
+		return (int) ((System.currentTimeMillis() - timestamp + a) % MOD);
+	}
+
+	public boolean valid() {
+		return (System.currentTimeMillis() - timestamp) / 1000 < lifetime;
+	}
+
+	@Override
+	public String toString() {
+		final StringBuilder b = new StringBuilder();
+		b.append(name());
+		b.append(":lifetime=");
+		b.append(lifetime);
+		b.append(",age_add=");
+		b.append(age_add & 0xFFFFFFFFL);
+		b.append(",nonce=");
+		b.append(Utility.hex(nonce));
+		b.append(",ticket=");
+		b.append(Utility.hex(ticket));
+		return b.toString();
 	}
 }

@@ -217,11 +217,9 @@ public class HandshakeCoder extends TLS {
 		// uint32 ticket_age_add;
 		message.setAgeAdd(buffer.readInt());
 		// opaque ticket_nonce<0..255>;
-		int size = buffer.readUnsignedShort();
-		if (size > 0 && size < 256) {
-			message.setNonce(new byte[size]);
-			buffer.readFully(message.getNonce());
-		}
+		int size = buffer.readUnsignedByte();
+		message.setNonce(new byte[size]);
+		buffer.readFully(message.getNonce());
 		// opaque ticket<1..2^16-1>;
 		size = buffer.readUnsignedShort();
 		message.setTicket(new byte[size]);
@@ -329,7 +327,7 @@ public class HandshakeCoder extends TLS {
 	}
 
 	private static void encode(Finished message, DataBuffer buffer) throws IOException {
-		buffer.writeShort(message.getVerifyData().length);
+		// buffer.writeShort(message.getVerifyData().length);
 		buffer.write(message.getVerifyData());
 	}
 

@@ -5,12 +5,13 @@
  */
 package com.joyzl.network.chain;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.StandardSocketOptions;
-import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.InterruptedByTimeoutException;
 import java.util.concurrent.TimeUnit;
 
@@ -40,9 +41,8 @@ import com.joyzl.network.buffer.DataBuffer;
  */
 public class TCPLink<M> extends Client<M> {
 
-	private final SocketAddress address;
+	private final InetSocketAddress remote;
 	private AsynchronousSocketChannel socket_channel;
-	/** 连接状态 */
 	private volatile boolean connected;
 
 	/**
@@ -56,9 +56,8 @@ public class TCPLink<M> extends Client<M> {
 	 */
 	public TCPLink(ChainHandler<M> handler, String host, int port) {
 		super(handler);
-		address = new InetSocketAddress(host, port);
+		remote = new InetSocketAddress(host, port);
 		connected = false;
-		// ChainGroup.add(this);
 	}
 
 	@Override
@@ -68,64 +67,74 @@ public class TCPLink<M> extends Client<M> {
 
 	@Override
 	public boolean active() {
-		return connected && socket_channel != null && socket_channel.isOpen();
+		return connected;
 	}
 
 	@Override
 	public String getPoint() {
-		return Point.getPoint(address);
+		return Point.getPoint(remote);
+	}
+
+	@Override
+	public SocketAddress getRemoteAddress() {
+		return remote;
 	}
 
 	@Override
 	public SocketAddress getLocalAddress() {
-		if (active()) {
+		if (connected) {
 			try {
 				return socket_channel.getLocalAddress();
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
-		} else {
-			return null;
 		}
-	}
-
-	@Override
-	public SocketAddress getRemoteAddress() {
-		if (active()) {
-			try {
-				return socket_channel.getRemoteAddress();
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		} else {
-			return null;
-		}
+		return null;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
 
+	// 待连接:channel==null && connected==false
+	// 连接中:channel!=null && connected==false
+	// 已连接:channel!=null && connected==true
+	// 不可读:
+	// 不可写:
+	// 关闭中:channel!=null && connected==false
+	// 已关闭:channel==null && connected==false
+
 	public void connect() {
 		// 此方法多次调用须防止已创建的AsynchronousSocketChannel对象实例泄露
 		// 持续调用最终会导致AsynchronousSocketChannel创建抛出"文件打开过多异常"
-		// 已关闭的AsynchronousSocketChannel不能重用否则抛出java.nio.channels.ClosedChannelException
+		// 已关闭的AsynchronousSocketChannel不能重用否则抛出ClosedChannelException
+		if (connected) {
+			throw new IllegalStateException("TCPLink:重复连接");
+		}
 		if (socket_channel == null) {
 			try {
-				socket_channel = AsynchronousSocketChannel.open(Executor.channelGroup());
+				synchronized (this) {
+					if (socket_channel == null) {
+						socket_channel = AsynchronousSocketChannel.open(Executor.channelGroup());
+					} else {
+						return;
+					}
+				}
 				if (socket_channel.isOpen()) {
+					// 启用保持连接活跃
 					socket_channel.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.TRUE);
+					// 禁用小数据报合并
 					socket_channel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.TRUE);
 				} else {
 					socket_channel = null;
 					return;
 				}
-				// 如果无法建立连接，则自动关闭通道。
-				socket_channel.connect(address, this, ClientConnectHandler.INSTANCE);
+				// 如果无法建立连接，通道状态为关闭。
+				socket_channel.connect(remote, this, ClientConnectHandler.INSTANCE);
 			} catch (Exception e) {
+				socket_channel = null;
 				handler().error(this, e);
-				// UnresolvedAddressException
-				// java.io.IOException: 在其上下文中，该请求的地址无效。
-				reset();
 			}
+		} else {
+			throw new IllegalStateException("TCPLink:正在连接");
 		}
 	}
 
@@ -144,20 +153,19 @@ public class TCPLink<M> extends Client<M> {
 	protected void connected(Throwable e) {
 		// 连接异常
 		connected = false;
-		if (e instanceof AsynchronousCloseException) {
-			// 主动关闭正在尝试连接的链路
-			return;
-		} else if (e instanceof InterruptedByTimeoutException) {
-			// 连接超时
-		}
-		// java.io.IOException:信号灯超时时间已到
+		socket_channel = null;
 		handler().error(this, e);
-		// 重置链路
-		reset();
 	}
 
 	private M receive_message;
 	private DataBuffer read;
+
+	/**
+	 * 当前收到的消息
+	 */
+	public Object receiveMessage() {
+		return receive_message;
+	}
 
 	/**
 	 * 从网络接收数据
@@ -167,27 +175,30 @@ public class TCPLink<M> extends Client<M> {
 	 */
 	@Override
 	public void receive() {
-		// 读取
-		if (receive_message == null) {
-			if (read == null) {
-				read = DataBuffer.instance();
+		if (connected) {
+			if (receive_message == null) {
+				if (read == null) {
+					read = DataBuffer.instance();
+				}
+				// SocketChannel不能投递多个接收操作，否则会收到ReadPendingException异常
+				socket_channel.read(//
+					read.write(), // ByteBuffer
+					handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
+					this, ClientReceiveHandler.INSTANCE // Handler
+				);
 			}
-			// SocketChannel不能投递多个接收操作，否则会收到ReadPendingException异常
-			socket_channel.read(//
-				read.write(), // ByteBuffer
-				handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
-				this, ClientReceiveHandler.INSTANCE // Handler
-			);
+		} else {
+			throw new IllegalStateException("TCPLink:未连接");
 		}
 	}
 
 	@Override
 	protected void received(int size) {
-		// 读取返回
 		if (size > 0) {
 			read.written(size);
 			try {
 				// 多次请求解包直到没有对象返回
+				receive_message = (M) read;
 				while (true) {
 					size = read.readable();
 					// 在数据包粘连的情况下，可能会接收到两个数据包的数据
@@ -204,19 +215,16 @@ public class TCPLink<M> extends Client<M> {
 						// 已解析消息对象
 						if (read.readable() >= size) {
 							// 解析数据应减少
-							throw new IllegalStateException("已解析消息但字节数据未减少");
+							throw new IllegalStateException("TCPLink:已解析消息但数据未减少");
 						}
 						if (read.readable() > 0) {
 							handler().received(this, receive_message);
 							// 注意:handler().received()方法中可能会调用receive()
-							// 因此必须阻止用户发起数据接收，以下语句后执行
-							receive_message = null;
 							// 有剩余数据,继续尝试解包
 							continue;
 						} else {
 							final M message = receive_message;
 							// 注意:handler().received()方法中可能会调用receive()
-							// 因此必须阻止用户发起数据接收，以下语句前执行
 							receive_message = null;
 							handler().received(this, message);
 							// 没有剩余数据,停止尝试解包
@@ -225,24 +233,23 @@ public class TCPLink<M> extends Client<M> {
 					}
 				}
 			} catch (Exception e) {
-				receive_message = null;
 				handler().error(this, e);
 				read.release();
 				read = null;
+				reset();
 			}
 		} else if (size == 0) {
 			// 没有数据并且没有达到流的末端时返回0
 			// 如果用于接收的ByteBuffer缓存满则会出现读零情况
 			// DataBuffer代码存在问题才会导致提供了一个已满的ByteBuffer
-			handler().error(this, new IllegalStateException("零读:当前缓存单元已满"));
+			handler().error(this, new IllegalStateException("TCPLink:零读"));
 			read.release();
 			read = null;
+			reset();
 		} else {
 			// 链路被关闭
-			// 缓存对象未投递给处理对象，须释放
 			read.release();
 			read = null;
-			// 重置链路
 			reset();
 		}
 	}
@@ -250,27 +257,38 @@ public class TCPLink<M> extends Client<M> {
 	@Override
 	protected void received(Throwable e) {
 		// 读取失败
-		read.release();
-		read = null;
-		if (e instanceof AsynchronousCloseException) {
+		if (read != null) {
+			read.release();
+			read = null;
+		}
+		if (e instanceof ClosedChannelException) {
 			// 正在执行通道关闭
+			// 忽略此异常
 			return;
 		} else if (e instanceof InterruptedByTimeoutException) {
 			// 接收数据超时
+			// 通知处理程序
 			try {
 				handler().received(this, null);
 			} catch (Exception e1) {
 				handler().error(this, e1);
+				reset();
 			}
 		} else {
 			handler().error(this, e);
+			reset();
 		}
-		// 重置链路
-		reset();
 	}
 
 	private M send_message;
 	private DataBuffer write;
+
+	/***
+	 * 当前正在发送的消息
+	 */
+	public Object sendMessage() {
+		return send_message;
+	}
 
 	/**
 	 * 发送数据到网络
@@ -281,37 +299,39 @@ public class TCPLink<M> extends Client<M> {
 	@Override
 	@SuppressWarnings("unchecked")
 	public void send(Object message) {
-		// 发送
-		if (send_message == null) {
-			send_message = (M) message;
-			try {
-				// 执行消息编码
-				write = handler().encode(this, (M) message);
-				if (write == null) {
-					throw new IllegalStateException("消息未编码数据 " + message);
-				} else if (write.readable() <= 0) {
-					throw new IllegalStateException("消息编码零数据 " + message);
-				} else {
-					socket_channel.write(//
-						write.read(), // ByteBuffer
-						handler().getTimeoutWrite(), TimeUnit.MILLISECONDS, // Timeout
-						this, ClientSendHandler.INSTANCE // Handler
-					);
-				}
-			} catch (Exception e) {
-				send_message = null;
-				handler().error(this, e);
-				if (write != null) {
-					write.release();
-					write = null;
+		if (connected) {
+			if (send_message == null) {
+				send_message = (M) message;
+				try {
+					// 执行消息编码
+					write = handler().encode(this, (M) message);
+					if (write == null) {
+						throw new IllegalStateException("TCPLink:未编码数据" + message);
+					} else if (write.readable() <= 0) {
+						throw new IllegalStateException("TCPLink:编码零数据" + message);
+					} else {
+						socket_channel.write(//
+							write.read(), // ByteBuffer
+							handler().getTimeoutWrite(), TimeUnit.MILLISECONDS, // Timeout
+							this, ClientSendHandler.INSTANCE // Handler
+						);
+					}
+				} catch (Exception e) {
+					if (write != null) {
+						write.release();
+						write = null;
+					}
+					handler().error(this, e);
+					reset();
 				}
 			}
+		} else {
+			throw new IllegalStateException("TCPLink:未连接");
 		}
 	}
 
 	@Override
 	protected void sent(int size) {
-		// 发送返回
 		if (size > 0) {
 			// 已发送数据
 			write.read(size);
@@ -333,21 +353,20 @@ public class TCPLink<M> extends Client<M> {
 					handler().sent(this, message);
 				} catch (Exception e) {
 					handler().error(this, e);
+					reset();
 				}
 			}
 		} else if (size == 0) {
 			// 客户端缓存满会导致零发送
 			// 恶意程序，可能会导致无限尝试
-			send_message = null;
-			handler().error(this, new IllegalStateException("零写:客户端未能接收数据"));
+			handler().error(this, new IllegalStateException("TCPLink:零写"));
 			write.release();
 			write = null;
+			reset();
 		} else {
 			// 连接被客户端断开
-			send_message = null;
 			write.release();
 			write = null;
-			// 重置链路
 			reset();
 		}
 	}
@@ -355,59 +374,91 @@ public class TCPLink<M> extends Client<M> {
 	@Override
 	protected void sent(Throwable e) {
 		// 发送失败
-		// completed()方法抛出的异常不会到达此方法
-		send_message = null;
 		if (write != null) {
 			write.release();
 			write = null;
 		}
-		if (e instanceof AsynchronousCloseException) {
+		if (e instanceof ClosedChannelException) {
 			// 正在执行通道关闭
+			// 忽略此异常
 			return;
 		} else if (e instanceof InterruptedByTimeoutException) {
 			// 发送数据超时
+			// 通知处理程序
 			try {
 				handler().sent(this, null);
 			} catch (Exception e1) {
 				handler().error(this, e1);
+				reset();
 			}
 		} else {
 			handler().error(this, e);
+			reset();
 		}
-		// 重置链路
-		reset();
 	}
 
 	/**
 	 * 重置链路，重置后可再次执行连接
 	 */
-	void reset() {
-		if (socket_channel != null) {
-			if (connected) {
-				connected = false;
-				if (socket_channel != null && socket_channel.isOpen()) {
-					try {
-						socket_channel.shutdownInput();
-						socket_channel.shutdownOutput();
-					} catch (Exception e) {
-						handler().error(this, e);
-					} finally {
-						try {
-							handler().disconnected(this);
-						} catch (Exception e) {
-							handler().error(this, e);
-						}
-					}
+	protected void reset() {
+		if (connected) {
+			synchronized (this) {
+				if (connected) {
+					connected = false;
+				} else {
+					return;
 				}
 			}
+
 			try {
-				if (socket_channel != null) {
+				if (socket_channel.isOpen()) {
+					socket_channel.shutdownInput();
+					socket_channel.shutdownOutput();
 					socket_channel.close();
 				}
-			} catch (IOException e) {
+			} catch (Exception e) {
 				handler().error(this, e);
 			} finally {
 				socket_channel = null;
+				try {
+					handler().disconnected(this);
+				} catch (Exception e) {
+					handler().error(this, e);
+				}
+			}
+
+			if (read != null) {
+				read.release();
+				read = null;
+			}
+			if (write != null) {
+				write.release();
+				write = null;
+			}
+
+			// 消息中可能有打开的资源
+			// 例如发送未完成的文件
+			if (receive_message != null) {
+				try {
+					if (receive_message instanceof Closeable) {
+						((Closeable) receive_message).close();
+					}
+				} catch (IOException e) {
+					handler().error(this, e);
+				} finally {
+					receive_message = null;
+				}
+			}
+			if (send_message != null) {
+				try {
+					if (send_message instanceof Closeable) {
+						((Closeable) send_message).close();
+					}
+				} catch (IOException e) {
+					handler().error(this, e);
+				} finally {
+					send_message = null;
+				}
 			}
 		}
 	}

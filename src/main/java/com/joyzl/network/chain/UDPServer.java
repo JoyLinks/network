@@ -171,7 +171,7 @@ public class UDPServer<M> extends Server<M> {
 		} catch (IOException e) {
 			handler().error(this, e);
 		} finally {
-			ChainGroup.off(this);
+			ChainGroup.remove(this);
 			try {
 				handler().disconnected(this);
 			} catch (Exception e) {

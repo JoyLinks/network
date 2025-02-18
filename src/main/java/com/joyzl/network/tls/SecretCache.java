@@ -35,6 +35,14 @@ public class SecretCache extends DeriveSecret {
 		return clientTraffic != null || serverTraffic != null;
 	}
 
+	public byte[] clientTraffic() {
+		return clientTraffic;
+	}
+
+	public byte[] serverTraffic() {
+		return serverTraffic;
+	}
+
 	/**
 	 * 设置共享密钥
 	 */
@@ -60,30 +68,34 @@ public class SecretCache extends DeriveSecret {
 	}
 
 	public byte[] clientApplicationTraffic() throws Exception {
-		return clientApplicationTraffic(master, hash());
+		return clientTraffic = clientApplicationTraffic(master, hash());
 	}
 
 	public byte[] serverApplicationTraffic() throws Exception {
-		return serverApplicationTraffic(master, hash());
+		return serverTraffic = serverApplicationTraffic(master, hash());
 	}
 
 	public byte[] exporterMaster() throws Exception {
 		return exporterMaster(master, hash());
 	}
 
+	public byte[] resumptionMaster() throws Exception {
+		return master = resumptionMaster(master, hash());
+	}
+
 	public void done() {
 		hashReset();
 		handshake = null;
-		clientTraffic = null;
-		serverTraffic = null;
+		// clientTraffic = null;
+		// serverTraffic = null;
 	}
 
-	public byte[] resumption(byte[] nonce) throws Exception {
-		master = resumptionMaster(master, hash());
-		nonce = resumption(master, nonce);
+	public byte[] resumption(byte[] ticket_nonce) throws Exception {
+		// master = resumptionMaster(master, hash());
+		ticket_nonce = resumption(master, ticket_nonce);
 		done();
-		early = early(nonce);
-		return nonce;
+		early = early(ticket_nonce);
+		return ticket_nonce;
 	}
 
 	public byte[] resumptionBinderKey() throws Exception {

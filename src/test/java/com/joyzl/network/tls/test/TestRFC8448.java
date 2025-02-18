@@ -322,7 +322,19 @@ class TestRFC8448 {
 
 		// {client} send handshake record (TLSPlaintext)
 		// payload:ClientHelloPrefix+002120+3add4fb2d8fdf822a0ca3cf7678ef5e88dae990141c5924d57bb6fa31b9e5f9d
-		// 可能是补齐PreSharedKey扩展，需要进一步分析
+		// 补齐PreSharedKey扩展，PskBinderEntry binders<33..2^16-1>;
+		// uint16[uint8|vd]
+		// FE 20 vd
+		// NewSessionTicket
+		// 040000c9 4+201
+		// 0000001e 4 uint32 ticket_lifetime;
+		// fad6aac5 4 uint32 ticket_age_add;
+		// 020000 2+2 opaque ticket_nonce<0..255>;
+		// 00b2 178 opaque ticket<1..2^16-1>;
+		// ticket:2c035d829359ee5ff7af4ec900000000262a6494dc486d2c8a34cb33fa90bf1b0070ad3c498883c9367c09a2be785abc55cd226097a3a982117283f82a03a143efd3ff5dd36d64e861be7fd61d2827db279cce145077d454a3664d4e6da4d29ee03725a6a4dafcd0fc67d2aea70529513e3da2677fa5906c5b3f7d8f92f228bda40dda721470f9fbf297b5aea617646fac5c03272e970727c621a79141ef5f7de6505e5bfbc388e93343694093934ae4d357
+		// 0008002a000400000400 extensions<0..2^16-2>;
+		// ClientHello payload:512-prefix:477=35
+		// 010001fc 508=512-4 长度已包含 binders
 
 		// 补齐消息哈希
 		client.hash(Utility.hex("0021203add4fb2d8fdf822a0ca3cf7678ef5e88dae990141c5924d57bb6fa31b9e5f9d"));
@@ -912,7 +924,7 @@ class TestRFC8448 {
 		buffer.clear();
 
 		// {client} send handshake record
-		// payload:Finished
+		// payload:Finished 36+1
 		final DataBuffer plain2 = DataBuffer.instance();
 		plain2.write(Utility.hex(ClientFinished));
 		plain2.write(Record.HANDSHAKE);
@@ -1253,8 +1265,20 @@ class TestRFC8448 {
 		client.decryptFinal(buffer);
 		assertEquals(buffer, plain17);
 
-		// 额外的满载测试
+		// 额外的测试
 		final DataBuffer plain = DataBuffer.instance();
+		// 额外的少量测试
+		plain.write(Utility.hex(ClientFinished));
+		buffer.clear();
+		buffer.write(Utility.hex(ClientFinished));
+		client.encryptAdditional(plain.readable() + 16);
+		client.encryptFinal(plain);
+		server.decryptAdditional(plain.readable());
+		server.decryptFinal(plain);
+		assertEquals(buffer, plain);
+
+		// 额外的满载测试
+		plain.clear();
 		for (int i = 0; i < 16; i++) {
 			for (int v = 0; v < 1024; v++) {
 				plain.write(v);
