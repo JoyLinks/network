@@ -813,8 +813,8 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	}
 
 	/**
-	 * 获取缓存单元用于写入数据到通道(Channel)，写入数据到通道后必须通过{@link #read(int)}设置数量；<br>
-	 * 将缓存单元的数据写入到通道。
+	 * 获取首部缓存单元用于将编码好的数据写入到其它通道(Channel)，写入数据到通道后必须通过{@link #read(int)}设置数量；
+	 * 完成写入并设置其它通道读取的数量，如果当前缓存单元的数据已全部写入将自动被释放。
 	 * 
 	 * @return DataBufferUnit
 	 * @see #read(int)
@@ -829,6 +829,9 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	}
 
 	/**
+	 * 获取所有缓存单元用于将编码的数据写入到其它通道(Channel)，写入数据到通道后必须通过{@link #read(int)}设置数量；
+	 * 完成写入并设置其它通道读取的数量，缓存单元的数据已全部写入将自动被释放。
+	 * 
 	 * @see #read()
 	 * @return
 	 */
@@ -970,23 +973,29 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 		write.writeByte(getVerifier().check(value));
 	}
 
-	/**
-	 * 从缓存尾部获取数据
-	 */
-	public byte backByte() {
-		if (write.isBlank() || write.isEmpty()) {
-			if (read == write) {
-				throw new IllegalStateException("DataBuffer EMPTY");
-			}
+	private void back() {
+		if (read == write) {
+			throw new IllegalStateException("DataBuffer EMPTY");
+		} else {
 			// LAST - 1
 			DataBufferUnit unit = read;
 			while (unit.next() != write) {
 				unit = unit.next();
 			}
 			if (mark == null) {
+				unit.next(null);
 				write.release();
 			}
 			write = unit;
+		}
+	}
+
+	/**
+	 * 从缓存尾部获取数据
+	 */
+	public byte backByte() {
+		if (write.readable() <= 0) {
+			back();
 		}
 
 		length--;
@@ -998,19 +1007,20 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 */
 	public void backSkip(int size) {
 		while (size > 0) {
-			if (write.readable() <= size) {
+			if (write.readable() <= 0) {
+				back();
+			} else if (write.readable() <= size) {
 				size -= write.readable();
-				// LAST - 1
-				DataBufferUnit unit = read;
-				while (unit.next() != write) {
-					unit = unit.next();
+				length -= write.readable();
+				if (read == write) {
+					write.readIndex(0);
+					write.writeIndex(0);
+				} else {
+					back();
 				}
-				if (mark == null) {
-					write.release();
-				}
-				write = unit;
 			} else {
 				write.writeIndex(write.writeIndex() - size);
+				length -= size;
 				size = 0;
 			}
 		}

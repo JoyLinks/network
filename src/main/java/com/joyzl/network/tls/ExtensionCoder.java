@@ -513,9 +513,8 @@ public class ExtensionCoder {
 		}
 
 		// PskBinderEntry binders<33..2^16-1>;
-		length = extension.size() * (extension.getHashLength() + 1);
 		// list Length 2Byte
-		buffer.writeShort(length);
+		buffer.writeShort(extension.bindersLength());
 		for (int index = 0; index < extension.size(); index++) {
 			buffer.writeByte(extension.getHashLength());
 			for (length = 0; length < extension.getHashLength(); length++) {

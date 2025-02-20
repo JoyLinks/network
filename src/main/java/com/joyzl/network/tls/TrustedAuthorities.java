@@ -5,6 +5,7 @@ import java.util.Arrays;
 /**
  * <pre>
  * RFC 6066
+ * 
  * struct {
  *     TrustedAuthority trusted_authorities_list<0..2^16-1>;
  * } TrustedAuthorities;

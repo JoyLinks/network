@@ -11,8 +11,6 @@ public class PskIdentity {
 	private byte[] identity = TLS.EMPTY_BYTES;
 	/** obfuscated */
 	private int ticket_age = 0;
-	/** ticket nonce */
-	private byte[] nonce = TLS.EMPTY_BYTES;
 	/** binder */
 	private byte[] binder = TLS.EMPTY_BYTES;
 
@@ -41,18 +39,6 @@ public class PskIdentity {
 			identity = TLS.EMPTY_BYTES;
 		} else {
 			identity = value;
-		}
-	}
-
-	public byte[] getNonce() {
-		return nonce;
-	}
-
-	public void setNonce(byte[] value) {
-		if (value == null) {
-			nonce = TLS.EMPTY_BYTES;
-		} else {
-			nonce = value;
 		}
 	}
 

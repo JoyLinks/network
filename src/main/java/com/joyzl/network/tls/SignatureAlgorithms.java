@@ -90,6 +90,53 @@ public class SignatureAlgorithms extends Extension {
 			DSA_SHA512_RESERVED,//
 	};
 
+	public final static String named(short value) {
+		switch (value) {
+			case RSA_PKCS1_SHA256:
+				return "RSA_PKCS1_SHA256";
+			case RSA_PKCS1_SHA384:
+				return "RSA_PKCS1_SHA384";
+			case RSA_PKCS1_SHA512:
+				return "RSA_PKCS1_SHA512";
+			case ECDSA_SECP256R1_SHA256:
+				return "ECDSA_SECP256R1_SHA256";
+			case ECDSA_SECP384R1_SHA384:
+				return "ECDSA_SECP384R1_SHA384";
+			case ECDSA_SECP521R1_SHA512:
+				return "ECDSA_SECP521R1_SHA512";
+			case RSA_PSS_RSAE_SHA256:
+				return "RSA_PSS_RSAE_SHA256";
+			case RSA_PSS_RSAE_SHA384:
+				return "RSA_PSS_RSAE_SHA384";
+			case RSA_PSS_RSAE_SHA512:
+				return "RSA_PSS_RSAE_SHA512";
+			case ED25519:
+				return "ED25519";
+			case ED448:
+				return "ED448";
+			case RSA_PSS_PSS_SHA256:
+				return "RSA_PSS_PSS_SHA256";
+			case RSA_PSS_PSS_SHA384:
+				return "RSA_PSS_PSS_SHA384";
+			case RSA_PSS_PSS_SHA512:
+				return "RSA_PSS_PSS_SHA512";
+			case RSA_PKCS1_SHA1:
+				return "RSA_PKCS1_SHA1";
+			case ECDSA_SHA1:
+				return "ECDSA_SHA1";
+			case DSA_SHA1_RESERVED:
+				return "DSA_SHA1_RESERVED";
+			case DSA_SHA256_RESERVED:
+				return "DSA_SHA256_RESERVED";
+			case DSA_SHA384_RESERVED:
+				return "DSA_SHA384_RESERVED";
+			case DSA_SHA512_RESERVED:
+				return "DSA_SHA512_RESERVED";
+			default:
+				return null;
+		}
+	}
+
 	////////////////////////////////////////////////////////////////////////////////
 
 	private final static short[] EMPTY = new short[0];

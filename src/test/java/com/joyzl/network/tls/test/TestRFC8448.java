@@ -706,10 +706,12 @@ class TestRFC8448 {
 		// {server} construct a NewSessionTicket handshake message
 		// {server} send handshake record (TLSCiphertext)
 		// {server} 通过TicketNonce生成恢复密钥
+		temp = serverSecrets.resumptionMaster();
 		temp = serverSecrets.resumption(new byte[] { 0, 0 });
 		assertArrayEquals(Utility.hex("4ecd0eb6ec3b4d87f5d6028f922ca4c5851a277fd41311c9e62d2c9492e1c4f3"), temp);
 		// {client} received
 		// {client} 通过TicketNonce生成恢复密钥
+		temp = clientSecrets.resumptionMaster();
 		temp = clientSecrets.resumption(new byte[] { 0, 0 });
 		assertArrayEquals(Utility.hex("4ecd0eb6ec3b4d87f5d6028f922ca4c5851a277fd41311c9e62d2c9492e1c4f3"), temp);
 
@@ -728,6 +730,9 @@ class TestRFC8448 {
 
 		serverKeyExchange.setPrivateKey(Utility.hex("de5b4476e7b490b2652d338acbf2948066f255f9440e23b98fc69835298dc107"));
 		serverKeyExchange.setPublicKey(Utility.hex("121761ee42c333e1b9e77b60dd57c2053cd94512ab47f115e86eff50942cea31"));
+
+		clientSecrets.reset(temp);
+		serverSecrets.reset(temp);
 
 		// {client} construct a ClientHello handshake message
 		// ClientHello最后一个扩展的PskBinderEntry待计算后获得

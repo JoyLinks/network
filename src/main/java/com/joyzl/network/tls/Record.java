@@ -40,6 +40,11 @@ package com.joyzl.network.tls;
  */
 public abstract class Record extends TLS {
 
+	/** TLSPlaintext 16K (2^14) */
+	final static int PLAINTEXT_MAX = 16384;
+	/** TLSCiphertext */
+	final static int CIPHERTEXT_MAX = PLAINTEXT_MAX + 256;
+
 	// ContentType MAX(255)
 
 	/** 1.3 */
@@ -54,11 +59,6 @@ public abstract class Record extends TLS {
 	public final static byte APPLICATION_DATA = 23;
 	/** 1.3 */
 	public final static byte HEARTBEAT = 24;
-
-	/** TLSPlaintext 16K (2^14) */
-	final static int PLAINTEXT_MAX = 16384;
-	/** TLSCiphertext */
-	final static int CIPHERTEXT_MAX = PLAINTEXT_MAX + 256;
 
 	////////////////////////////////////////////////////////////////////////////////
 

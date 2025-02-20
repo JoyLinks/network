@@ -103,6 +103,27 @@ class TestDataBuffer {
 			assertNotNull(e);
 			buffer.clear();
 		}
+		try {
+			buffer.skipBytes(1);
+			fail("应抛出异常");
+		} catch (Exception e) {
+			assertNotNull(e);
+			buffer.clear();
+		}
+		try {
+			buffer.backByte();
+			fail("应抛出异常");
+		} catch (Exception e) {
+			assertNotNull(e);
+			buffer.clear();
+		}
+		try {
+			buffer.backSkip(1);
+			fail("应抛出异常");
+		} catch (Exception e) {
+			assertNotNull(e);
+			buffer.clear();
+		}
 
 		int length;
 		length = buffer.write(InputStream.nullInputStream());
@@ -147,6 +168,35 @@ class TestDataBuffer {
 		assertEquals(buffer.writeable(), 0);
 		buffer.release();
 		assertEquals(buffer.units(), 1);
+	}
+
+	@Test
+	void testBack() {
+		final DataBuffer buffer = DataBuffer.instance();
+		buffer.writeByte(2);
+		assertEquals(buffer.backByte(), 2);
+		assertEquals(buffer.readable(), 0);
+
+		buffer.writeByte(2);
+		buffer.writeByte(1);
+		buffer.backSkip(1);
+		assertEquals(buffer.readable(), 1);
+		buffer.backSkip(1);
+		assertEquals(buffer.readable(), 0);
+
+		for (int index = 0; index < 65536; index++) {
+			buffer.writeByte((byte) index);
+		}
+		buffer.backSkip(65536);
+		assertEquals(buffer.readable(), 0);
+
+		for (int index = 0; index < 65536; index++) {
+			buffer.writeByte((byte) index);
+		}
+		buffer.backSkip(1024 + 256);
+		assertEquals(buffer.readable(), 65536 - 1024 - 256);
+		buffer.backSkip(buffer.readable());
+		assertEquals(buffer.readable(), 0);
 	}
 
 	@Test

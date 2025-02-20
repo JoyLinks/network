@@ -1,9 +1,12 @@
 package com.joyzl.network.tls;
 
 /**
- * RFC 6520
+ * 心跳扩展
  * 
  * <pre>
+ * RFC 6520
+ * Transport Layer Security (TLS) and Datagram Transport Layer Security (DTLS) Heartbeat Extension
+ * 
  * enum {
  *     peer_allowed_to_send(1),
  *     peer_not_allowed_to_send(2),

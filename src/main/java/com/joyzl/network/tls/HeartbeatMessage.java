@@ -1,9 +1,12 @@
 package com.joyzl.network.tls;
 
 /**
- * RFC 6520
+ * 心跳消息
  * 
  * <pre>
+ * RFC 6520
+ * Transport Layer Security (TLS) and Datagram Transport Layer Security (DTLS) Heartbeat Extension
+ * 
  * struct {
  *      HeartbeatMessageType type;
  *      uint16 payload_length;

@@ -10,8 +10,8 @@ public class SecretCache extends DeriveSecret {
 	private byte[] early;
 	private byte[] master;
 	private byte[] handshake;
-	private byte[] clientTraffic;
-	private byte[] serverTraffic;
+	private byte[] clientHTraffic, clientATraffic;
+	private byte[] serverHTraffic, serverATraffic;
 
 	public SecretCache() throws Exception {
 	}
@@ -24,7 +24,7 @@ public class SecretCache extends DeriveSecret {
 	@Override
 	public void hmac(String name) throws Exception {
 		super.hmac(name);
-		early = early(null);
+		reset(null);
 	}
 
 	public boolean hasKey() {
@@ -32,19 +32,31 @@ public class SecretCache extends DeriveSecret {
 	}
 
 	public boolean handshaked() {
-		return clientTraffic != null || serverTraffic != null;
+		return clientHTraffic != null || serverHTraffic != null;
 	}
 
 	public byte[] clientTraffic() {
-		return clientTraffic;
+		return clientATraffic;
 	}
 
 	public byte[] serverTraffic() {
-		return serverTraffic;
+		return serverATraffic;
 	}
 
 	/**
-	 * 设置共享密钥
+	 * 重置密钥处理类
+	 */
+	public void reset(byte[] psk) throws Exception {
+		hashReset();
+		master = null;
+		handshake = null;
+		clientHTraffic = null;
+		serverHTraffic = null;
+		early = early(psk);
+	}
+
+	/**
+	 * 设置对端共享密钥
 	 */
 	public void sharedKey(byte[] key) throws Exception {
 		handshake = handshake(early, key);
@@ -52,27 +64,27 @@ public class SecretCache extends DeriveSecret {
 	}
 
 	public byte[] clientHandshakeTraffic() throws Exception {
-		return clientTraffic = clientHandshakeTraffic(handshake, hash());
+		return clientHTraffic = clientHandshakeTraffic(handshake, hash());
 	}
 
 	public byte[] serverHandshakeTraffic() throws Exception {
-		return serverTraffic = serverHandshakeTraffic(handshake, hash());
+		return serverHTraffic = serverHandshakeTraffic(handshake, hash());
 	}
 
 	public byte[] clientFinished() throws Exception {
-		return finishedVerifyData(clientTraffic, hash());
+		return finishedVerifyData(clientHTraffic, hash());
 	}
 
 	public byte[] serverFinished() throws Exception {
-		return finishedVerifyData(serverTraffic, hash());
+		return finishedVerifyData(serverHTraffic, hash());
 	}
 
 	public byte[] clientApplicationTraffic() throws Exception {
-		return clientTraffic = clientApplicationTraffic(master, hash());
+		return clientATraffic = clientApplicationTraffic(master, hash());
 	}
 
 	public byte[] serverApplicationTraffic() throws Exception {
-		return serverTraffic = serverApplicationTraffic(master, hash());
+		return serverATraffic = serverApplicationTraffic(master, hash());
 	}
 
 	public byte[] exporterMaster() throws Exception {
@@ -83,18 +95,11 @@ public class SecretCache extends DeriveSecret {
 		return master = resumptionMaster(master, hash());
 	}
 
-	public void done() {
-		hashReset();
-		handshake = null;
-		// clientTraffic = null;
-		// serverTraffic = null;
-	}
-
 	public byte[] resumption(byte[] ticket_nonce) throws Exception {
 		// master = resumptionMaster(master, hash());
 		ticket_nonce = resumption(master, ticket_nonce);
-		done();
-		early = early(ticket_nonce);
+		// hashReset();
+		// early = early(ticket_nonce);
 		return ticket_nonce;
 	}
 

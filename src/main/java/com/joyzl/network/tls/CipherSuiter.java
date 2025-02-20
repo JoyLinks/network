@@ -563,23 +563,49 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 	 */
 	public void decryptFinal(DataBuffer in, DataBuffer out, int length) throws Exception {
 
-		final ByteBuffer output = ByteBuffer.allocate(decryptCipher.getOutputSize(length));
-		DataBufferUnit i = in.take();
+		// final ByteBuffer output =
+		// ByteBuffer.allocate(decryptCipher.getOutputSize(length));
+		// DataBufferUnit i = in.take();
+		//
+		// while (i != null && length > 0) {
+		// if (i.readable() <= length) {
+		// length -= i.readable();
+		// decryptCipher.update(i.buffer(), output);
+		// i.release();
+		// } else {
+		// length = i.readable() - length;
+		// i.writeIndex(i.writeIndex() - length);
+		// decryptCipher.update(i.buffer(), output);
+		// i.writeIndex(i.writeIndex() + length);
+		// length = 0;
+		// break;
+		// }
+		// i = in.take();
+		// }
+		//
+		// decryptCipher.doFinal(EMPTY, output);
+		// decryptSequence++;
+		//
+		// out.write(output.flip());
 
-		while (i != null && length > 0) {
-			if (i.readable() <= length) {
-				length -= i.readable();
-				decryptCipher.update(i.buffer(), output);
-				i.release();
+		final ByteBuffer output = ByteBuffer.allocate(decryptCipher.getOutputSize(length));
+
+		int size;
+		ByteBuffer i;
+		while (length > 0) {
+			i = in.read();
+			if (i.remaining() <= length) {
+				length -= size = i.remaining();
+				decryptCipher.update(i, output);
+				in.read(size);
 			} else {
-				length = i.readable() - length;
-				i.writeIndex(i.writeIndex() - length);
-				decryptCipher.update(i.buffer(), output);
-				i.writeIndex(i.writeIndex() + length);
+				size = i.remaining() - length;
+				i.limit(i.limit() - size);
+				decryptCipher.update(i, output);
+				i.limit(i.limit() + size);
+				in.read(size);
 				length = 0;
-				break;
 			}
-			i = in.take();
 		}
 
 		decryptCipher.doFinal(EMPTY, output);

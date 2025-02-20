@@ -1,6 +1,8 @@
 package com.joyzl.network.tls;
 
 /**
+ * 客户端愿意握手后再认证
+ * 
  * <pre>
  * struct {} PostHandshakeAuth;
  * </pre>

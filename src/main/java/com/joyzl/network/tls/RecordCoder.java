@@ -189,6 +189,7 @@ abstract class RecordCoder extends TLS {
 					buffer.clear();
 					return new Alert(Alert.RECORD_OVERFLOW);
 				}
+
 				// 解密
 				final DataBuffer data;
 				if (buffer.readable() == length) {
@@ -203,6 +204,7 @@ abstract class RecordCoder extends TLS {
 				if (data == null) {
 					return new Alert(Alert.BAD_RECORD_MAC);
 				}
+
 				// 删除 zeros 查找 ContentType
 				type = data.backByte();
 				while (type == 0) {
@@ -276,12 +278,11 @@ abstract class RecordCoder extends TLS {
 				}
 			}
 		} else {
-			buffer.reset();
-			System.out.println(buffer);
-			// System.out.println(buffer.readASCIIs(buffer.readable()));
-			// buffer.clear();
-			// throw new UnsupportedOperationException();
-			return null;
+			// buffer.reset();
+			// System.out.println(buffer);
+			// return null;
+			buffer.clear();
+			throw new UnsupportedOperationException();
 		}
 	}
 

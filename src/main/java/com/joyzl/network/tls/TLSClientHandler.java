@@ -60,18 +60,25 @@ public class TLSClientHandler extends RecordHandler {
 			final ClientHello clientHello = (ClientHello) handshake;
 			final Extension extension = clientHello.lastExtension();
 			if (extension != null && extension instanceof OfferedPsks) {
+				// 0-RTT BinderKey
 				final OfferedPsks offeredPsks = (OfferedPsks) extension;
 				// Transcript-Hash(Truncate(ClientHello1))
-				buffer.backSkip(offeredPsks.bindersLength());
+				// 2 = uint16 Short Length
+				buffer.backSkip(offeredPsks.bindersLength() + 2);
 				cipher.hash(buffer);
+
 				// PskBinderEntry
 				PskIdentity identity;
 				for (int index = 0; index < offeredPsks.size(); index++) {
 					identity = offeredPsks.get(index);
-					cipher.resumption(identity.getNonce());
 					identity.setBinder(cipher.resumptionBinderKey());
 				}
 				ExtensionCoder.encodeBinders(offeredPsks, buffer);
+
+				// 重新计算消息哈希以包含BinderKey部分
+				// TODO hash(buffer,offset,length);
+				cipher.hashReset();
+				cipher.hash(buffer);
 			} else {
 				cipher.hash(buffer);
 			}
@@ -130,6 +137,7 @@ public class TLSClientHandler extends RecordHandler {
 			final ServerHello serverHello = (ServerHello) message;
 			if (serverHello.isHelloRetryRequest()) {
 				System.out.println("HelloRetryRequest");
+				// Cookie 由Server发送并原样送回
 			} else {
 				if (serverHello.getVersion() == TLS.V12) {
 					for (Extension extension : serverHello.getExtensions()) {
@@ -140,7 +148,7 @@ public class TLSClientHandler extends RecordHandler {
 							final SupportedVersions supportedVersions = (SupportedVersions) extension;
 							if (supportedVersions.size() == 1) {
 								if (supportedVersions.get(0) == TLS.V13) {
-									// OK
+									// OK 1.3
 									continue;
 								} else {
 									chain.send(new Alert(Alert.ILLEGAL_PARAMETER));
@@ -150,9 +158,13 @@ public class TLSClientHandler extends RecordHandler {
 								chain.send(new Alert(Alert.ILLEGAL_PARAMETER));
 								return;
 							}
-						} else
-						//
-						if (extension.type() == Extension.KEY_SHARE) {
+						} else if (extension.type() == Extension.PRE_SHARED_KEY) {
+							final PreSharedKeySelected preSharedKeySelected = (PreSharedKeySelected) extension;
+							if (preSharedKeySelected.getSelected() != 0) {
+								chain.send(new Alert(Alert.ILLEGAL_PARAMETER));
+								return;
+							}
+						} else if (extension.type() == Extension.KEY_SHARE) {
 							final KeyShareServerHello keyShare = (KeyShareServerHello) extension;
 							if (keyShare.serverShare().group() == key.group()) {
 								cipher.sharedKey(key.sharedKey(keyShare.serverShare().getKeyExchange()));
@@ -163,9 +175,7 @@ public class TLSClientHandler extends RecordHandler {
 						}
 					}
 					if (serverHello.getCipherSuite() == cipher.suite()) {
-						System.out.println("ENCRYPT RESET:clientHandshakeTraffic");
 						cipher.encryptReset(cipher.clientHandshakeTraffic());
-						System.out.println("DECRYPT RESET:serverHandshakeTraffic");
 						cipher.decryptReset(cipher.serverHandshakeTraffic());
 					} else {
 
@@ -173,9 +183,7 @@ public class TLSClientHandler extends RecordHandler {
 				}
 
 			}
-		} else
-		//
-		if (message.msgType() == Handshake.ENCRYPTED_EXTENSIONS) {
+		} else if (message.msgType() == Handshake.ENCRYPTED_EXTENSIONS) {
 			final EncryptedExtensions extensions = (EncryptedExtensions) message;
 			for (Extension extension : extensions.getExtensions()) {
 				System.out.print('\t');
@@ -187,32 +195,33 @@ public class TLSClientHandler extends RecordHandler {
 
 				}
 			}
-		} else
-		//
-		if (message.msgType() == Handshake.CERTIFICATE) {
-			final Certificate certificate = (com.joyzl.network.tls.Certificate) message;
+		} else if (message.msgType() == Handshake.CERTIFICATE) {
+			final Certificate certificate = (Certificate) message;
+			if (certificate.size() > 0) {
+				// MD5/SHA-1 bad_certificate
+			} else {
+				// 空的证书消息
+				chain.send(new Alert(Alert.DECODE_ERROR));
+			}
+		} else if (message.msgType() == Handshake.CERTIFICATE_VERIFY) {
+			final CertificateVerify certificateVerify = (CertificateVerify) message;
 
-		} else
-		//
-		if (message.msgType() == Handshake.CERTIFICATE_VERIFY) {
-
-		} else
-		//
-		if (message.msgType() == Handshake.NEW_SESSION_TICKET) {
-			final NewSessionTicket newSessionTicket = (com.joyzl.network.tls.NewSessionTicket) message;
+		} else if (message.msgType() == Handshake.NEW_SESSION_TICKET) {
+			final NewSessionTicket newSessionTicket = (NewSessionTicket) message;
+			newSessionTicket.setNonce(cipher.resumption(newSessionTicket.getNonce()));
 			SessionTickets.put(sni, key.group(), cipher.suite(), newSessionTicket);
 			chain.receive();
-		} else
-		//
-		if (message.msgType() == Handshake.FINISHED) {
+		} else if (message.msgType() == Handshake.FINISHED) {
 			final Finished finished = (Finished) message;
 			if (finished.getVerifyData() == Finished.OK) {
-				finished.setVerifyData(cipher.clientFinished());
-
 				cipher.decryptReset(cipher.serverApplicationTraffic());
 				cipher.clientApplicationTraffic();
 				cipher.exporterMaster();
 
+				// EndOfEarlyData
+				// chain.send(EndOfEarlyData.INSTANCE);
+				// ClientFinished
+				finished.setVerifyData(cipher.clientFinished());
 				chain.send(finished);
 			} else {
 				chain.send(new Alert(Alert.DECRYPT_ERROR));
@@ -236,7 +245,6 @@ public class TLSClientHandler extends RecordHandler {
 		hello.addExtension(new StatusRequest(new OCSPStatusRequest()));
 		hello.addExtension(new SignatureAlgorithms(SignatureAlgorithms.ALL));
 		hello.addExtension(new ECPointFormats(ECPointFormats.UNCOMPRESSED));
-		hello.addExtension(new SupportedGroups(NamedGroup.ALL));
 		hello.addExtension(new SessionTicket());
 		hello.addExtension(new ApplicationLayerProtocolNegotiation(//
 			// ApplicationLayerProtocolNegotiation.H2, //
@@ -248,23 +256,29 @@ public class TLSClientHandler extends RecordHandler {
 		hello.addExtension(new SignedCertificateTimestamp());
 		hello.addExtension(new CompressCertificate(CompressCertificate.BROTLI));
 		hello.addExtension(new Heartbeat(Heartbeat.PEER_NOT_ALLOWED_TO_SEND));
-		hello.addExtension(new PskKeyExchangeModes(PskKeyExchangeModes.PSK_DHE_KE));
 
+		// Key Exchange Extensions
 		key = new KeyExchange(NamedGroup.X25519);
+		hello.addExtension(new SupportedGroups(NamedGroup.ALL));
 		hello.addExtension(new KeyShareClientHello(new KeyShareEntry(NamedGroup.X25519, key.publicKey())));
-
-		// PSK
+		hello.addExtension(new PskKeyExchangeModes(PskKeyExchangeModes.PSK_DHE_KE));
+		// 获取缓存的PSK
 		final NewSessionTicket ticket = SessionTickets.get(sni, NamedGroup.X25519, CipherSuite.TLS_AES_128_GCM_SHA256);
 		if (ticket != null) {
+			// early_data
+			// 0-RTT PSK
 			final OfferedPsks psk = new OfferedPsks();
 			final PskIdentity pskIdentity = new PskIdentity();
 			pskIdentity.setTicketAge(ticket.obfuscatedTicketAge());
 			pskIdentity.setIdentity(ticket.getTicket());
-			pskIdentity.setNonce(ticket.getNonce());
 			psk.add(pskIdentity);
-			System.out.println("==========0-RTT==========");
+			hello.addExtension(psk);
+			psk.setHashLength(cipher.hashLength());
+			cipher.reset(ticket.getNonce());
+		} else {
+			// 1-RTT KEY SHARE
+			cipher = new CipherSuiter(CipherSuite.TLS_AES_128_GCM_SHA256);
 		}
-		cipher = new CipherSuiter(CipherSuite.TLS_AES_128_GCM_SHA256);
 
 		chain.send(hello);
 	}

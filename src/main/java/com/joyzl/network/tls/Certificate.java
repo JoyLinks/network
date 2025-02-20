@@ -3,6 +3,8 @@ package com.joyzl.network.tls;
 import java.util.Arrays;
 
 /**
+ * 用于认证的证书和链中任何支持的证书
+ * 
  * <pre>
  * RFC 2246 TLSv1.0
  * RFC 4336 TLSv1.1
@@ -91,5 +93,9 @@ public class Certificate extends Handshake {
 		} else {
 			certificates = value;
 		}
+	}
+
+	public int size() {
+		return certificates.length;
 	}
 }
