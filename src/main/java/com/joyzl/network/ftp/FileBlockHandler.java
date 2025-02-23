@@ -60,12 +60,12 @@ public class FileBlockHandler extends FileHandler {
 		final FileClient client = (FileClient) chain;
 		final FileMessage message = client.getCommand();
 		if ((tag & EOR) > 0) {
-			reader.read(client.getChannel(), length);
+			reader.transfer(client.getChannel(), length);
 			message.setTransferred(message.getTransferred() + length);
 			client.closeChannel();
 		} else//
 		if ((tag & EOF) > 0) {
-			reader.read(client.getChannel(), length);
+			reader.transfer(client.getChannel(), length);
 			message.setTransferred(message.getTransferred() + length);
 			client.closeChannel();
 		} else//
@@ -73,7 +73,7 @@ public class FileBlockHandler extends FileHandler {
 			// TODO 如何保存这个
 			reader.readASCIIs(length);
 		} else {
-			reader.read(client.getChannel(), length);
+			reader.transfer(client.getChannel(), length);
 			message.setTransferred(message.getTransferred() + length);
 
 		}
@@ -113,7 +113,7 @@ public class FileBlockHandler extends FileHandler {
 				// LENGTH 2B
 				buffer.writeShort((int) length);
 				// DATA
-				length = buffer.write(channel, (int) length);
+				length = buffer.append(channel, (int) length);
 				message.setTransferred(message.getTransferred() + length);
 
 				// RST 1B
@@ -130,7 +130,7 @@ public class FileBlockHandler extends FileHandler {
 				// LENGTH 2B
 				buffer.writeShort((int) length);
 				// DATA
-				length = buffer.write(channel, (int) length);
+				length = buffer.append(channel, (int) length);
 				message.setTransferred(message.getTransferred() + length);
 			}
 		} else {

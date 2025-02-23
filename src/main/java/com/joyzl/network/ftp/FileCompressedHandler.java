@@ -67,7 +67,7 @@ public class FileCompressedHandler extends FileHandler {
 			if (tag > 0 && tag <= 127) {
 				// 常规数据
 				if (reader.readable() >= tag) {
-					reader.read(client.getChannel(), tag);
+					reader.transfer(client.getChannel(), tag);
 					message.setTransferred(message.getTransferred() + tag);
 				} else {
 					reader.reset();

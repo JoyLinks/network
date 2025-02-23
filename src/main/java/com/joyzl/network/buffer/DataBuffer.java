@@ -63,11 +63,11 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 
 	////////////////////////////////////////////////////////////////////////////////
 
+	private DataBufferUnit mark = null;
 	private DataBufferUnit read;
-	private DataBufferUnit mark;
 	private DataBufferUnit write;
 
-	private int length;
+	private int length = 0;
 
 	// 实现注意：
 	// 不能保证每个缓存单元都是写满的，应尽量避免较多未满单元出现；
@@ -78,8 +78,6 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 
 	private DataBuffer() {
 		read = write = DataBufferUnit.get();
-		mark = null;
-		length = 0;
 	}
 
 	/**
@@ -108,6 +106,8 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 		return size;
 	}
 
+	////////////////////////////////////////////////////////////////////////////////
+
 	/**
 	 * 获取当前剩余可写入字节数量，写入字节超过此数量将自动扩展
 	 * <p>
@@ -116,25 +116,6 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 */
 	public final int writeable() {
 		return write.writeable();
-	}
-
-	/**
-	 * 可读字节数量
-	 */
-	public final int readable() {
-		return length;
-	}
-
-	/**
-	 * 写入字节到指定位置，写入位置不变，不参与校验
-	 *
-	 * @param index 0~{@link #readable()}-1
-	 * @param value byte
-	 * @see {{@link #set(int, byte)}
-	 */
-	@Deprecated
-	public final void writeByte(int index, byte value) {
-		set(index, value);
 	}
 
 	/**
@@ -150,6 +131,33 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 			unit = unit.next();
 		}
 		unit.set(unit.readIndex() + index, value);
+	}
+
+	@Override
+	public void writeByte(int b) {
+		writeByte((byte) b);
+	}
+
+	@Override
+	public void writeByte(byte value) {
+		getVerifier().check(value);
+		if (write.isFull()) {
+			write = write.extend();
+		}
+		write.writeByte(value);
+		length++;
+	}
+
+	/**
+	 * 写入字节到指定位置，写入位置不变，不参与校验
+	 *
+	 * @param index 0~{@link #readable()}-1
+	 * @param value byte
+	 * @see {{@link #set(int, byte)}
+	 */
+	@Deprecated
+	public final void writeByte(int index, byte value) {
+		set(index, value);
 	}
 
 	/**
@@ -174,148 +182,53 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 * @param len 最多可写入数量
 	 * @return 写入数量
 	 */
-	public final int write(final InputStream input, final int len) throws IOException {
-		int length = 0, value;
-		while (len > length && (value = input.read()) >= 0) {
+	public final int write(final InputStream input, int len) throws IOException {
+		int size = 0, value;
+		while (size < len && (value = input.read()) >= 0) {
 			writeByte(value);
-			length++;
+			size++;
 		}
+		return size;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * 可读字节数量
+	 */
+	public final int readable() {
 		return length;
 	}
 
 	/**
-	 * 写入通道中的所有字节(FileChannel > DataBuffer)，不参与校验
-	 * 
-	 * @param channel
-	 * @return 写入数量
+	 * 获取指定位置字节，读写位置不变，不参与校验
+	 *
+	 * @param index 0~{@link #readable()}-1
 	 */
-	public final int write(FileChannel channel) throws IOException {
-		int l, wrotes = 0;
-		while (channel.size() - channel.position() > 0) {
-			if (write.isFull()) {
-				// 防止用已满的ByteBuffer接收数据,将导致读零
-				write = write.link(DataBufferUnit.get());
-			}
-			l = channel.read(write.receive());
-			length += write.received();
-			if (l > 0) {
-				wrotes += l;
+	public final byte get(int index) {
+		DataBufferUnit unit = read;
+		while (index >= unit.readable()) {
+			index -= unit.readable();
+			unit = unit.next();
+		}
+		return unit.get(unit.readIndex() + index);
+	}
+
+	@Override
+	public byte readByte() {
+		if (read.isEmpty()) {
+			if (read.next() != null) {
+				if (mark == null) {
+					read = read.curtail();
+				} else {
+					read = read.next();
+				}
 			} else {
-				break;
+				throw new IllegalStateException("DataBuffer:EMPTY");
 			}
 		}
-		return wrotes;
-	}
-
-	/**
-	 * 写入通道中的指定字节(FileChannel > DataBuffer)，不参与校验
-	 * 
-	 * @param channel 打开的文件通道
-	 * @param length 最多可写入数量
-	 * @return 写入字节数量
-	 */
-	public final int write(FileChannel channel, int len) throws IOException {
-		int l, wrotes = 0;
-		while (len > 0 && channel.size() - channel.position() > 0) {
-			if (write.isFull()) {
-				// 防止用已满的ByteBuffer接收数据,将导致读零
-				write = write.link(DataBufferUnit.get());
-			}
-			if (len >= write.writeable()) {
-				l = channel.read(write.receive());
-				length += write.received();
-			} else {
-				write.receive();
-				// 这是特殊处理，通过设置ByteBuffer.limit值减少数据读入
-				write.braek().writeIndex(write.readIndex() - write.writeable() - len);
-				l = channel.read(write.buffer());
-				length += write.received();
-			}
-			if (l > 0) {
-				wrotes += l;
-				len -= l;
-			} else {
-				break;
-			}
-		}
-		return wrotes;
-	}
-
-	/**
-	 * 写入指定编码的字符，不参与校验
-	 * 
-	 * @param chars 要写入的字符
-	 * @param charset 字符编码
-	 * @return 写入字节数量
-	 */
-	public final int write(final CharBuffer chars, Charset charset) {
-		final CharsetEncoder encoder = charset.newEncoder();
-		int wrote = 0;
-		CoderResult result;
-		while (chars.hasRemaining()) {
-			if (write.isFull()) {
-				// 防止用已满的ByteBuffer接收数据,将导致读零
-				write = write.link(DataBufferUnit.get());
-			}
-			result = encoder.encode(chars, write.receive(), true);
-			wrote += write.received();
-			length += wrote;
-			if (result == CoderResult.UNDERFLOW) {
-				break;
-			}
-			if (result == CoderResult.OVERFLOW) {
-				continue;
-			}
-		}
-		return wrote;
-	}
-
-	/**
-	 * 写入指定编码的字符，限制字节数量有可能导致字符错误的截断，不参与校验
-	 * 
-	 * @param chars 要写入的字符
-	 * @param charset 字符编码
-	 * @param len 最多可写入字节数
-	 * @return 写入字节数量
-	 */
-	public final int write(final CharBuffer chars, Charset charset, int len) {
-		final CharsetEncoder encoder = charset.newEncoder();
-		int wrote = 0;
-		CoderResult result;
-		while (wrote < len) {
-			if (write.isFull()) {
-				// 防止用已满的ByteBuffer接收数据,将导致读零
-				write = write.link(DataBufferUnit.get());
-			}
-			result = encoder.encode(chars, write.receive(), true);
-			wrote += write.received();
-			length += wrote;
-			if (result == CoderResult.UNDERFLOW) {
-				break;
-			}
-			if (result == CoderResult.OVERFLOW) {
-				continue;
-			}
-		}
-		return wrote;
-	}
-
-	/**
-	 * 写入缓存对象中所有字节，参与校验
-	 */
-	public final void write(DataBuffer source) throws IOException {
-		while (source.readable() > 0) {
-			writeByte(source.readByte());
-		}
-	}
-
-	/**
-	 * 写入缓存对象中所有字节，参与校验
-	 */
-	public final void write(ByteBuffer source) throws IOException {
-		while (source.remaining() > 0) {
-			writeByte(source.get());
-		}
+		length--;
+		return getVerifier().check(read.readByte());
 	}
 
 	/**
@@ -327,20 +240,6 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	@Deprecated
 	public final byte readByte(int index) {
 		return get(index);
-	}
-
-	/**
-	 * 获取指定位置字节，读写位置不变，不参与校验
-	 *
-	 * @param index 0~{@link #readable()}-1
-	 */
-	public final byte get(int index) {
-		DataBufferUnit item = read;
-		while (index >= item.readable()) {
-			index -= item.readable();
-			item = item.next();
-		}
-		return item.get(item.readIndex() + index);
 	}
 
 	/**
@@ -359,191 +258,100 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 * 
 	 * @param output
 	 */
-	public final void read(OutputStream output, int length) throws IOException {
-		while (length > 0) {
+	public final void read(OutputStream output, int len) throws IOException {
+		while (len > 0) {
 			output.write(readUnsignedByte());
-			length--;
+			len--;
 		}
 	}
 
-	/**
-	 * 读取所有字节到通道(DataBuffer > FileChannel)，不参与校验
-	 * 
-	 * @param channel 打开的文件通道
-	 */
-	public final void read(FileChannel channel) throws IOException {
-		int length;
-		while (readable() > 0) {
-			length = channel.write(read());
-			read(length);
-		}
-	}
+	////////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * 读取指定字节到通道(DataBuffer > FileChannel)，不参与校验
-	 * 
-	 * @param channel 打开的文件通道
-	 * @param length 字节数量
+	 * 将源缓存对象中的数据全部复制到当前缓存对象中尾部，源对象数据保留，不参与校验
+	 * <p>
+	 * 此方法相对于源缓存是多线程安全的，可支持多个线程对一个数据源并发执行复制操作；<br>
+	 * 复制完成后，源缓存对象的读写位置和标记不会发生任何变化。
 	 */
-	public final void read(FileChannel channel, int length) throws IOException {
-		int l;
-		while (length > 0 && readable() > 0) {
-			l = channel.write(read());
-			read(l);
-			length -= l;
-		}
-	}
-
-	/**
-	 * 读取指定编码字符，不参与校验
-	 * 
-	 * @param builder 字符序列
-	 * @param chaeset 字符编码
-	 * @param length 字节数量
-	 */
-	public final void read(CharBuffer buffer, Charset chaeset, int length) {
-		final CharsetDecoder decoder = chaeset.newDecoder();
-		CoderResult result;
-		while (length > 0) {
-			result = decoder.decode(read(), buffer, true);
-			read(result.length());
-			if (result == CoderResult.UNDERFLOW) {
-				break;
-			} else if (result == CoderResult.OVERFLOW) {
+	public final void replicate(DataBuffer source) {
+		DataBufferUnit unit = source.read;
+		int size, p = -1;
+		while (unit != null) {
+			if (p < 0) {
+				p = unit.readIndex();
+			}
+			size = unit.writeIndex() - p;
+			if (size <= 0) {
+				unit = unit.next();
+				p = -1;
 				continue;
-			} else {
-
 			}
-		}
-	}
-
-	/**
-	 * 读取所有字节到缓存，参与校验
-	 * 
-	 * @param target DataBufferLink
-	 * @throws IOException
-	 */
-	public final void read(DataBuffer target) throws IOException {
-		while (readable() > 0) {
-			target.write(readUnsignedByte());
-		}
-	}
-
-	/**
-	 * 标记读取位置，可通过{@link #reset()}恢复标记的位置，可通过{@link #erase()}擦除标记的位置
-	 */
-	public final void mark() {
-		mark = read;
-		while (mark != null) {
-			mark.mark();
-			mark = mark.next();
-		}
-		mark = read;
-	}
-
-	/**
-	 * 恢复读取位置，可通过{@link #mark()}标记读取位置，如果之前未执行{@link #mark()}将抛出异常
-	 */
-	public final void reset() {
-		if (mark != null) {
-			length = 0;
-			read = mark;
-			while (mark != null) {
-				mark.reset();
-				length += mark.readable();
-				mark = mark.next();
+			if (write.isFull()) {
+				write = write.extend();
 			}
-		}
-		// TODO 尾部处理
-	}
-
-	/**
-	 * 擦除标记的读取位置，擦除后将无法通过{@link #reset()}恢复，如果之前未执行{@link #mark()}将抛出异常
-	 */
-	public final void erase() {
-		// 释放已读完的单元
-
-		if (mark != null) {
-			while (mark != read) {
-				mark = mark.apart();
+			if (write.writeable() < size) {
+				size = write.writeable();
 			}
-			mark = null;
+			write.receive().put(write.readIndex(), unit.buffer(), p, size);
+			write.readIndex(write.readIndex() + size);
+			length += write.received();
+			p += size;
 		}
 	}
 
 	/**
 	 * 将源缓存对象中的数据全部复制到当前缓存对象中尾部，源对象数据保留，不参与校验
 	 * <p>
-	 * 此方法是多线程安全的，可支持多个线程对一个数据源并发执行复制操作
+	 * 此方法相对于源缓存是多线程安全的，可支持多个线程对一个数据源并发执行复制操作；<br>
+	 * 复制完成后，源缓存对象的读写位置和标记不会发生任何变化。
+	 * 
+	 * @param source 要复制的数据源
+	 * @param offset 0 ~ source.readable()
+	 * @param len offset ~ source.readable()
 	 */
-	public final void replicate(DataBuffer source) {
-		if (source.readable() > 0) {
-			int index;
-			DataBufferUnit unit = source.read;
-			while (unit != null) {
-				for (index = unit.readIndex(); index < unit.writeIndex(); index++) {
-					writeByte(unit.get(index));
-				}
+	public final void replicate(DataBuffer source, int offset, int len) {
+		if (offset < 0 || len <= 0 || source.readable() < offset + len) {
+			throw new IllegalArgumentException("DataBuffer:Argument OVERFLOW");
+		}
+
+		DataBufferUnit unit = source.read;
+		int size, p = -1;
+		// SKIP offset
+		while (offset > 0 && unit != null) {
+			if (offset < unit.readable()) {
+				p = unit.readIndex() + offset;
+				offset = 0;
+				break;
+			} else {
+				offset -= unit.readable();
 				unit = unit.next();
 			}
 		}
-	}
-
-	/**
-	 * 将源缓存对象中的数据全部复制到当前缓存对象中尾部，源对象数据保留，不参与校验
-	 * <p>
-	 * 此方法是多线程安全的，可支持多个线程对一个数据源并发执行复制操作
-	 * 
-	 * @param source 要复制的数据源
-	 * @param start 0 ~ source.readable() - 1
-	 * @param end start ~ source.readable() - 1
-	 */
-	public final void replicate(DataBuffer source, int start, int end) {
-		if (start < 0 || start >= source.readable()) {
-			throw new IndexOutOfBoundsException(start);
-		}
-		if (end < 0 || end >= source.readable()) {
-			throw new IndexOutOfBoundsException(start);
-		}
-		if (end < start) {
-			throw new IllegalArgumentException();
-		}
-		if (end == start || source.readable() == 0) {
-			return;
-		}
-
-		// end 计算成长度
-		end = end - start;
-
-		DataBufferUnit temp = source.read;
-		while (temp != null) {
-			if (start >= temp.readable()) {
-				start -= temp.readable();
-				temp = temp.next();
-			} else {
-				for (start = temp.readIndex() + start; start < temp.writeIndex(); start++) {
-					if (end > 0) {
-						writeByte(temp.get(start));
-						end--;
-					} else {
-						return;
-					}
-				}
-				break;
+		// COPY
+		while (len > 0 && unit != null) {
+			if (p < 0) {
+				p = unit.readIndex();
 			}
-		}
-
-		temp = temp.next();
-		while (temp != null) {
-			for (start = temp.readIndex(); start < temp.writeIndex(); start++) {
-				if (end > 0) {
-					writeByte(temp.get(start));
-					end--;
-				} else {
-					return;
-				}
+			size = unit.writeIndex() - p;
+			if (size <= 0) {
+				unit = unit.next();
+				p = -1;
+				continue;
 			}
-			temp = temp.next();
+			if (size > len) {
+				size = len;
+			}
+			if (write.isFull()) {
+				write = write.extend();
+			}
+			if (write.writeable() < size) {
+				size = write.writeable();
+			}
+			write.receive().put(write.readIndex(), unit.buffer(), p, size);
+			write.readIndex(write.readIndex() + size);
+			length += write.received();
+			len -= size;
+			p += size;
 		}
 	}
 
@@ -556,14 +364,21 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	public void transfer(DataBuffer target) {
 		erase();
 		if (length > 0) {
-			if (target.mark != null) {
-				mark();
+			if (target.mark == null) {
+				if (target.length == 0) {
+					mark = target.read;
+					target.read = read;
+					target.write = write;
+					target.length = length;
+					read = write = mark;
+					mark = null;
+					length = 0;
+					return;
+				}
 			}
 			target.write = target.write.link(read);
-			target.length += length;
-
 			read = write = DataBufferUnit.get();
-			mark = null;
+			target.length += length;
 			length = 0;
 		}
 	}
@@ -573,86 +388,139 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	 * 读取标记会被擦除，如果要避免擦除应在调用此方法之前执行{@link #reset()}
 	 * 
 	 * @param target 目标缓存对象
-	 * @param size 要转移的数据量
+	 * @param len 要转移的数据量
 	 */
-	public void transfer(DataBuffer target, int size) {
-		if (size <= 0 || size > length) {
-			throw new IndexOutOfBoundsException(size);
+	public void transfer(DataBuffer target, int len) {
+		if (len <= 0 || len > length) {
+			throw new IllegalArgumentException("DataBuffer:Argument OVERFLOW");
 		}
+
 		erase();
-		if (target.mark == null && target.length == 0) {
-			if (size == length) {
-				target.length = size;
-				target.read = read;
-				read = target.write;
-				target.write = write;
-				write = read;
-				length = 0;
-			} else {
-				length -= size;
-				target.length += size;
-				if (size >= read.readable()) {
-					DataBufferUnit empty = target.read;
-					target.read = target.write = read;
-					size -= read.readable();
-					read = read.braek();
-
-					while (size >= read.readable()) {
-						size -= read.readable();
-						mark = read;
-						read = read.braek();
-						target.write = target.write.link(mark);
-					}
-					mark = null;
-
-					if (size > 0) {
-						empty.clear();
-						target.write = target.write.link(empty);
-						while (size-- > 0) {
-							target.write.writeByte(read.readByte());
-						}
+		if (length > 0) {
+			if (target.mark == null) {
+				if (target.length == 0) {
+					if (len == length) {
+						target.read = read;
+						read = target.write;
+						target.write = write;
+						write = read;
 					} else {
-						empty.release();
+						mark = target.read;
+						target.read = read;
+						while (len > read.readable()) {
+							len -= read.readable();
+							read = read.next();
+						}
+						target.write = read;
+						if (len > 0) {
+							mark.buffer().put(0, read.buffer(), len, read.readable() - len);
+							read.writeIndex(read.writeIndex() - len);
+							mark.writeIndex(len);
+
+							mark.link(read.braek());
+							read = mark;
+						} else if (read.next() != null) {
+							read = read.braek();
+							mark.release();
+						} else {
+							read = write = mark;
+						}
+						mark = null;
 					}
-				} else {
-					target.read.clear();
-					while (size-- > 0) {
-						target.write.writeByte(read.readByte());
-					}
+					target.length = len;
+					length -= len;
+					return;
 				}
 			}
-		} else {
-			if (size == length) {
-				if (target.mark != null) {
-					mark();
-				}
-				target.length += size;
+			if (len == length) {
 				target.write = target.write.link(read);
-				write = read = DataBufferUnit.get();
-				length = 0;
+				read = write = DataBufferUnit.get();
 			} else {
-				length -= size;
-				target.length += size;
-				while (size >= read.readable()) {
-					size -= read.readable();
-					mark = read;
+				while (len >= read.readable()) {
+					len -= read.readable();
+					target.write.next(read);
+					target.write = read;
 					read = read.braek();
-					if (target.mark != null) {
-						mark.buffer().mark();
-					}
-					target.write = target.write.link(mark);
 				}
-				mark = null;
+				if (len > 0) {
+					target.write = read;
+					mark = DataBufferUnit.get();
+					mark.buffer().put(0, read.buffer(), len, read.readable() - len);
+					read.writeIndex(read.writeIndex() - len);
+					mark.writeIndex(len);
 
-				if (size > 0) {
-					target.write = target.write.link(DataBufferUnit.get());
-					while (size-- > 0) {
-						target.write.writeByte(read.readByte());
-					}
-					if (target.mark != null) {
-						target.write.buffer().mark();
-					}
+					mark.link(read.braek());
+					read = mark;
+					mark = null;
+				} else if (read.next() != null) {
+					read = read.braek();
+				} else {
+					read = write = DataBufferUnit.get();
 				}
+			}
+			target.length += len;
+			length -= len;
+		}
+	}
+
+	/**
+	 * 转移所有字节到通道(DataBuffer > FileChannel)，不参与校验
+	 * 
+	 * @param target 打开的文件通道
+	 */
+	public final void transfer(FileChannel target) throws IOException {
+		erase();
+		while (length > 0) {
+			if (read.isEmpty()) {
+				read = read.curtail();
+			}
+			target.write(read.send());
+			length -= read.sent();
+		}
+	}
+
+	/**
+	 * 转移指定字节到通道(DataBuffer > FileChannel)，不参与校验
+	 * 
+	 * @param target 打开的文件通道
+	 * @param len 字节数量
+	 */
+	public final void transfer(FileChannel target, int len) throws IOException {
+		if (len <= 0 || len > length) {
+			throw new IllegalArgumentException("DataBuffer:Argument OVERFLOW");
+		}
+		erase();
+		while (len > 0) {
+			if (read.isEmpty()) {
+				read = read.curtail();
+			}
+			len -= target.write(read.send(len));
+			length -= read.sent();
+		}
+	}
+
+	/**
+	 * 读取指定编码字符，不参与校验
+	 * 
+	 * @param builder 字符序列
+	 * @param chaeset 字符编码
+	 * @param length 字节数量
+	 */
+	public final void transfer(CharBuffer target, Charset chaeset) {
+		final CharsetDecoder decoder = chaeset.newDecoder();
+		CoderResult result;
+		while (length > 0) {
+			if (read.isEmpty()) {
+				read = read.curtail();
+			}
+			result = decoder.decode(read.send(), target, false);
+			length -= read.sent();
+			if (result == CoderResult.UNDERFLOW) {
+				continue;
+			} else if (result == CoderResult.OVERFLOW) {
+				continue;
+			} else {
+				throw new IllegalArgumentException("DataBuffer:" + result.toString());
 			}
 		}
 	}
@@ -698,284 +566,113 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	}
 
 	/**
-	 * 清除所有数据
+	 * 转入通道中的所有字节(FileChannel > DataBuffer)，不参与校验
+	 * 
+	 * @param channel
+	 * @return 写入数量
 	 */
-	public final void clear() {
-		length = 0;
-		if (mark != null) {
-			read = mark;
-			mark = null;
-		}
-		if (read != write) {
-			if (read != null) {
-				// 释放ByteBufferUnit只保留一个
-				while (read.next() != null) {
-					read = read.apart();
-				}
+	public final int append(FileChannel channel) throws IOException {
+		int size = 0;
+		while (channel.position() < channel.size()) {
+			if (write.isFull()) {
+				write = write.extend();
+			}
+			if (channel.read(write.receive()) > 0) {
+				size += write.received();
 			} else {
-				if (write != null) {
-					read = write;
-				}
+				break;
 			}
 		}
-		write.clear();
+		length += size;
+		return size;
 	}
 
-	public void release() {
-		// 特殊值标记是否已释放
-		if (length != Integer.MIN_VALUE) {
-			clear();
-			verifier = EmptyVerifier.INSTANCE;
-			length = Integer.MIN_VALUE;
-			BYTE_BUFFERS.offer(this);
-		} else {
-			// 重复释放抛出异常
-			throw new IllegalStateException("重复释放");
+	/**
+	 * 转入通道中的指定字节(FileChannel > DataBuffer)，不参与校验
+	 * 
+	 * @param channel 打开的文件通道
+	 * @param length 最多可写入数量
+	 * @return 写入字节数量
+	 */
+	public final int append(FileChannel channel, int len) throws IOException {
+		if (len <= 0 || len > channel.size()) {
+			throw new IllegalArgumentException("DataBuffer:Argument OVERFLOW");
+		}
+
+		int l, size = 0;
+		while (len > 0 && channel.position() < channel.size()) {
+			if (write.isFull()) {
+				write = write.extend();
+			}
+			if ((l = channel.read(write.receive(len))) > 0) {
+				size += write.received();
+				len -= l;
+			} else {
+				break;
+			}
+		}
+		length += size;
+		return size;
+	}
+
+	/**
+	 * 写入指定编码的字符，不参与校验
+	 * 
+	 * @param chars 要写入的字符
+	 * @param charset 字符编码
+	 * @return 写入字节数量
+	 */
+	public final int append(final CharBuffer chars, Charset charset) {
+		int size = 0;
+		CoderResult result;
+		final CharsetEncoder encoder = charset.newEncoder();
+		while (chars.hasRemaining()) {
+			if (write.isFull()) {
+				write = write.extend();
+			}
+			result = encoder.encode(chars, write.receive(), true);
+			size += write.received();
+			if (result == CoderResult.UNDERFLOW) {
+				break;
+			} else if (result == CoderResult.OVERFLOW) {
+				write = write.extend();
+				continue;
+			}
+		}
+		length += size;
+		return size;
+	}
+
+	/**
+	 * 写入缓存对象中所有字节，参与校验
+	 */
+	public final void append(ByteBuffer source) throws IOException {
+		int limit = source.limit();
+		while (source.hasRemaining()) {
+			if (write.isFull()) {
+				write = write.extend();
+			}
+			if (write.writeable() < source.remaining()) {
+				source.limit(source.position() + write.writeable());
+				write.receive().put(source);
+				length += write.received();
+				source.limit(limit);
+			} else {
+				write.receive().put(source);
+				length += write.received();
+			}
 		}
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
+	// 以下方法提供从尾部回退操作支持
 
 	/**
-	 * 获取缓存单元用于从通道(Channel)读取数据，通道数据写入后必须通过{@link #written(int)}设置数量；<br>
-	 * 从通道读取数据写入到缓存单元。
-	 * 
-	 * @return ByteBuffer
-	 * @see #written(int)
+	 * 回退尾部单元，此方法回收尾部单元，此方法既不判断数据量也不更新数据量
 	 */
-	public ByteBuffer write() {
-		if (write.isFull()) {
-			// 防止用已满的ByteBuffer接收数据
-			// 网络读取时将导致读零
-			write = write.link(DataBufferUnit.get());
-		}
-		return write.receive();
-	}
-
-	/**
-	 * 获取缓存单元用于从通道(Channel)读取数据，通道数据写入后必须通过{@link #written(int)}设置数量；<br>
-	 * 从通道读取数据写入到缓存单元，指定可能的数据长度以获取多个缓存单元。
-	 * 
-	 * @param size 将要写入的最大数据长度
-	 * @return ByteBuffer[]
-	 */
-	public ByteBuffer[] writes(int size) {
-		if (write.isFull()) {
-			// 防止用已满的ByteBuffer接收数据,将导致读零
-			write = write.link(DataBufferUnit.get());
-		}
-		// 计算所需的ByteBuffer数量
-		if (size <= write.writeable()) {
-			size = 1;
-		} else {
-			size -= write.writeable();
-			if (size % DataBufferUnit.BYTES > 0) {
-				size = size / DataBufferUnit.BYTES + 2;
-			} else {
-				size = size / DataBufferUnit.BYTES + 1;
-			}
-		}
-		// 构建ByteBuffer数组
-		final ByteBuffer[] buffers = new ByteBuffer[size];
-		DataBufferUnit unit = write;
-		buffers[size = 0] = unit.receive();
-		while (++size < buffers.length) {
-			unit = unit.link(DataBufferUnit.get());
-			buffers[size] = unit.receive();
-		}
-		return buffers;
-	}
-
-	/**
-	 * 设置缓存单元从通道读取的字节数量，必须事先调用{@link #write()}从通道读取数据；<br>
-	 * 此方法将更新{@link #DataBuffer()}中的可读字节数量。
-	 * 
-	 * @param size 字节数量
-	 * @see #write()
-	 */
-	public void written(int size) {
-		if (size == 0) {
-			write.received();
-		} else if (size > 0) {
-			length += size;
-			size -= write.received();
-			while (size > 0) {
-				write = write.next();
-				size -= write.received();
-			}
-		} else {
-			write.received();
-			// 特殊处理
-			if (size == Integer.MIN_VALUE) {
-				write = write.link(DataBufferUnit.get());
-			}
-		}
-	}
-
-	/**
-	 * 获取首部缓存单元用于将编码好的数据写入到其它通道(Channel)，写入数据到通道后必须通过{@link #read(int)}设置数量；
-	 * 完成写入并设置其它通道读取的数量，如果当前缓存单元的数据已全部写入将自动被释放。
-	 * 
-	 * @return DataBufferUnit
-	 * @see #read(int)
-	 * @see #read(long)
-	 */
-	public ByteBuffer read() {
-		while (read.isEmpty()) {
-			// 防止用已空的ByteBuffer发送数据,将导致零写
-			read = read.apart();
-		}
-		return read.buffer();
-	}
-
-	/**
-	 * 获取所有缓存单元用于将编码的数据写入到其它通道(Channel)，写入数据到通道后必须通过{@link #read(int)}设置数量；
-	 * 完成写入并设置其它通道读取的数量，缓存单元的数据已全部写入将自动被释放。
-	 * 
-	 * @see #read()
-	 * @return
-	 */
-	public ByteBuffer[] reads() {
-		final ByteBuffer[] buffers = new ByteBuffer[units()];
-		DataBufferUnit unit = read;
-		for (int index = 0; index < buffers.length; index++) {
-			buffers[index] = unit.buffer();
-			unit = unit.next();
-		}
-		return buffers;
-	}
-
-	/**
-	 * 设置缓存单元写入到通道的字节数量，必须事先调用{@link #read()}写入数据到通道；<br>
-	 * 此方法将更新{@link #DataBuffer()}中的可读字节数量，并视情况释放已读完的缓存单元。
-	 * 
-	 * @param size 字节数量
-	 * @see #read()
-	 */
-	public void read(int size) {
-		// Channel发送后ByteBuffer的position会改变
-		if (size > 0) {
-			length -= size;
-			while (read.isEmpty()) {
-				if (read == write) {
-					break;
-				} else {
-					read = read.apart();
-				}
-			}
-		}
-	}
-
-	/**
-	 * @see #read(int)
-	 * @param size
-	 */
-	public void read(long size) {
-		while (size > Integer.MAX_VALUE) {
-			read(Integer.MAX_VALUE);
-			size -= Integer.MAX_VALUE;
-		}
-		read((int) size);
-	}
-
-	////////////////////////////////////////////////////////////////////////////////
-	// 这些方法提供对内部数据单元的操作能力
-	// 数据单元只能从首部取出，取出后当前(DataBuffer)实例的可读数据将相应减少
-	// 数据单元只能从尾部连接，连接后当前(DataBuffer)实例的可读数据将相应增加
-
-	/**
-	 * 获取首部单元
-	 */
-	public DataBufferUnit head() {
-		return read;
-	}
-
-	/**
-	 * 取出首部单元
-	 */
-	public DataBufferUnit take() {
-		if (readable() > 0) {
-			final DataBufferUnit unit = read;
-			length -= unit.readable();
-			if (read == write) {
-				read = write = DataBufferUnit.get();
-			} else {
-				read = unit.braek();
-			}
-			return unit;
-		}
-		return null;
-	}
-
-	/**
-	 * 连接单元到尾部
-	 */
-	public void link(DataBufferUnit unit) {
-		if (read == write) {
-			if (read.isEmpty() || read.isBlank()) {
-				read.release();
-				read = unit;
-			}
-		}
-		length += unit.readable();
-		while (unit.next() != null) {
-			unit = unit.next();
-			length += unit.readable();
-		}
-		write = unit;
-	}
-
-	////////////////////////////////////////////////////////////////////////////////
-
-	private Verifier verifier = EmptyVerifier.INSTANCE;
-
-	@Override
-	public Verifier getVerifier() {
-		return verifier;
-	}
-
-	@Override
-	public void setVerifier(Verifier v) {
-		// 确保字节校验器不为null
-		// 以此减少大量空判断
-		verifier = v == null ? EmptyVerifier.INSTANCE : v;
-	}
-
-	////////////////////////////////////////////////////////////////////////////////
-
-	@Override
-	public byte readByte() {
-		// 读完后最后可能会残留一个 EMPTY 的单元
-		// 此单元可能会在转移后混入链表中间导致读取抛出异常
-		// 用while循环判断可排除异常,是否有更好的方案避免 EMPTY 单元
-		while (read.isEmpty()) {
-			if (mark == null) {
-				read = read.apart();
-			} else {
-				read = read.next();
-			}
-		}
-		length--;
-		return getVerifier().check(read.readByte());
-	}
-
-	@Override
-	public void writeByte(int b) {
-		writeByte((byte) b);
-	}
-
-	@Override
-	public void writeByte(byte value) {
-		if (write.isFull()) {
-			write = write.link(DataBufferUnit.get());
-		}
-		length++;
-		write.writeByte(getVerifier().check(value));
-	}
-
 	private void back() {
 		if (read == write) {
-			throw new IllegalStateException("DataBuffer EMPTY");
+			throw new IllegalStateException("DataBuffer:EMPTY");
 		} else {
 			// LAST - 1
 			DataBufferUnit unit = read;
@@ -983,8 +680,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 				unit = unit.next();
 			}
 			if (mark == null) {
-				unit.next(null);
-				write.release();
+				unit.braek().release();
 			}
 			write = unit;
 		}
@@ -1028,6 +724,353 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 
 	////////////////////////////////////////////////////////////////////////////////
 
+	/**
+	 * 标记读取位置，可通过{@link #reset()}恢复标记的位置，可通过{@link #erase()}擦除标记的位置
+	 */
+	public final void mark() {
+		write = read;
+		write.mark();
+		while (write.next() != null) {
+			write = write.next();
+			write.mark();
+		}
+		mark = read;
+	}
+
+	/**
+	 * 恢复读取位置，可通过{@link #mark()}标记读取位置，如果之前未执行{@link #mark()}将没有任何效果
+	 */
+	public final void reset() {
+		if (mark != null) {
+			read = mark;
+			read.reset();
+			length = read.readable();
+
+			while (read.next() != null) {
+				if (read.next().marked()) {
+					read = read.next();
+					read.reset();
+					length += read.readable();
+					write = read;
+				} else {
+					read = read.braek();
+					read.release();
+					break;
+				}
+			}
+			read = mark;
+		}
+	}
+
+	/**
+	 * 擦除标记的读取位置，擦除后将无法通过{@link #reset()}恢复，如果之前未执行{@link #mark()}将没有任何效果
+	 */
+	public final void erase() {
+		if (mark != null) {
+			while (mark != read) {
+				mark = mark.curtail();
+			}
+			while (read.isEmpty()) {
+				if (read.next() != null) {
+					read = read.curtail();
+				} else {
+					read.clear();
+					return;
+				}
+			}
+			write = read;
+			while (write.next() != null) {
+				if (write.next().isEmpty()) {
+					mark = write.braek();
+					write.next(mark.curtail());
+				} else {
+					write = write.next();
+				}
+			}
+			mark = null;
+		}
+	}
+
+	/**
+	 * 清除所有数据
+	 */
+	public final void clear() {
+		length = 0;
+		if (mark != null) {
+			read = mark;
+			mark = null;
+		}
+		if (read != null) {
+			while (read.next() != null) {
+				read = read.curtail();
+			}
+			write = read;
+		} else {
+			if (write != null) {
+				read = write;
+			} else {
+				read = write = DataBufferUnit.get();
+			}
+		}
+		read.clear();
+	}
+
+	public void release() {
+		// 特殊值标记是否已释放
+		if (length != Integer.MIN_VALUE) {
+			clear();
+			verifier = EmptyVerifier.INSTANCE;
+			length = Integer.MIN_VALUE;
+			BYTE_BUFFERS.offer(this);
+		} else {
+			// 重复释放抛出异常
+			throw new IllegalStateException("DataBuffer:RELEASED");
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * 获取缓存单元用于从通道(Channel)读取数据，通道数据写入后必须通过{@link #written(int)}设置数量；<br>
+	 * 从通道读取数据写入到缓存单元。
+	 * 
+	 * @return ByteBuffer
+	 * @see #written(int)
+	 */
+	public ByteBuffer write() {
+		if (write.isFull()) {
+			// 防止用已满的ByteBuffer接收数据
+			// 网络读取时将导致读零
+			write = write.extend();
+		}
+		return write.receive();
+	}
+
+	/**
+	 * 获取缓存单元用于从通道(Channel)读取数据，通道数据写入后必须通过{@link #written(int)}设置数量；<br>
+	 * 从通道读取数据写入到缓存单元，指定可能的数据长度以获取多个缓存单元。
+	 * 
+	 * @param size 将要写入的最大数据长度
+	 * @return ByteBuffer[]
+	 */
+	public ByteBuffer[] writes(int size) {
+		if (write.isFull()) {
+			// 防止用已满的ByteBuffer接收数据
+			// 网络读取时将导致读零
+			write = write.extend();
+		}
+		// 计算所需的ByteBuffer数量
+		if (size <= write.writeable()) {
+			size = 1;
+		} else {
+			size -= write.writeable();
+			if (size % DataBufferUnit.BYTES > 0) {
+				size = size / DataBufferUnit.BYTES + 2;
+			} else {
+				size = size / DataBufferUnit.BYTES + 1;
+			}
+		}
+		// 构建ByteBuffer数组
+		final ByteBuffer[] buffers = new ByteBuffer[size];
+		DataBufferUnit unit = write;
+		buffers[size = 0] = unit.receive();
+		while (++size < buffers.length) {
+			unit = unit.extend();
+			buffers[size] = unit.receive();
+		}
+		return buffers;
+	}
+
+	/**
+	 * 设置缓存单元从通道读取的字节数量，必须事先调用{@link #write()}从通道读取数据；<br>
+	 * 此方法将更新{@link #DataBuffer()}中的可读字节数量。
+	 * 
+	 * @param size 字节数量
+	 * @see #write()
+	 */
+	public void written(int size) {
+		// 无论是否写入数据必须调整用于写入的单元
+
+		while (write.next() != null) {
+			length += write.received();
+			if (write.isBlank()) {
+				write = write.curtail();
+			} else {
+				write = write.next();
+			}
+		}
+		length += write.received();
+
+		// 特殊处理
+		if (size == Integer.MIN_VALUE) {
+			// TLS编码时剩余极少的空间不足以继续处理
+			write = write.extend();
+		}
+	}
+
+	/**
+	 * 获取首部缓存单元用于将编码好的数据写入到其它通道(Channel)，写入数据到通道后必须通过{@link #read(int)}设置数量；
+	 * 完成写入并设置其它通道读取的数量，如果当前缓存单元的数据已全部写入将自动被释放。
+	 * 
+	 * @return DataBufferUnit
+	 * @see #read(int)
+	 * @see #read(long)
+	 */
+	public ByteBuffer read() {
+		while (read.isEmpty()) {
+			// 防止用已空的ByteBuffer发送数据
+			// 网络读取时将导致读零
+			if (read.next() != null) {
+				read = read.curtail();
+			} else {
+				throw new IllegalStateException("DataBuffer:EMPTY");
+			}
+		}
+		return read.send();
+	}
+
+	/**
+	 * 获取所有缓存单元用于将编码的数据写入到其它通道(Channel)，写入数据到通道后必须通过{@link #read(int)}设置数量；
+	 * 完成写入并设置其它通道读取的数量，缓存单元的数据已全部写入将自动被释放。
+	 * 
+	 * @see #read()
+	 * @return
+	 */
+	public ByteBuffer[] reads() {
+		while (read.isEmpty()) {
+			if (read.next() != null) {
+				read = read.curtail();
+			} else {
+				throw new IllegalStateException("DataBuffer:EMPTY");
+			}
+		}
+
+		int size = 1;
+		DataBufferUnit unit = read;
+		while (unit.next() != null) {
+			if (unit.next().isEmpty()) {
+				unit.next(unit.next().curtail());
+			} else {
+				unit = unit.next();
+				size++;
+			}
+		}
+
+		unit = read;
+		final ByteBuffer[] buffers = new ByteBuffer[size];
+		for (int index = 0; index < size; index++) {
+			buffers[index] = unit.buffer();
+			unit = unit.next();
+		}
+		return buffers;
+	}
+
+	/**
+	 * 设置缓存单元写入到通道的字节数量，必须事先调用{@link #read()}写入数据到通道；<br>
+	 * 此方法将更新{@link #DataBuffer()}中的可读字节数量，并视情况释放已读完的缓存单元。
+	 * 
+	 * @param size 字节数量
+	 * @see #read()
+	 */
+	public void read(int size) {
+		if (size >= 0) {
+			length -= size;
+			while (read.isEmpty()) {
+				if (read.next() != null) {
+					read = read.curtail();
+				} else {
+					break;
+				}
+			}
+		}
+	}
+
+	/**
+	 * @see #read(int)
+	 * @param size
+	 */
+	public void read(long size) {
+		if (size >= 0) {
+			length -= size;
+			while (read.isEmpty()) {
+				if (read.next() != null) {
+					read = read.curtail();
+				} else {
+					break;
+				}
+			}
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
+	// 这些方法提供对内部数据单元的操作能力
+	// 数据单元只能从首部取出，取出后当前(DataBuffer)实例的可读数据将相应减少
+	// 数据单元只能从尾部连接，连接后当前(DataBuffer)实例的可读数据将相应增加
+
+	/**
+	 * 获取首部单元
+	 */
+	public DataBufferUnit head() {
+		return read;
+	}
+
+	/**
+	 * 取出首部单元，取出的单元将于当前缓存对象断开联系
+	 */
+	public DataBufferUnit take() {
+		if (readable() > 0) {
+			final DataBufferUnit unit = read;
+			length -= unit.readable();
+			if (read == write) {
+				read = write = DataBufferUnit.get();
+			} else {
+				read = unit.braek();
+			}
+			return unit;
+		}
+		return null;
+	}
+
+	/**
+	 * 连接单元到尾部
+	 */
+	public void link(DataBufferUnit unit) {
+		if (read == write) {
+			if (read.isEmpty() || read.isBlank()) {
+				read.release();
+				read = unit;
+			}
+		}
+		length += unit.readable();
+		while (unit.next() != null) {
+			unit = unit.next();
+			length += unit.readable();
+		}
+		write = unit;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
+	// 数据校验支持
+
+	private Verifier verifier = EmptyVerifier.INSTANCE;
+
+	@Override
+	public Verifier getVerifier() {
+		return verifier;
+	}
+
+	@Override
+	public void setVerifier(Verifier v) {
+		// 确保字节校验器不为null
+		// 以此减少大量空判断
+		verifier = v == null ? EmptyVerifier.INSTANCE : v;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * 将执行逐字节比较，允许内部缓存单元差异
+	 */
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) {
@@ -1054,25 +1097,23 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 		final StringBuilder builder = new StringBuilder();
 		builder.append("DataBuffer:");
 		builder.append(length);
-		if (length > 0) {
-			DataBufferUnit unit = read;
-			while (unit != null) {
-				builder.append("\n");
-				builder.append(unit.readIndex());
-				builder.append("~");
-				builder.append(unit.writeIndex());
-				builder.append(" [");
-				for (int index = unit.readIndex(); index < unit.writeIndex(); index++) {
-					if (index > unit.readIndex()) {
-						builder.append(' ');
-					}
-					int value = unit.get(index) & 0xFF;
-					builder.append(Character.forDigit(value >>> 4, 16));
-					builder.append(Character.forDigit(value & 0x0F, 16));
+		DataBufferUnit unit = read;
+		while (unit != null) {
+			builder.append("\n\t");
+			builder.append(unit.readIndex());
+			builder.append("~");
+			builder.append(unit.writeIndex());
+			builder.append(" [");
+			for (int index = unit.readIndex(); index < unit.writeIndex(); index++) {
+				if (index > unit.readIndex()) {
+					builder.append(' ');
 				}
-				builder.append(']');
-				unit = unit.next();
+				int value = unit.get(index) & 0xFF;
+				builder.append(Character.forDigit(value >>> 4, 16));
+				builder.append(Character.forDigit(value & 0x0F, 16));
 			}
+			builder.append(']');
+			unit = unit.next();
 		}
 		return builder.toString();
 	}

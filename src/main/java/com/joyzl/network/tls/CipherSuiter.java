@@ -444,7 +444,7 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 						i.writeIndex(limit);
 						o.received();
 					} else {
-						o = o.link(DataBufferUnit.get());
+						o = o.extend();
 					}
 				} else {
 					encryptCipher.update(i.buffer(), o.receive());
@@ -457,7 +457,7 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 
 		size = encryptCipher.getOutputSize(0);
 		if (size > o.writeable()) {
-			o = o.link(DataBufferUnit.get());
+			o = o.extend();
 		}
 		encryptCipher.doFinal(EMPTY, o.receive());
 		o.received();
@@ -534,7 +534,7 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 		}
 
 		decryptCipher.doFinal(EMPTY, output);
-		buffer.write(output.flip());
+		buffer.append(output.flip());
 		decryptSequence++;
 	}
 
@@ -555,7 +555,7 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 		decryptCipher.doFinal(EMPTY, output);
 		decryptSequence++;
 
-		out.write(output.flip());
+		out.append(output.flip());
 	}
 
 	/**
@@ -611,7 +611,9 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 		decryptCipher.doFinal(EMPTY, output);
 		decryptSequence++;
 
-		out.write(output.flip());
+		out.append(output.flip());
+		// TODO 解码后in长度错误
+		System.out.println(in);
 	}
 
 	/**

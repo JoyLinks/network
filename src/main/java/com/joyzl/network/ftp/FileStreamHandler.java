@@ -21,7 +21,7 @@ public class FileStreamHandler extends FileHandler {
 		final FileClient client = (FileClient) chain;
 
 		client.getCommand().setTransferred(client.getCommand().getTransferred() + reader.readable());
-		reader.read(client.getChannel());
+		reader.transfer(client.getChannel());
 
 		return client.getCommand();
 	}
@@ -49,10 +49,10 @@ public class FileStreamHandler extends FileHandler {
 		long length = channel.size() - channel.position();
 		if (length > BUFFER_SIZE) {
 			length = BUFFER_SIZE;
-			length = buffer.write(channel, (int) length);
+			length = buffer.append(channel, (int) length);
 			message.setTransferred(message.getTransferred() + length);
 		} else {
-			length = buffer.write(channel, (int) length);
+			length = buffer.append(channel, (int) length);
 			message.setTransferred(message.getTransferred() + length);
 			// CLOSE
 			client.closeChannel();
