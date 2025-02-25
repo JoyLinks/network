@@ -14,7 +14,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class CertificateVerify extends Handshake {
+public class CertificateVerify extends Handshake implements SignatureScheme {
 
 	private short algorithm;
 	private byte[] signature;
@@ -42,6 +42,6 @@ public class CertificateVerify extends Handshake {
 
 	@Override
 	public String toString() {
-		return name() + ':' + SignatureAlgorithms.named(algorithm);
+		return name() + ':' + SignatureScheme.named(algorithm);
 	}
 }

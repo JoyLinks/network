@@ -85,7 +85,7 @@ public abstract class RecordHandler extends RecordCoder implements ChainHandler<
 
 	@Override
 	public void beat(ChainChannel<Object> chain) throws Exception {
-		chain.send(new HeartbeatMessage(HeartbeatMessage.HEARTBEAT_REQUEST));
+		//chain.send(new HeartbeatMessage(HeartbeatMessage.HEARTBEAT_REQUEST));
 	};
 
 	protected void heartbeat(ChainChannel<Object> chain, HeartbeatMessage message) {

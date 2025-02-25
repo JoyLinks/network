@@ -5,6 +5,7 @@
  */
 module com.joyzl.network {
 	requires transitive com.joyzl.odbs;
+	requires org.bouncycastle.provider;
 
 	exports com.joyzl.network;
 	exports com.joyzl.network.codec;

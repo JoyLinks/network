@@ -228,9 +228,13 @@ public class HandshakeCoder extends TLS {
 	}
 
 	private static void encode(Certificate message, DataBuffer buffer) throws IOException {
+		// opaque certificate_request_context<0..2^8-1>;
 		buffer.writeByte(message.getContext().length);
 		buffer.write(message.getContext());
 
+		// CertificateEntry certificate_list<0..2^24-1>;
+		int position = buffer.readable();
+		buffer.writeMedium(0);
 		CertificateEntry entry;
 		for (int index = 0; index < message.getCertificates().length; index++) {
 			entry = message.getCertificates()[index];
@@ -239,6 +243,11 @@ public class HandshakeCoder extends TLS {
 			buffer.write(entry.getData());
 			ExtensionCoder.encode(entry, buffer);
 		}
+		// SET LENGTH
+		int length = buffer.readable() - position - 3;
+		buffer.set(position++, (byte) (length >>> 16));
+		buffer.set(position++, (byte) (length >>> 8));
+		buffer.set(position, (byte) (length));
 	}
 
 	private static Certificate decodeCertificate(DataBuffer buffer) throws IOException {
@@ -308,12 +317,11 @@ public class HandshakeCoder extends TLS {
 
 	private static CertificateVerify decodeCertificateVerify(DataBuffer buffer) throws IOException {
 		final CertificateVerify message = new CertificateVerify();
-		byte[] opaque;
 		// SignatureScheme algorithm;
 		message.setAlgorithm(buffer.readShort());
 		// opaque signature<0..2^16-1>;
-		buffer.readFully(opaque = new byte[buffer.readUnsignedShort()]);
-		message.setSignature(opaque);
+		message.setSignature(new byte[buffer.readUnsignedShort()]);
+		buffer.readFully(message.getSignature());
 		return message;
 	}
 

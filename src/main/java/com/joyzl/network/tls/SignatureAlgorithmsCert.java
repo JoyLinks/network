@@ -1,7 +1,7 @@
 package com.joyzl.network.tls;
 
 /**
- * 扩展：签名证书算法
+ * 扩展：证书中签名算法
  * 
  * @author ZhangXi 2025年1月24日
  */

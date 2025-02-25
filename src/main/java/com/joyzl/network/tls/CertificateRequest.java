@@ -12,18 +12,22 @@ package com.joyzl.network.tls;
  */
 public class CertificateRequest extends HandshakeExtensions {
 
-	private byte[] certificate_request_context;
+	private byte[] context = TLS.EMPTY_BYTES;
 
 	@Override
 	public byte msgType() {
 		return CERTIFICATE_REQUEST;
 	}
 
-	public byte[] getCertificateRequestContext() {
-		return certificate_request_context;
+	public byte[] getContext() {
+		return context;
 	}
 
-	public void setCertificateRequestContext(byte[] value) {
-		this.certificate_request_context = value;
+	public void setContext(byte[] value) {
+		if (value == null) {
+			context = TLS.EMPTY_BYTES;
+		} else {
+			context = value;
+		}
 	}
 }

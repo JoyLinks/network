@@ -15,8 +15,12 @@ import com.joyzl.network.chain.ChainHandler;
 public class TLSClientHandler extends RecordHandler {
 
 	private final ChainHandler<Object> handler;
+
+	private Signaturer signaturer;
 	private CipherSuiter cipher;
 	private KeyExchange key;
+
+	private long time;
 	private String sni;
 
 	public TLSClientHandler(ChainHandler<Object> handler) {
@@ -119,7 +123,13 @@ public class TLSClientHandler extends RecordHandler {
 			if (message instanceof Finished) {
 				cipher.encryptReset(cipher.clientTraffic());
 				cipher.resumptionMaster();
+
+				time = System.currentTimeMillis() - time;
+				System.out.println("握手完成，耗时：" + time);
+
 				handler().connected(chain);
+			} else if (message instanceof Alert) {
+				chain.close();
 			} else {
 				chain.receive();
 			}
@@ -195,17 +205,50 @@ public class TLSClientHandler extends RecordHandler {
 
 				}
 			}
+		} else if (message.msgType() == Handshake.CERTIFICATE_REQUEST) {
+			final CertificateRequest certificateRequest = (com.joyzl.network.tls.CertificateRequest) message;
+			// OID Filters
+			// signature_algorithms
+			// certificate_authorities
+
+			final Certificate certificate = new Certificate();
+			certificate.setContext(certificateRequest.getContext());
+			final CertificateVerify certificateVerify = new CertificateVerify();
+			certificateVerify.setAlgorithm(SSL30);
+			certificateVerify.setSignature(EMPTY_BYTES);
+
 		} else if (message.msgType() == Handshake.CERTIFICATE) {
 			final Certificate certificate = (Certificate) message;
 			if (certificate.size() > 0) {
+				CertificateEntry entry;
+				for (int index = 0; index < certificate.size(); index++) {
+					entry = certificate.get(index);
+					for (Extension extension : entry.getExtensions()) {
+						System.out.print('\t');
+						System.out.print('\t');
+						System.out.println(extension);
+					}
+				}
+
+				// OCSP
+				// SignedCertificateTimestamp
 				// MD5/SHA-1 bad_certificate
+
+				signaturer = new Signaturer();
+				signaturer.setEntries(certificate.getCertificates());
+				signaturer.setHash(cipher.hash());
 			} else {
 				// 空的证书消息
 				chain.send(new Alert(Alert.DECODE_ERROR));
 			}
 		} else if (message.msgType() == Handshake.CERTIFICATE_VERIFY) {
 			final CertificateVerify certificateVerify = (CertificateVerify) message;
-
+			signaturer.scheme(certificateVerify.getAlgorithm());
+			if (signaturer.verifyServer(certificateVerify.getSignature())) {
+				// OK
+			} else {
+				chain.send(new Alert(Alert.DECRYPT_ERROR));
+			}
 		} else if (message.msgType() == Handshake.NEW_SESSION_TICKET) {
 			final NewSessionTicket newSessionTicket = (NewSessionTicket) message;
 			newSessionTicket.setNonce(cipher.resumption(newSessionTicket.getNonce()));
@@ -231,6 +274,7 @@ public class TLSClientHandler extends RecordHandler {
 
 	@Override
 	public void connected(ChainChannel<Object> chain) throws Exception {
+		time = System.currentTimeMillis();
 		sni = ServerName.findServerName(chain.getRemoteAddress());
 
 		final ClientHello hello = new ClientHello();
@@ -257,6 +301,9 @@ public class TLSClientHandler extends RecordHandler {
 		hello.addExtension(new CompressCertificate(CompressCertificate.BROTLI));
 		hello.addExtension(new Heartbeat(Heartbeat.PEER_NOT_ALLOWED_TO_SEND));
 
+		// Certificate Extensions
+		hello.addExtension(PostHandshakeAuth.INSTANCE);
+
 		// Key Exchange Extensions
 		key = new KeyExchange(NamedGroup.X25519);
 		hello.addExtension(new SupportedGroups(NamedGroup.ALL));
@@ -266,6 +313,7 @@ public class TLSClientHandler extends RecordHandler {
 		final NewSessionTicket ticket = SessionTickets.get(sni, NamedGroup.X25519, CipherSuite.TLS_AES_128_GCM_SHA256);
 		if (ticket != null) {
 			// early_data
+
 			// 0-RTT PSK
 			final OfferedPsks psk = new OfferedPsks();
 			final PskIdentity pskIdentity = new PskIdentity();

@@ -6,5 +6,4 @@ public class CertificateStatus extends Handshake {
 	public byte msgType() {
 		return CERTIFICATE_STATUS;
 	}
-
 }

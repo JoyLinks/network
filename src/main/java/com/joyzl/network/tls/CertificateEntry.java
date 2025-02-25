@@ -13,8 +13,8 @@ public class CertificateEntry implements Extensions {
 	public final static byte RAW_PUBLIC_KEY = 2;
 
 	private List<Extension> extensions = new ArrayList<>();
-	private final byte type;
-	private byte[] data;
+	private byte type = X509;
+	private byte[] data = TLS.EMPTY_BYTES;
 
 	public CertificateEntry(byte type) {
 		this.type = type;
@@ -28,8 +28,12 @@ public class CertificateEntry implements Extensions {
 		return data;
 	}
 
-	public void setData(byte[] data) {
-		this.data = data;
+	public void setData(byte[] value) {
+		if (value == null) {
+			data = TLS.EMPTY_BYTES;
+		} else {
+			data = value;
+		}
 	}
 
 	@Override
@@ -73,5 +77,16 @@ public class CertificateEntry implements Extensions {
 	@Override
 	public boolean isHelloRetryRequest() {
 		return false;
+	}
+
+	@Override
+	public String toString() {
+		if (type == X509) {
+			return "X509(" + data.length + ")";
+		}
+		if (type == RAW_PUBLIC_KEY) {
+			return "RPK(" + data.length + ")";
+		}
+		return "UNKNOWN";
 	}
 }

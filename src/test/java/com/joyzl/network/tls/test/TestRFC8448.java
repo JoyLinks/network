@@ -4,12 +4,22 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
+import java.security.spec.RSAPrivateCrtKeySpec;
+import java.security.spec.RSAPublicKeySpec;
 
 import org.junit.jupiter.api.Test;
 
 import com.joyzl.network.Utility;
 import com.joyzl.network.buffer.DataBuffer;
+import com.joyzl.network.buffer.DataBufferInput;
+import com.joyzl.network.tls.CertificateAuthorities;
 import com.joyzl.network.tls.CipherSuite;
 import com.joyzl.network.tls.CipherSuiter;
 import com.joyzl.network.tls.DeriveSecret;
@@ -17,6 +27,9 @@ import com.joyzl.network.tls.KeyExchange;
 import com.joyzl.network.tls.NamedGroup;
 import com.joyzl.network.tls.Record;
 import com.joyzl.network.tls.SecretCache;
+import com.joyzl.network.tls.SignatureScheme;
+import com.joyzl.network.tls.Signaturer;
+import com.joyzl.network.tls.TranscriptHash;
 
 class TestRFC8448 {
 
@@ -1308,6 +1321,165 @@ class TestRFC8448 {
 		assertEquals(buffer, plain);
 	}
 
+	@Test
+	void testSignature() throws Exception {
+		// Certificate (445 octets):
+		// 0b -------HandshakeType 1Byte
+		// 00 01 b9 -Length 3Byte(uint24) 441
+		// 00 -------context 0
+		// 00 01 b5 -Length 437
+		// 00 -------X509
+		// 01 b0 ----Length 432 cert_data
+		// 30 82
+		// 01 ac 30 82 01 15 a0 03 02 01 02 02 01 02 30 0d 06 09 2a 86 48
+		// 86 f7 0d 01 01 0b 05 00 30 0e 31 0c 30 0a 06 03 55 04 03 13 03
+		// 72 73 61 30 1e 17 0d 31 36 30 37 33 30 30 31 32 33 35 39 5a 17
+		// 0d 32 36 30 37 33 30 30 31 32 33 35 39 5a 30 0e 31 0c 30 0a 06
+		// 03 55 04 03 13 03 72 73 61 30 81 9f 30 0d 06 09 2a 86 48 86 f7
+		// 0d 01 01 01 05 00 03 81 8d 00 30 81 89 02 81 81 00 b4 bb 49 8f
+		// 82 79 30 3d 98 08 36 39 9b 36 c6 98 8c 0c 68 de 55 e1 bd b8 26
+		// d3 90 1a 24 61 ea fd 2d e4 9a 91 d0 15 ab bc 9a 95 13 7a ce 6c
+		// 1a f1 9e aa 6a f9 8c 7c ed 43 12 09 98 e1 87 a8 0e e0 cc b0 52
+		// 4b 1b 01 8c 3e 0b 63 26 4d 44 9a 6d 38 e2 2a 5f da 43 08 46 74
+		// 80 30 53 0e f0 46 1c 8c a9 d9 ef bf ae 8e a6 d1 d0 3e 2b d1 93
+		// ef f0 ab 9a 80 02 c4 74 28 a6 d3 5a 8d 88 d7 9f 7f 1e 3f 02 03
+		// 01 00 01 a3 1a 30 18 30 09 06 03 55 1d 13 04 02 30 00 30 0b 06
+		// 03 55 1d 0f 04 04 03 02 05 a0 30 0d 06 09 2a 86 48 86 f7 0d 01
+		// 01 0b 05 00 03 81 81 00 85 aa d2 a0 e5 b9 27 6b 90 8c 65 f7 3a
+		// 72 67 17 06 18 a5 4c 5f 8a 7b 33 7d 2d f7 a5 94 36 54 17 f2 ea
+		// e8 f8 a5 8c 8f 81 72 f9 31 9c f3 6b 7f d6 c5 5b 80 f2 1a 03 01
+		// 51 56 72 60 96 fd 33 5e 5e 67 f2 db f1 02 70 2e 60 8c ca e6 be
+		// c1 fc 63 a4 2a 99 be 5c 3e b7 10 7c 3c 54 e9 b9 eb 2b d5 20 3b
+		// 1c 3b 84 e0 a8 b2 f7 59 40 9b a3 ea c9 d9 1d 40 2d cc 0c c8 f8
+		// 96 12 29 ac 91 87 b4 2b 4d e1
+		// 00 00-----Extensions
+
+		// X.509 RFC5280 证书文件的后缀
+		// PEM(Privacy Enhanced Mail) RFC7468 Base64 .crt/.pem/.cer/.key
+		// DER(Distinguished Encoding Rules) DER .der/.cer
+		// PKCS#7 .p7b
+		// KCS#7
+		// PKCS#12 .p12/.pfx
+
+		// CertificateVerify (136 octets):
+		// 0f HandshakeType 1Byte
+		// 00 00 84 Length 3Byte(uint24) 132
+		// 08 04 Algorithm 2Byte
+		// 00 80 Length 2Byte 128
+		// 5a 74 7c
+		// 5d 88 fa 9b d2 e5 5a b0 85 a6 10 15 b7 21 1f 82 4c d4 84 14 5a
+		// b3 ff 52 f1 fd a8 47 7b 0b 7a bc 90 db 78 e2 d3 3a 5c 14 1a 07
+		// 86 53 fa 6b ef 78 0c 5e a2 48 ee aa a7 85 c4 f3 94 ca b6 d3 0b
+		// be 8d 48 59 ee 51 1f 60 29 57 b1 54 11 ac 02 76 71 45 9e 46 44
+		// 5c 9e a5 8c 18 1e 81 8e 95 b8 c3 fb 0b f3 27 84 09 d3 be 15 2a
+		// 3d a5 04 3e 06 3d da 65 cd f5 ae a2 0d 53 df ac d4 2f 74 f3
+
+		final String modulus = "b4bb498f8279303d980836399b36c6988c0c68de55e1bdb826d3901a2461eafd2de49a91d015abbc9a95137ace6c1af19eaa6af98c7ced43120998e187a80ee0ccb0524b1b018c3e0b63264d449a6d38e22a5fda430846748030530ef0461c8ca9d9efbfae8ea6d1d03e2bd193eff0ab9a8002c47428a6d35a8d88d79f7f1e3f";
+		final String privateExponent = "04dea705d43a6ea7209dd8072111a83c81e322a59278b33480641eaf7c0a6985b8e31c44f6de62e1b4c2309f6126e77b7c41e923314bbfa3881305dc1217f16c819ce538e922f369828d0e57195d8c8488460207b2faa726bcf708bbd7db7f679f893492fc2a622e08970aac441ce4e0c3088df25ae679233df8a3bda2ff9941";
+		final String publicExponent = "010001";
+		final String prime1 = "e435fb7cc83737756dacea96ab7f59a2cc1069db7deb190e17e33a532b273f30a327aa0aaabc58cd67466af9845fadc675fe094af92c4bd1f2c1bc33dd2e0515";
+		final String prime2 = "cabd3bc0e0438664c8d4cc9f99977a94d9bbfead8e43870abae3f7eb8b4e0eee8af1d9b4719ba6196cf2cbbaeeebf8b3490afe9e9ffa74a88aa51fc645629303";
+		final String exponent1 = "3f57345c27fe1b687e6e761627b78b1b826433dd760fa0bea6a6acf39490aa1b47cda4869d68f584dd5b5029bd32093b8258661fe715025e5d70a45a08d3d319";
+		final String exponent2 = "183da01363bd2f2885cacbdc9964bf4764f1517636f86401286f71893c52ccfe40a6c23d0d086b47c6fb10d8fd1041e04def7e9a40ce957c417794e10412d139";
+		final String coefficient = "839ca9a085e4286b2c90e466997a2c681f21339aa3477814e4dec11833050ed50dd13cc038048a43c59b2acc416889c037665fe5afa605969f8c01dfa5ca969d";
+
+		final DataBuffer cert = buffer("""
+				3082
+				01ac30820115a003020102020102300d06092a8648
+				86f70d01010b0500300e310c300a06035504031303
+				727361301e170d3136303733303031323335395a17
+				0d3236303733303031323335395a300e310c300a06
+				03550403130372736130819f300d06092a864886f7
+				0d010101050003818d0030818902818100b4bb498f
+				8279303d980836399b36c6988c0c68de55e1bdb826
+				d3901a2461eafd2de49a91d015abbc9a95137ace6c
+				1af19eaa6af98c7ced43120998e187a80ee0ccb052
+				4b1b018c3e0b63264d449a6d38e22a5fda43084674
+				8030530ef0461c8ca9d9efbfae8ea6d1d03e2bd193
+				eff0ab9a8002c47428a6d35a8d88d79f7f1e3f0203
+				010001a31a301830090603551d1304023000300b06
+				03551d0f0404030205a0300d06092a864886f70d01
+				010b05000381810085aad2a0e5b9276b908c65f73a
+				7267170618a54c5f8a7b337d2df7a594365417f2ea
+				e8f8a58c8f8172f9319cf36b7fd6c55b80f21a0301
+				5156726096fd335e5e67f2dbf102702e608ccae6be
+				c1fc63a42a99be5c3eb7107c3c54e9b9eb2bd5203b
+				1c3b84e0a8b2f759409ba3eac9d91d402dcc0cc8f8
+				961229ac9187b42b4de1
+						""");
+
+		final DataBufferInput inpupt = new DataBufferInput(cert);
+		CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+		Certificate certificate = certificateFactory.generateCertificate(inpupt);
+		// System.out.println(certificate);
+
+		// Server
+
+		final RSAPrivateCrtKeySpec privateKeySpec = new RSAPrivateCrtKeySpec(//
+			new BigInteger(modulus, 16), //
+			new BigInteger(publicExponent, 16), //
+			new BigInteger(privateExponent, 16), //
+			new BigInteger(prime1, 16), //
+			new BigInteger(prime2, 16), //
+			new BigInteger(exponent1, 16), //
+			new BigInteger(exponent2, 16), //
+			new BigInteger(coefficient, 16));
+		final RSAPublicKeySpec publicKeySpec = new RSAPublicKeySpec(//
+			new BigInteger(modulus, 16), //
+			new BigInteger(publicExponent, 16));
+
+		final KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+		final PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
+		final PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+
+		// Transcript-Hash(Handshake Context, Certificate)
+		final TranscriptHash transcriptHash = new TranscriptHash();
+		transcriptHash.digest("SHA-256");
+		transcriptHash.hash(Utility.hex(ClientHello));
+		transcriptHash.hash(Utility.hex(ServerHello));
+		transcriptHash.hash(Utility.hex(ServerEncryptedExtensions));
+		transcriptHash.hash(Utility.hex(ServerCertificate));
+		// System.out.println(Utility.hex(transcriptHash.hash()));
+
+		// RSA_PSS_RSAE_SHA256(0x0804)
+		final Signaturer signaturer = new Signaturer();
+		signaturer.scheme(SignatureScheme.RSA_PSS_RSAE_SHA256);
+		// 生成签名
+		final byte[] sign = signaturer.singServer(privateKey, transcriptHash.hash());
+		// System.out.println(Utility.hex(sign));
+		// 验证签名
+		assertEquals(signaturer.verifyServer(publicKey, transcriptHash.hash(), sign), true);
+	}
+
+	@Test
+	void testSignatureSchemes() {
+		final Signaturer signaturer = new Signaturer();
+		for (short scheme : SignatureScheme.ALL) {
+			try {
+				signaturer.scheme(scheme);
+			} catch (Exception e) {
+				System.out.println(SignatureScheme.named(scheme) + ":" + e.getMessage());
+			}
+		}
+	}
+
+	@Test
+	void testCipherSuiters() throws Exception {
+		final CipherSuiter cipherSuiter = new CipherSuiter();
+		for (short suite : CipherSuite.ALL) {
+			try {
+				cipherSuiter.suite(suite);
+			} catch (Exception e) {
+				System.out.println(CipherSuite.named(suite) + ":" + e.getMessage());
+			}
+		}
+
+		CertificateAuthorities.load();
+	}
+
+	/**
+	 * 多行字符串转换为字节数据
+	 */
 	DataBuffer buffer(String data) throws IOException {
 		data = data.replaceAll("\\s*", "");
 		final DataBuffer buffer = DataBuffer.instance();

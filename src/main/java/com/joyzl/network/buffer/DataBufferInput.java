@@ -8,13 +8,16 @@ package com.joyzl.network.buffer;
 import java.io.IOException;
 import java.io.InputStream;
 
+import com.joyzl.codec.BigEndianDataInput;
+import com.joyzl.network.codec.BigEndianBCDInput;
+
 /**
  * 包装DataBuffer为InputStream
  * 
  * @author ZhangXi
  * @date 2020年7月28日
  */
-public class DataBufferInput extends InputStream {
+public class DataBufferInput extends InputStream implements BigEndianDataInput, BigEndianBCDInput {
 
 	private final DataBuffer buffer;
 	private final boolean release;
@@ -72,5 +75,10 @@ public class DataBufferInput extends InputStream {
 
 	public DataBuffer buffer() {
 		return buffer;
+	}
+
+	@Override
+	public byte readByte() throws IOException {
+		return buffer.readByte();
 	}
 }

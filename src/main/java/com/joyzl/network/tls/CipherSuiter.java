@@ -3,11 +3,14 @@ package com.joyzl.network.tls;
 import java.nio.ByteBuffer;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
+import java.security.Security;
 import java.security.spec.AlgorithmParameterSpec;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.buffer.DataBufferUnit;
@@ -37,6 +40,10 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 
 	// https://www.bouncycastle.org/
 	// https://docs.oracle.com/en/java/javase/17/docs/specs/security/standard-names.html
+
+	static {
+		Security.addProvider(new BouncyCastleProvider());
+	}
 
 	private short code;
 
@@ -89,12 +96,12 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 				break;
 			case TLS_CHACHA20_POLY1305_SHA256:
 				algorithm = "AES";
-				encryptCipher = Cipher.getInstance("ChaCha20/Poly1305/NoPadding");
-				decryptCipher = Cipher.getInstance("ChaCha20/Poly1305/NoPadding");
+				encryptCipher = Cipher.getInstance("ChaCha20-Poly1305");
+				decryptCipher = Cipher.getInstance("ChaCha20-Poly1305");
 				digest("SHA-256");
 				hmac("HmacSHA256");
-				tagLength = 32;
-				keyLength = 32;
+				tagLength = 16;
+				keyLength = 16;
 				ivLength = 12;
 				break;
 			case TLS_AES_128_CCM_SHA256:
@@ -256,8 +263,9 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 			//
 			case TLS_NULL_WITH_NULL_NULL:
 			default:
-				throw new NoSuchAlgorithmException("CipherSuiter" + code);
+				throw new NoSuchAlgorithmException("TLS:UNKNOWN cipher suiter " + code);
 		}
+		decryptOutput = null;
 	}
 
 	/**
@@ -518,15 +526,24 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 	// GCM模式解码时须等待最后的Tag校验完成才会输出解码后的数据
 	// 这将导致必须构建足够长度的ByteBuffer以接收输出结果
 	// 强烈建议：Java应逐块解码输出结果，不应等待最终校验
+	ByteBuffer decryptOutput;
+
+	ByteBuffer decryptBuffer() {
+		if (decryptOutput == null) {
+			int size = decryptCipher.getOutputSize(Record.CIPHERTEXT_MAX);
+			decryptOutput = ByteBuffer.allocateDirect(size);
+		} else {
+			decryptOutput.clear();
+		}
+		return decryptOutput;
+	}
 
 	/**
 	 * 解密，缓存数据将被解密后的数据替代
 	 */
 	public void decryptFinal(DataBuffer buffer) throws Exception {
-
-		final ByteBuffer output = ByteBuffer.allocate(decryptCipher.getOutputSize(buffer.readable()));
+		final ByteBuffer output = decryptBuffer();
 		DataBufferUnit i = buffer.take();
-
 		while (i != null) {
 			decryptCipher.update(i.buffer(), output);
 			i.release();
@@ -534,18 +551,17 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 		}
 
 		decryptCipher.doFinal(EMPTY, output);
-		buffer.append(output.flip());
 		decryptSequence++;
+
+		buffer.append(output.flip());
 	}
 
 	/**
 	 * 解密
 	 */
 	public void decryptFinal(DataBuffer in, DataBuffer out) throws Exception {
-
-		final ByteBuffer output = ByteBuffer.allocate(decryptCipher.getOutputSize(in.readable()));
+		final ByteBuffer output = decryptBuffer();
 		DataBufferUnit i = in.take();
-
 		while (i != null) {
 			decryptCipher.update(i.buffer(), output);
 			i.release();
@@ -562,33 +578,7 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 	 * 解密
 	 */
 	public void decryptFinal(DataBuffer in, DataBuffer out, int length) throws Exception {
-
-		// final ByteBuffer output =
-		// ByteBuffer.allocate(decryptCipher.getOutputSize(length));
-		// DataBufferUnit i = in.take();
-		//
-		// while (i != null && length > 0) {
-		// if (i.readable() <= length) {
-		// length -= i.readable();
-		// decryptCipher.update(i.buffer(), output);
-		// i.release();
-		// } else {
-		// length = i.readable() - length;
-		// i.writeIndex(i.writeIndex() - length);
-		// decryptCipher.update(i.buffer(), output);
-		// i.writeIndex(i.writeIndex() + length);
-		// length = 0;
-		// break;
-		// }
-		// i = in.take();
-		// }
-		//
-		// decryptCipher.doFinal(EMPTY, output);
-		// decryptSequence++;
-		//
-		// out.write(output.flip());
-
-		final ByteBuffer output = ByteBuffer.allocate(decryptCipher.getOutputSize(length));
+		final ByteBuffer output = decryptBuffer();
 
 		int size;
 		ByteBuffer i;
@@ -603,7 +593,7 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 				i.limit(i.limit() - size);
 				decryptCipher.update(i, output);
 				i.limit(i.limit() + size);
-				in.read(size);
+				in.read(length);
 				length = 0;
 			}
 		}
@@ -612,8 +602,6 @@ public class CipherSuiter extends SecretCache implements CipherSuite {
 		decryptSequence++;
 
 		out.append(output.flip());
-		// TODO 解码后in长度错误
-		System.out.println(in);
 	}
 
 	/**

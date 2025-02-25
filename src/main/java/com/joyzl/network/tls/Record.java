@@ -42,7 +42,7 @@ public abstract class Record extends TLS {
 
 	/** TLSPlaintext 16K (2^14) */
 	final static int PLAINTEXT_MAX = 16384;
-	/** TLSCiphertext */
+	/** TLSCiphertext 16.25K */
 	final static int CIPHERTEXT_MAX = PLAINTEXT_MAX + 256;
 
 	// ContentType MAX(255)

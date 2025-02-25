@@ -83,6 +83,10 @@ public class Certificate extends Handshake {
 		}
 	}
 
+	public CertificateEntry get(int index) {
+		return certificates[index];
+	}
+
 	public CertificateEntry[] getCertificates() {
 		return certificates;
 	}
@@ -97,5 +101,23 @@ public class Certificate extends Handshake {
 
 	public int size() {
 		return certificates.length;
+	}
+
+	@Override
+	public String toString() {
+		if (certificates == null || certificates.length == 0) {
+			return name();
+		} else {
+			final StringBuilder b = new StringBuilder();
+			b.append(name());
+			b.append(':');
+			for (int index = 0; index < certificates.length; index++) {
+				if (index > 0) {
+					b.append(',');
+				}
+				b.append(certificates[index].toString());
+			}
+			return b.toString();
+		}
 	}
 }
