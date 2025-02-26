@@ -35,13 +35,13 @@ import com.joyzl.network.buffer.DataBuffer;
  */
 public class UDPClient<M> extends Client<M> {
 
-	private final SocketAddress address;
+	private final SocketAddress remote;
 	private final DatagramChannel datagram_channel;
 
 	public UDPClient(ChainHandler<M> handler, String host, int port) throws IOException {
 		super(handler);
 
-		address = new InetSocketAddress(host, port);
+		remote = new InetSocketAddress(host, port);
 		datagram_channel = DatagramChannel.open();
 		if (datagram_channel.isOpen()) {
 			datagram_channel.configureBlocking(false);
@@ -68,7 +68,12 @@ public class UDPClient<M> extends Client<M> {
 
 	@Override
 	public String getPoint() {
-		return Point.getPoint(address);
+		return Point.getPoint(remote);
+	}
+
+	@Override
+	public SocketAddress getRemoteAddress() {
+		return remote;
 	}
 
 	@Override
@@ -76,19 +81,6 @@ public class UDPClient<M> extends Client<M> {
 		if (active()) {
 			try {
 				return datagram_channel.getLocalAddress();
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		} else {
-			return null;
-		}
-	}
-
-	@Override
-	public SocketAddress getRemoteAddress() {
-		if (active()) {
-			try {
-				return datagram_channel.getRemoteAddress();
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -105,7 +97,7 @@ public class UDPClient<M> extends Client<M> {
 				if (datagram_channel.isConnected()) {
 					datagram_channel.disconnect();
 				}
-				datagram_channel.connect(address);
+				datagram_channel.connect(remote);
 				// ChainSelector.reads().wakeup();
 				connected();
 			} catch (Exception e) {
@@ -139,13 +131,13 @@ public class UDPClient<M> extends Client<M> {
 				// 确认接收到的数据量
 				buffer.written(size);
 				// 解包
-				final M source = handler().decode(this, buffer);
-				if (source == null) {
+				final M message = handler().decode(this, buffer);
+				if (message == null) {
 					// 数据不足，无补救措施
 					// UDP特性决定后续接收的数据只会是另外的数据帧
 					buffer.clear();
 				} else {
-					handler().received(this, source);
+					handler().received(this, message);
 				}
 			} else if (size == 0) {
 				// DataBuffer提供的ByteBuffer已满，无补救措施

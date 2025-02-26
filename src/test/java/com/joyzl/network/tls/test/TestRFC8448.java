@@ -1354,13 +1354,6 @@ class TestRFC8448 {
 		// 96 12 29 ac 91 87 b4 2b 4d e1
 		// 00 00-----Extensions
 
-		// X.509 RFC5280 证书文件的后缀
-		// PEM(Privacy Enhanced Mail) RFC7468 Base64 .crt/.pem/.cer/.key
-		// DER(Distinguished Encoding Rules) DER .der/.cer
-		// PKCS#7 .p7b
-		// KCS#7
-		// PKCS#12 .p12/.pfx
-
 		// CertificateVerify (136 octets):
 		// 0f HandshakeType 1Byte
 		// 00 00 84 Length 3Byte(uint24) 132
@@ -1411,7 +1404,7 @@ class TestRFC8448 {
 		final DataBufferInput inpupt = new DataBufferInput(cert);
 		CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
 		Certificate certificate = certificateFactory.generateCertificate(inpupt);
-		// System.out.println(certificate);
+		System.out.println(certificate);
 
 		// Server
 

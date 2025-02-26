@@ -37,6 +37,11 @@ public class SessionTickets {
 		return null;
 	}
 
+	/**
+	 * 由SNI(ServerName)+GROUP(NamedGroup)+SUITE(CipherSuite)组成的键
+	 * 
+	 * @author ZhangXi 2025年2月25日
+	 */
 	static class Key {
 		/** ServerName */
 		private final String sni;

@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * DER编码的X.509证书
+ * 
  * @see CertificateTypes
  * @author ZhangXi 2024年12月21日
  */
@@ -16,8 +18,15 @@ public class CertificateEntry implements Extensions {
 	private byte type = X509;
 	private byte[] data = TLS.EMPTY_BYTES;
 
+	public CertificateEntry() {
+	}
+
 	public CertificateEntry(byte type) {
 		this.type = type;
+	}
+
+	public CertificateEntry(byte[] value) {
+		data = value;
 	}
 
 	public byte type() {

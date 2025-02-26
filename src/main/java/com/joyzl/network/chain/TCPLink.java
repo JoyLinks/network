@@ -41,6 +41,8 @@ import com.joyzl.network.buffer.DataBuffer;
  */
 public class TCPLink<M> extends Client<M> {
 
+	final static Object BUSY = new Object();
+
 	private final InetSocketAddress remote;
 	private AsynchronousSocketChannel socket_channel;
 	private volatile boolean connected;
@@ -157,14 +159,17 @@ public class TCPLink<M> extends Client<M> {
 		handler().error(this, e);
 	}
 
-	private M receive_message;
+	private M receiveMessage;
 	private DataBuffer read;
 
 	/**
 	 * 当前收到的消息
 	 */
 	public Object receiveMessage() {
-		return receive_message;
+		if (receiveMessage == BUSY) {
+			return null;
+		}
+		return receiveMessage;
 	}
 
 	/**
@@ -176,7 +181,8 @@ public class TCPLink<M> extends Client<M> {
 	@Override
 	public void receive() {
 		if (connected) {
-			if (receive_message == null) {
+			if (receiveMessage == null) {
+				receiveMessage = (M) read;
 				if (read == null) {
 					read = DataBuffer.instance();
 				}
@@ -198,13 +204,13 @@ public class TCPLink<M> extends Client<M> {
 			read.written(size);
 			try {
 				// 多次请求解包直到没有对象返回
-				receive_message = (M) read;
+				// 在数据包粘连的情况下，可能会接收到两个数据包
+				// 在数据包截断的情况下，可能会收到半个数据包
 				while (true) {
 					size = read.readable();
-					// 在数据包粘连的情况下，可能会接收到两个数据包的数据
-					receive_message = handler().decode(this, read);
-					if (receive_message == null) {
-						// 未能解析消息对象,继续接收数据
+					receiveMessage = handler().decode(this, read);
+					if (receiveMessage == null) {
+						// 数据未能解析消息对象,继续接收数据
 						socket_channel.read(//
 							read.write(), // ByteBuffer
 							handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
@@ -214,18 +220,17 @@ public class TCPLink<M> extends Client<M> {
 					} else {
 						// 已解析消息对象
 						if (read.readable() >= size) {
-							// 解析数据应减少
 							throw new IllegalStateException("TCPLink:已解析消息但数据未减少");
 						}
 						if (read.readable() > 0) {
-							handler().received(this, receive_message);
+							handler().received(this, receiveMessage);
 							// 注意:handler().received()方法中可能会调用receive()
 							// 有剩余数据,继续尝试解包
 							continue;
 						} else {
-							final M message = receive_message;
+							final M message = receiveMessage;
 							// 注意:handler().received()方法中可能会调用receive()
-							receive_message = null;
+							receiveMessage = null;
 							handler().received(this, message);
 							// 没有剩余数据,停止尝试解包
 							break;
@@ -233,18 +238,18 @@ public class TCPLink<M> extends Client<M> {
 					}
 				}
 			} catch (Exception e) {
-				handler().error(this, e);
 				read.release();
 				read = null;
+				handler().error(this, e);
 				reset();
 			}
 		} else if (size == 0) {
 			// 没有数据并且没有达到流的末端时返回0
 			// 如果用于接收的ByteBuffer缓存满则会出现读零情况
 			// DataBuffer代码存在问题才会导致提供了一个已满的ByteBuffer
-			handler().error(this, new IllegalStateException("TCPLink:零读"));
 			read.release();
 			read = null;
+			handler().error(this, new IllegalStateException("TCPLink:零读"));
 			reset();
 		} else {
 			// 链路被关闭
@@ -280,14 +285,14 @@ public class TCPLink<M> extends Client<M> {
 		}
 	}
 
-	private M send_message;
+	private M sendMessage;
 	private DataBuffer write;
 
-	/***
+	/**
 	 * 当前正在发送的消息
 	 */
 	public Object sendMessage() {
-		return send_message;
+		return sendMessage;
 	}
 
 	/**
@@ -300,8 +305,8 @@ public class TCPLink<M> extends Client<M> {
 	@SuppressWarnings("unchecked")
 	public void send(Object message) {
 		if (connected) {
-			if (send_message == null) {
-				send_message = (M) message;
+			if (sendMessage == null) {
+				sendMessage = (M) message;
 				try {
 					// 执行消息编码
 					write = handler().encode(this, (M) message);
@@ -333,7 +338,6 @@ public class TCPLink<M> extends Client<M> {
 	@Override
 	protected void sent(int size) {
 		if (size > 0) {
-			// 已发送数据
 			write.read(size);
 			if (write.readable() > 0) {
 				// 数据未发完,继续发送
@@ -345,8 +349,8 @@ public class TCPLink<M> extends Client<M> {
 			} else {
 				// 数据已发完
 				// 必须在通知处理对象之前清空当前消息关联
-				final M message = send_message;
-				send_message = null;
+				final M message = sendMessage;
+				sendMessage = null;
 				write.release();
 				write = null;
 				try {
@@ -359,9 +363,9 @@ public class TCPLink<M> extends Client<M> {
 		} else if (size == 0) {
 			// 客户端缓存满会导致零发送
 			// 恶意程序，可能会导致无限尝试
-			handler().error(this, new IllegalStateException("TCPLink:零写"));
 			write.release();
 			write = null;
+			handler().error(this, new IllegalStateException("TCPLink:零写"));
 			reset();
 		} else {
 			// 连接被客户端断开
@@ -438,26 +442,26 @@ public class TCPLink<M> extends Client<M> {
 
 			// 消息中可能有打开的资源
 			// 例如发送未完成的文件
-			if (receive_message != null) {
+			if (receiveMessage != null) {
 				try {
-					if (receive_message instanceof Closeable) {
-						((Closeable) receive_message).close();
+					if (receiveMessage instanceof Closeable) {
+						((Closeable) receiveMessage).close();
 					}
 				} catch (IOException e) {
 					handler().error(this, e);
 				} finally {
-					receive_message = null;
+					receiveMessage = null;
 				}
 			}
-			if (send_message != null) {
+			if (sendMessage != null) {
 				try {
-					if (send_message instanceof Closeable) {
-						((Closeable) send_message).close();
+					if (sendMessage instanceof Closeable) {
+						((Closeable) sendMessage).close();
 					}
 				} catch (IOException e) {
 					handler().error(this, e);
 				} finally {
-					send_message = null;
+					sendMessage = null;
 				}
 			}
 		}

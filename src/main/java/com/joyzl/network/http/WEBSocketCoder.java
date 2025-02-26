@@ -142,9 +142,10 @@ public class WEBSocketCoder {
 				message.setStatus(buffer.readShort());
 				// UTF-8
 				if (length > 2) {
-					final CharBuffer chars = CharBuffer.allocate(length);
-					buffer.read(chars, StandardCharsets.UTF_8, length - 2);
-					message.setContent(chars.flip());
+					length -= 2;
+					byte[] reason = new byte[length];
+					buffer.readFully(reason);
+					message.setContent(new String(reason, 0, length, StandardCharsets.UTF_8));
 				}
 			} else {
 				// 接收到足够的字节后转移给消息对象
@@ -364,20 +365,13 @@ public class WEBSocketCoder {
 		if (message.getContent() instanceof CharSequence) {
 			final CharSequence content = (CharSequence) message.getContent();
 			if (content.length() > 0) {
-				CharBuffer chars;
-				if (content instanceof CharBuffer) {
-					chars = (CharBuffer) content;
-				} else {
-					message.setContent(chars = CharBuffer.wrap(content));
-				}
+				// 字符串不分段
 				final int position = buffer.readable();
-				final int length = buffer.write(chars, StandardCharsets.UTF_8, max);
+				buffer.append(CharBuffer.wrap(content), StandardCharsets.UTF_8);
+				final int length = buffer.readable() - position;
 				int i = 0;
 				while (i < length) {
 					buffer.set(position + i, (byte) (buffer.get(position + i) ^ masks[i % 4]));
-				}
-				if (length == max) {
-					return false;
 				}
 			}
 		}
@@ -409,16 +403,8 @@ public class WEBSocketCoder {
 		if (message.getContent() instanceof CharSequence) {
 			final CharSequence content = (CharSequence) message.getContent();
 			if (content.length() > 0) {
-				CharBuffer chars;
-				if (content instanceof CharBuffer) {
-					chars = (CharBuffer) content;
-				} else {
-					message.setContent(chars = CharBuffer.wrap(content));
-				}
-				int length = buffer.write(chars, StandardCharsets.UTF_8, max);
-				if (length == max) {
-					return false;
-				}
+				// 字符串不分段
+				buffer.append(CharBuffer.wrap(content), StandardCharsets.UTF_8);
 			}
 		}
 		return true;

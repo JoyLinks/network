@@ -9,7 +9,6 @@ import java.security.Security;
 import java.security.Signature;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -132,6 +131,65 @@ public class Signaturer implements SignatureScheme {
 			default:
 				throw new IllegalArgumentException("TLS:UNKNOWN signature algorithm");
 		}
+		factory.toString();
+	}
+
+	public static short scheme(String algorithm) {
+		switch (algorithm) {
+			// RSASSA-PKCS1-v1_5 algorithms
+			case "SHA256withRSA":
+				return RSA_PKCS1_SHA256;
+			case "SHA384withRSA":
+				return RSA_PKCS1_SHA384;
+			case "SHA512withRSA":
+				return RSA_PKCS1_SHA512;
+
+			// ECDSA algorithms
+			case "SHA256withECDSA":
+				return ECDSA_SECP256R1_SHA256;
+			case "SHA384withECDSA":
+				return ECDSA_SECP384R1_SHA384;
+			case "SHA512withECDSA":
+				return ECDSA_SECP521R1_SHA512;
+
+			// RSASSA-PSS RSAE algorithms
+			case "SHA256withRSA/PSS":
+				return RSA_PSS_RSAE_SHA256;
+			case "SHA384withRSA/PSS":
+				return RSA_PSS_RSAE_SHA384;
+			case "SHA512withRSA/PSS":
+				return RSA_PSS_RSAE_SHA512;
+
+			// EdDSA algorithms
+			case "Ed25519":
+				return ED25519;
+			case "Ed448":
+				return ED448;
+
+			// RSASSA-PSS PSS algorithms
+			// case "SHA256withRSA/PSS":
+			// return RSA_PSS_PSS_SHA256;
+			// case "SHA384withRSA/PSS":
+			// return RSA_PSS_PSS_SHA384;
+			// case "SHA512withRSA/PSS":
+			// return RSA_PSS_PSS_SHA512;
+
+			// 不推荐的
+			case "SHA1withRSA":
+				return RSA_PKCS1_SHA1;
+			case "SHA1withECDSA":
+				return ECDSA_SHA1;
+			case "SHA1withDSA":
+				return DSA_SHA1_RESERVED;
+			case "SHA256withDSA":
+				return DSA_SHA256_RESERVED;
+			case "SHA384withDSA":
+				return DSA_SHA384_RESERVED;
+			case "SHA512withDSA":
+				return DSA_SHA512_RESERVED;
+			default:
+				throw new IllegalArgumentException("TLS:UNKNOWN signature algorithm");
+		}
 	}
 
 	/** 上下文字符串 */
@@ -240,8 +298,11 @@ public class Signaturer implements SignatureScheme {
 					certificates = Arrays.copyOf(certificates, certificates.length + 1);
 					certificates[certificates.length - 1] = certificate;
 				}
+				// System.out.println("--------");
+				// System.out.println(certificate);
 			} else if (entry.type() == CertificateEntry.RAW_PUBLIC_KEY) {
-				final X509EncodedKeySpec keySpec = new X509EncodedKeySpec(entry.getData());
+				// final X509EncodedKeySpec keySpec = new
+				// X509EncodedKeySpec(entry.getData());
 			}
 		}
 	}

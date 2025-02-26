@@ -6,6 +6,7 @@ import java.util.Arrays;
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.chain.ChainHandler;
+import com.joyzl.network.tls.SessionCertificates.CPK;
 
 /**
  * TLSClientHandler
@@ -210,13 +211,14 @@ public class TLSClientHandler extends RecordHandler {
 			// OID Filters
 			// signature_algorithms
 			// certificate_authorities
-
 			final Certificate certificate = new Certificate();
 			certificate.setContext(certificateRequest.getContext());
-			final CertificateVerify certificateVerify = new CertificateVerify();
-			certificateVerify.setAlgorithm(SSL30);
-			certificateVerify.setSignature(EMPTY_BYTES);
-
+			final CPK entry = SessionCertificates.get(sni);
+			if (entry != null) {
+				certificate.setCertificates(entry.getEntries());
+				final CertificateVerify certificateVerify = new CertificateVerify();
+				certificateVerify.setAlgorithm(entry.getScheme());
+			}
 		} else if (message.msgType() == Handshake.CERTIFICATE) {
 			final Certificate certificate = (Certificate) message;
 			if (certificate.size() > 0) {
@@ -238,7 +240,7 @@ public class TLSClientHandler extends RecordHandler {
 				signaturer.setEntries(certificate.getCertificates());
 				signaturer.setHash(cipher.hash());
 			} else {
-				// 空的证书消息
+				// 不允许服务端发送空的证书消息
 				chain.send(new Alert(Alert.DECODE_ERROR));
 			}
 		} else if (message.msgType() == Handshake.CERTIFICATE_VERIFY) {
@@ -247,6 +249,7 @@ public class TLSClientHandler extends RecordHandler {
 			if (signaturer.verifyServer(certificateVerify.getSignature())) {
 				// OK
 			} else {
+				// 证书消息签名验证失败
 				chain.send(new Alert(Alert.DECRYPT_ERROR));
 			}
 		} else if (message.msgType() == Handshake.NEW_SESSION_TICKET) {
@@ -260,7 +263,6 @@ public class TLSClientHandler extends RecordHandler {
 				cipher.decryptReset(cipher.serverApplicationTraffic());
 				cipher.clientApplicationTraffic();
 				cipher.exporterMaster();
-
 				// EndOfEarlyData
 				// chain.send(EndOfEarlyData.INSTANCE);
 				// ClientFinished

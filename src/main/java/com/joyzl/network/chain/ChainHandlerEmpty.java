@@ -20,12 +20,12 @@ public final class ChainHandlerEmpty<M> implements ChainHandler<M> {
 	}
 
 	@Override
-	public M decode(ChainChannel<M> chain, DataBuffer reader) throws Exception {
+	public M decode(ChainChannel<M> chain, DataBuffer buffer) throws Exception {
 		return null;
 	}
 
 	@Override
-	public void received(ChainChannel<M> chain, M source) throws Exception {
+	public void received(ChainChannel<M> chain, M message) throws Exception {
 	}
 
 	@Override
@@ -33,12 +33,12 @@ public final class ChainHandlerEmpty<M> implements ChainHandler<M> {
 	}
 
 	@Override
-	public DataBuffer encode(ChainChannel<M> chain, M source) throws Exception {
+	public DataBuffer encode(ChainChannel<M> chain, M message) throws Exception {
 		return null;
 	}
 
 	@Override
-	public void sent(ChainChannel<M> chain, M source) throws Exception {
+	public void sent(ChainChannel<M> chain, M message) throws Exception {
 	}
 
 	@Override

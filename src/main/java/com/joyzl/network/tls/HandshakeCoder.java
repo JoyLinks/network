@@ -284,16 +284,15 @@ public class HandshakeCoder extends TLS {
 
 	private static void encode(CertificateRequest message, DataBuffer buffer) throws IOException {
 		// opaque certificate_request_context<0..2^8-1>;
-		buffer.writeShort(message.getCertificateRequestContext().length);
-		buffer.write(message.getCertificateRequestContext());
+		buffer.writeShort(message.getContext().length);
+		buffer.write(message.getContext());
 	}
 
 	private static CertificateRequest decodeCertificateRequest(DataBuffer buffer) throws IOException {
 		final CertificateRequest message = new CertificateRequest();
-		byte[] opaque;
 		// opaque certificate_request_context<0..2^8-1>;
-		buffer.readFully(opaque = new byte[buffer.readUnsignedShort()]);
-		message.setCertificateRequestContext(opaque);
+		message.setContext(new byte[buffer.readUnsignedShort()]);
+		buffer.readFully(message.getContext());
 		return message;
 	}
 

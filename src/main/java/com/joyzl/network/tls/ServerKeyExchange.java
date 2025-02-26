@@ -6,5 +6,4 @@ public class ServerKeyExchange extends Handshake {
 	public byte msgType() {
 		return SERVER_KEY_EXCHANGE;
 	}
-
 }
