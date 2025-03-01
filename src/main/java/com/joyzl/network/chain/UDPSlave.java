@@ -16,11 +16,11 @@ import com.joyzl.network.Point;
  * @author ZhangXi 2019年7月9日
  *
  */
-public class UDPSlave<M> extends Slave<M> {
+public class UDPSlave extends Slave {
 
 	private final SocketAddress remote_address;
 
-	public UDPSlave(UDPServer<M> server, SocketAddress address) {
+	public UDPSlave(UDPServer server, SocketAddress address) {
 		super(server, Point.getPoint(address));
 		remote_address = address;
 	}
@@ -63,10 +63,9 @@ public class UDPSlave<M> extends Slave<M> {
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
 	public void send(Object message) {
 		try {
-			((UDPServer<M>) server()).send(this, (M) message);
+			((UDPServer) server()).send(this, message);
 		} catch (IOException e) {
 			sent(e);
 		}

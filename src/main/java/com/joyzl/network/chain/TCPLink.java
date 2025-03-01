@@ -39,13 +39,13 @@ import com.joyzl.network.buffer.DataBuffer;
  *
  * @author simon(ZhangXi TEL : 13883833982) 2019年7月12日
  */
-public class TCPLink<M> extends Client<M> {
+public class TCPLink extends Client {
 
-	final static Object BUSY = new Object();
+	private final static Object BUSY = new Object();
 
 	private final InetSocketAddress remote;
 	private AsynchronousSocketChannel socket_channel;
-	private volatile boolean connected;
+	private volatile boolean connected = false;
 
 	/**
 	 * 创建TCPShort由接点标识指定连接信息
@@ -56,10 +56,9 @@ public class TCPLink<M> extends Client<M> {
 	 * @param host 主机
 	 * @param port 端口
 	 */
-	public TCPLink(ChainHandler<M> handler, String host, int port) {
+	public TCPLink(ChainHandler handler, String host, int port) {
 		super(handler);
 		remote = new InetSocketAddress(host, port);
-		connected = false;
 	}
 
 	@Override
@@ -159,7 +158,7 @@ public class TCPLink<M> extends Client<M> {
 		handler().error(this, e);
 	}
 
-	private M receiveMessage;
+	private Object receiveMessage;
 	private DataBuffer read;
 
 	/**
@@ -182,7 +181,7 @@ public class TCPLink<M> extends Client<M> {
 	public void receive() {
 		if (connected) {
 			if (receiveMessage == null) {
-				receiveMessage = (M) read;
+				receiveMessage = BUSY;
 				if (read == null) {
 					read = DataBuffer.instance();
 				}
@@ -193,8 +192,6 @@ public class TCPLink<M> extends Client<M> {
 					this, ClientReceiveHandler.INSTANCE // Handler
 				);
 			}
-		} else {
-			throw new IllegalStateException("TCPLink:未连接");
 		}
 	}
 
@@ -228,7 +225,7 @@ public class TCPLink<M> extends Client<M> {
 							// 有剩余数据,继续尝试解包
 							continue;
 						} else {
-							final M message = receiveMessage;
+							final Object message = receiveMessage;
 							// 注意:handler().received()方法中可能会调用receive()
 							receiveMessage = null;
 							handler().received(this, message);
@@ -285,7 +282,7 @@ public class TCPLink<M> extends Client<M> {
 		}
 	}
 
-	private M sendMessage;
+	private Object sendMessage;
 	private DataBuffer write;
 
 	/**
@@ -295,6 +292,10 @@ public class TCPLink<M> extends Client<M> {
 		return sendMessage;
 	}
 
+	protected void sendMessage(Object message) {
+		sendMessage = message;
+	}
+
 	/**
 	 * 发送数据到网络
 	 * <p>
@@ -302,14 +303,13 @@ public class TCPLink<M> extends Client<M> {
 	 * </p>
 	 */
 	@Override
-	@SuppressWarnings("unchecked")
 	public void send(Object message) {
 		if (connected) {
-			if (sendMessage == null) {
-				sendMessage = (M) message;
+			if (sendMessage == null || sendMessage == message) {
+				sendMessage = message;
 				try {
 					// 执行消息编码
-					write = handler().encode(this, (M) message);
+					write = handler().encode(this, message);
 					if (write == null) {
 						throw new IllegalStateException("TCPLink:未编码数据" + message);
 					} else if (write.readable() <= 0) {
@@ -329,9 +329,11 @@ public class TCPLink<M> extends Client<M> {
 					handler().error(this, e);
 					reset();
 				}
+			} else {
+				System.out.println(message);
 			}
 		} else {
-			throw new IllegalStateException("TCPLink:未连接");
+			System.out.println(message);
 		}
 	}
 
@@ -349,10 +351,10 @@ public class TCPLink<M> extends Client<M> {
 			} else {
 				// 数据已发完
 				// 必须在通知处理对象之前清空当前消息关联
-				final M message = sendMessage;
-				sendMessage = null;
+				final Object message = sendMessage;
 				write.release();
 				write = null;
+				sendMessage = null;
 				try {
 					handler().sent(this, message);
 				} catch (Exception e) {
@@ -431,14 +433,14 @@ public class TCPLink<M> extends Client<M> {
 				}
 			}
 
-			if (read != null) {
-				read.release();
-				read = null;
-			}
-			if (write != null) {
-				write.release();
-				write = null;
-			}
+			// if (read != null) {
+			// read.release();
+			// read = null;
+			// }
+			// if (write != null) {
+			// write.release();
+			// write = null;
+			// }
 
 			// 消息中可能有打开的资源
 			// 例如发送未完成的文件

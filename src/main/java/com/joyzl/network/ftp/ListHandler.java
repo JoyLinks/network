@@ -6,43 +6,44 @@ import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.chain.ChainHandler;
 
-public abstract class ListHandler implements ChainHandler<FTPMessage> {
+public abstract class ListHandler implements ChainHandler {
 
 	@Override
-	public void connected(ChainChannel<FTPMessage> chain) throws Exception {
+	public void connected(ChainChannel chain) throws Exception {
 		chain.receive();
 	}
 
 	@Override
-	public void received(ChainChannel<FTPMessage> chain, FTPMessage message) throws Exception {
-		if (message == null) {
+	public void received(ChainChannel chain, Object message) throws Exception {
+		FTPMessage command = (FTPMessage) message;
+		if (command == null) {
 			final ListClient client = (ListClient) chain;
-			message = client.getLIST();
-			message.setCode(999);
-			message.finish();
+			command = client.getLIST();
+			command.setCode(999);
+			command.finish();
 		} else {
-			message.finish();
+			command.finish();
 		}
 	}
 
 	@Override
-	public DataBuffer encode(ChainChannel<FTPMessage> chain, FTPMessage message) throws Exception {
+	public DataBuffer encode(ChainChannel chain, Object message) throws Exception {
 		return null;
 	}
 
 	@Override
-	public void sent(ChainChannel<FTPMessage> chain, FTPMessage message) throws Exception {
+	public void sent(ChainChannel chain, Object message) throws Exception {
 	}
 
 	@Override
-	public void disconnected(ChainChannel<FTPMessage> chain) throws Exception {
+	public void disconnected(ChainChannel chain) throws Exception {
 		final ListClient client = (ListClient) chain;
 		client.getLIST().finish();
 		client.close();
 	}
 
 	@Override
-	public void error(ChainChannel<FTPMessage> chain, Throwable e) {
+	public void error(ChainChannel chain, Throwable e) {
 		e.printStackTrace();
 	}
 

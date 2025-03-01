@@ -11,25 +11,25 @@ import com.joyzl.network.chain.ChainHandler;
  */
 public class TLSServerHandler extends RecordHandler {
 
-	private final ChainHandler<Object> handler;
+	private final ChainHandler handler;
 
-	public TLSServerHandler(ChainHandler<Object> handler) {
+	public TLSServerHandler(ChainHandler handler) {
 		this.handler = handler;
 	}
 
 	@Override
-	protected ChainHandler<Object> handler() {
+	protected ChainHandler handler() {
 		return handler;
 	}
 
 	@Override
-	public void connected(ChainChannel<Object> chain) throws Exception {
+	public void connected(ChainChannel chain) throws Exception {
 		// TODO Auto-generated method stub
 
 	}
 
 	@Override
-	public void sent(ChainChannel<Object> chain, Object message) throws Exception {
+	public void sent(ChainChannel chain, Object message) throws Exception {
 		// TODO Auto-generated method stub
 
 	}
@@ -65,7 +65,7 @@ public class TLSServerHandler extends RecordHandler {
 	}
 
 	@Override
-	protected void received(ChainChannel<Object> chain, Handshake handshake) throws Exception {
+	protected void received(ChainChannel chain, Handshake handshake) throws Exception {
 		// TODO Auto-generated method stub
 
 	}

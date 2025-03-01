@@ -11,17 +11,17 @@ package com.joyzl.network.chain;
  * @author ZhangXi
  * @date 2021年4月6日
  */
-public abstract class Client<M> extends ChainChannel<M> {
+public abstract class Client extends ChainChannel {
 
 	/** 消息处理对象 */
-	private final ChainHandler<M> handler;
+	private final ChainHandler handler;
 
-	public Client(ChainHandler<M> h) {
+	public Client(ChainHandler h) {
 		super(Long.toString(System.currentTimeMillis() + System.nanoTime(), Character.MAX_RADIX));
 		handler = h;
 	}
 
-	public final ChainHandler<M> handler() {
+	public final ChainHandler handler() {
 		return handler;
 	}
 

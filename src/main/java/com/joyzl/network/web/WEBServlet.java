@@ -14,7 +14,6 @@ import com.joyzl.network.http.HTTP;
 import com.joyzl.network.http.HTTPCoder;
 import com.joyzl.network.http.HTTPSlave;
 import com.joyzl.network.http.HTTPStatus;
-import com.joyzl.network.http.Message;
 import com.joyzl.network.http.QueryCoder;
 import com.joyzl.network.http.Request;
 import com.joyzl.network.http.Response;
@@ -77,7 +76,7 @@ public abstract class WEBServlet extends Servlet {
 		response(chain, response);
 	}
 
-	protected void response(ChainChannel<Message> chain, Response response) {
+	protected void response(ChainChannel chain, Response response) {
 		if (response.getStatus() > 0) {
 
 			// 以下默认处理回复发送消息头

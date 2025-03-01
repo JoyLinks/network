@@ -15,20 +15,21 @@ import com.joyzl.network.chain.ChainHandler;
  * @author ZhangXi
  * @date 2020年6月26日
  */
-public abstract class HTTPClientHandler implements ChainHandler<Message> {
+public abstract class HTTPClientHandler implements ChainHandler {
 
 	@Override
-	public void connected(ChainChannel<Message> chain) throws Exception {
+	public void connected(ChainChannel chain) throws Exception {
 		// 客户端连接后不能立即启动接收
 		// HTTP 必须由客户端主动发起请求后才能接收
 	}
 
 	@Override
-	public Message decode(ChainChannel<Message> chain, DataBuffer buffer) throws Exception {
+	public Message decode(ChainChannel chain, DataBuffer buffer) throws Exception {
 		final HTTPClient client = (HTTPClient) chain;
 		final Response response = client.getResponse();
 
 		// 消息逐段解码
+
 		if (response.state() == Message.COMMAND) {
 			if (HTTPCoder.readCommand(buffer, response)) {
 				response.state(Message.HEADERS);
@@ -60,16 +61,17 @@ public abstract class HTTPClientHandler implements ChainHandler<Message> {
 	}
 
 	@Override
-	public void beat(ChainChannel<Message> chain) throws Exception {
+	public void beat(ChainChannel chain) throws Exception {
 		// HTTP 无心跳
 	}
 
 	@Override
-	public DataBuffer encode(ChainChannel<Message> chain, Message message) throws Exception {
+	public DataBuffer encode(ChainChannel chain, Object message) throws Exception {
 		final Request request = (Request) message;
 		final DataBuffer buffer = DataBuffer.instance();
 
 		// 消息逐段编码
+
 		if (request.state() == Message.COMMAND) {
 			if (HTTPCoder.writeCommand(buffer, request)) {
 				request.state(Message.HEADERS);
@@ -98,14 +100,15 @@ public abstract class HTTPClientHandler implements ChainHandler<Message> {
 			return buffer;
 		}
 
-		throw new IllegalStateException("消息状态无效:" + message.state());
+		throw new IllegalStateException("消息状态无效:" + request.state());
 	}
 
 	@Override
-	public void sent(ChainChannel<Message> chain, Message message) throws Exception {
-		// HTTPClient仅发送WEBRequest
+	public void sent(ChainChannel chain, Object message) throws Exception {
+		// HTTPClient仅发送Request
+		final Request request = (Request) message;
 		if (message == null) {
-		} else if (message.state() == Message.COMPLETE) {
+		} else if (request.state() == Message.COMPLETE) {
 			// 消息发送完成
 			// 接收响应消息
 			chain.receive();
@@ -116,11 +119,11 @@ public abstract class HTTPClientHandler implements ChainHandler<Message> {
 	}
 
 	@Override
-	public void disconnected(ChainChannel<Message> chain) throws Exception {
+	public void disconnected(ChainChannel chain) throws Exception {
 	}
 
 	@Override
-	public void error(ChainChannel<Message> chain, Throwable e) {
+	public void error(ChainChannel chain, Throwable e) {
 		chain.close();
 	}
 }

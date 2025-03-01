@@ -39,18 +39,19 @@ import com.joyzl.network.buffer.DataBuffer;
  * @author ZhangXi 2019年7月9日
  *
  */
-public class TCPSlave<M> extends Slave<M> {
+public class TCPSlave extends Slave {
 
-	final static Object BUSY = new Object();
+	private final static Object BUSY = new Object();
 
 	private final SocketAddress remote;
-	private final AsynchronousSocketChannel socket_channel;
+	private final AsynchronousSocketChannel socketChannel;
+	private volatile boolean connected = true;
 
-	public TCPSlave(TCPServer<M> server, AsynchronousSocketChannel channel) throws IOException {
+	public TCPSlave(TCPServer server, AsynchronousSocketChannel channel) throws IOException {
 		super(server, Point.getPoint(channel.getRemoteAddress()));
-		socket_channel = channel;
-		socket_channel.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.TRUE);
-		socket_channel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.TRUE);
+		socketChannel = channel;
+		socketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.TRUE);
+		socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.TRUE);
 		remote = channel.getRemoteAddress();
 		server.addSlave(this);
 	}
@@ -62,7 +63,7 @@ public class TCPSlave<M> extends Slave<M> {
 
 	@Override
 	public boolean active() {
-		return socket_channel != null && socket_channel.isOpen();
+		return connected && socketChannel.isOpen();
 	}
 
 	@Override
@@ -77,20 +78,19 @@ public class TCPSlave<M> extends Slave<M> {
 
 	@Override
 	public SocketAddress getLocalAddress() {
-		if (active()) {
+		if (connected) {
 			try {
-				return socket_channel.getLocalAddress();
+				return socketChannel.getLocalAddress();
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
-		} else {
-			return null;
 		}
+		return null;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
 
-	private M receiveMessage;
+	private Object receiveMessage;
 	private DataBuffer read;
 
 	/**
@@ -111,17 +111,19 @@ public class TCPSlave<M> extends Slave<M> {
 	 */
 	@Override
 	public void receive() {
-		if (receiveMessage == null) {
-			receiveMessage = (M) BUSY;
-			if (read == null) {
-				read = DataBuffer.instance();
+		if (connected) {
+			if (receiveMessage == null) {
+				receiveMessage = BUSY;
+				if (read == null) {
+					read = DataBuffer.instance();
+				}
+				// SocketChannel不能投递多个接收操作，否则会收到ReadPendingException异常
+				socketChannel.read(//
+					read.write(), // ByteBuffer
+					handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
+					this, SlaveReceiveHandler.INSTANCE // Handler
+				);
 			}
-			// SocketChannel不能投递多个接收操作，否则会收到ReadPendingException异常
-			socket_channel.read(//
-				read.write(), // ByteBuffer
-				handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
-				this, SlaveReceiveHandler.INSTANCE // Handler
-			);
 		}
 	}
 
@@ -137,7 +139,7 @@ public class TCPSlave<M> extends Slave<M> {
 					receiveMessage = handler().decode(this, read);
 					if (receiveMessage == null) {
 						// 数据未能解析消息对象,继续接收数据
-						socket_channel.read(//
+						socketChannel.read(//
 							read.write(), // ByteBuffer
 							handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
 							this, SlaveReceiveHandler.INSTANCE // Handler
@@ -154,7 +156,7 @@ public class TCPSlave<M> extends Slave<M> {
 							// 有剩余数据,继续尝试解包
 							continue;
 						} else {
-							final M message = receiveMessage;
+							final Object message = receiveMessage;
 							receiveMessage = null;
 							handler().received(this, message);
 							// 没有剩余数据,停止尝试解包
@@ -208,7 +210,7 @@ public class TCPSlave<M> extends Slave<M> {
 		}
 	}
 
-	private M sendMessage;
+	private Object sendMessage;
 	private DataBuffer write;
 
 	/**
@@ -218,6 +220,10 @@ public class TCPSlave<M> extends Slave<M> {
 		return sendMessage;
 	}
 
+	protected void sendMessage(Object message) {
+		sendMessage = message;
+	}
+
 	/**
 	 * 发送数据到网络
 	 * <p>
@@ -225,32 +231,37 @@ public class TCPSlave<M> extends Slave<M> {
 	 * </p>
 	 */
 	@Override
-	@SuppressWarnings("unchecked")
 	public void send(Object message) {
-		if (sendMessage == null) {
-			sendMessage = (M) message;
-			try {
-				// 执行消息编码
-				write = handler().encode(this, (M) message);
-				if (write == null) {
-					throw new IllegalStateException("TCPSlave:未编码数据" + message);
-				} else if (write.readable() <= 0) {
-					throw new IllegalStateException("TCPSlave:编码零数据" + message);
-				} else {
-					socket_channel.write(//
-						write.read(), // ByteBuffer
-						handler().getTimeoutWrite(), TimeUnit.MILLISECONDS, // Timeout
-						this, SlaveSendHandler.INSTANCE // Handler
-					);
+		if (connected) {
+			if (sendMessage == null || sendMessage == message) {
+				sendMessage = message;
+				try {
+					// 执行消息编码
+					write = handler().encode(this, message);
+					if (write == null) {
+						throw new IllegalStateException("TCPSlave:未编码数据" + message);
+					} else if (write.readable() <= 0) {
+						throw new IllegalStateException("TCPSlave:编码零数据" + message);
+					} else {
+						socketChannel.write(//
+							write.read(), // ByteBuffer
+							handler().getTimeoutWrite(), TimeUnit.MILLISECONDS, // Timeout
+							this, SlaveSendHandler.INSTANCE // Handler
+						);
+					}
+				} catch (Exception e) {
+					if (write != null) {
+						write.release();
+						write = null;
+					}
+					handler().error(this, e);
+					close();
 				}
-			} catch (Exception e) {
-				if (write != null) {
-					write.release();
-					write = null;
-				}
-				handler().error(this, e);
-				close();
+			} else {
+				System.out.println(message);
 			}
+		} else {
+			System.out.println(message);
 		}
 	}
 
@@ -260,7 +271,7 @@ public class TCPSlave<M> extends Slave<M> {
 			write.read(size);
 			if (write.readable() > 0) {
 				// 数据未发完,继续发送
-				socket_channel.write(//
+				socketChannel.write(//
 					write.read(), // ByteBuffer
 					handler().getTimeoutWrite(), TimeUnit.MILLISECONDS, // Timeout
 					this, SlaveSendHandler.INSTANCE// Handler
@@ -268,10 +279,10 @@ public class TCPSlave<M> extends Slave<M> {
 			} else {
 				// 数据已发完
 				// 必须在通知处理对象之前清空当前消息关联
-				final M message = sendMessage;
-				sendMessage = null;
+				final Object message = sendMessage;
 				write.release();
 				write = null;
+				sendMessage = null;
 				try {
 					handler().sent(this, message);
 				} catch (Exception e) {
@@ -322,53 +333,63 @@ public class TCPSlave<M> extends Slave<M> {
 
 	@Override
 	public void close() {
-		if (socket_channel.isOpen()) {
-			server().offSlave(this);
-			try {
-				socket_channel.shutdownOutput();
-				socket_channel.shutdownInput();
-				socket_channel.close();
-			} catch (Exception e) {
-				server().handler().error(this, e);
-			} finally {
+		if (connected) {
+			synchronized (this) {
+				if (connected) {
+					connected = false;
+				} else {
+					return;
+				}
+			}
+
+			if (socketChannel.isOpen()) {
+				server().offSlave(this);
 				try {
-					server().handler().disconnected(this);
+					socketChannel.shutdownOutput();
+					socketChannel.shutdownInput();
+					socketChannel.close();
 				} catch (Exception e) {
 					server().handler().error(this, e);
-				}
-			}
-
-			if (read != null) {
-				read.release();
-				read = null;
-			}
-			if (write != null) {
-				write.release();
-				write = null;
-			}
-
-			// 消息中可能有打开的资源
-			// 例如发送未完成的文件
-			if (receiveMessage != null) {
-				try {
-					if (receiveMessage instanceof Closeable) {
-						((Closeable) receiveMessage).close();
-					}
-				} catch (IOException e) {
-					handler().error(this, e);
 				} finally {
-					receiveMessage = null;
-				}
-			}
-			if (sendMessage != null) {
-				try {
-					if (sendMessage instanceof Closeable) {
-						((Closeable) sendMessage).close();
+					try {
+						server().handler().disconnected(this);
+					} catch (Exception e) {
+						server().handler().error(this, e);
 					}
-				} catch (IOException e) {
-					handler().error(this, e);
-				} finally {
-					sendMessage = null;
+				}
+
+				// if (read != null) {
+				// read.release();
+				// read = null;
+				// }
+				// if (write != null) {
+				// write.release();
+				// write = null;
+				// }
+
+				// 消息中可能有打开的资源
+				// 例如发送未完成的文件
+				if (receiveMessage != null) {
+					try {
+						if (receiveMessage instanceof Closeable) {
+							((Closeable) receiveMessage).close();
+						}
+					} catch (IOException e) {
+						handler().error(this, e);
+					} finally {
+						receiveMessage = null;
+					}
+				}
+				if (sendMessage != null) {
+					try {
+						if (sendMessage instanceof Closeable) {
+							((Closeable) sendMessage).close();
+						}
+					} catch (IOException e) {
+						handler().error(this, e);
+					} finally {
+						sendMessage = null;
+					}
 				}
 			}
 		}

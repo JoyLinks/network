@@ -13,17 +13,17 @@ import java.nio.channels.CompletionHandler;
  * @author ZhangXi
  * @date 2023年8月25日
  */
-public class SlaveSendHandler implements CompletionHandler<Integer, Slave<?>> {
+public class SlaveSendHandler implements CompletionHandler<Integer, Slave> {
 
 	final static SlaveSendHandler INSTANCE = new SlaveSendHandler();
 
 	@Override
-	public void completed(Integer result, Slave<?> chain) {
+	public void completed(Integer result, Slave chain) {
 		chain.sent(result);
 	}
 
 	@Override
-	public void failed(Throwable e, Slave<?> chain) {
+	public void failed(Throwable e, Slave chain) {
 		chain.sent(e);
 	}
 }

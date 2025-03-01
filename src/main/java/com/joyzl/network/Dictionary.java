@@ -1,4 +1,4 @@
-package com.joyzl.network.http;
+package com.joyzl.network;
 
 import java.util.Collection;
 import java.util.Map;

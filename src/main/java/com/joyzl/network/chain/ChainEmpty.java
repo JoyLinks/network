@@ -13,11 +13,11 @@ import java.net.SocketAddress;
  * 创建空链路时可以指定null值的ChainHandler和key，空链路实例将不会执行任何网络操作；
  * </p>
  */
-public class ChainEmpty<M> extends ChainChannel<M> {
+public class ChainEmpty extends ChainChannel {
 
-	private final ChainHandler<M> handler;
+	private final ChainHandler handler;
 
-	public ChainEmpty(ChainHandler<M> h, String k) {
+	public ChainEmpty(ChainHandler h, String k) {
 		super(k);
 		handler = h;
 		connect();
@@ -31,7 +31,7 @@ public class ChainEmpty<M> extends ChainChannel<M> {
 		}
 	}
 
-	public final ChainHandler<M> handler() {
+	public final ChainHandler handler() {
 		return handler;
 	}
 
@@ -48,20 +48,17 @@ public class ChainEmpty<M> extends ChainChannel<M> {
 	@Override
 	public void receive() {
 		try {
-			final M message = handler().decode(this, null);
-			handler().received(this, message);
+			handler().received(this, handler().decode(this, null));
 		} catch (Exception e) {
 			handler().error(this, e);
 		}
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
 	public void send(Object message) {
 		try {
-			final M m = (M) message;
-			handler().encode(this, m);
-			handler().sent(this, m);
+			handler().encode(this, message);
+			handler().sent(this, message);
 		} catch (Exception e) {
 			handler().error(this, e);
 		}

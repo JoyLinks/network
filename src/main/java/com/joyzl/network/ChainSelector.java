@@ -57,7 +57,7 @@ public final class ChainSelector {
 			public void run() {
 				Iterator<SelectionKey> selection_keys;
 				SelectionKey selection_key;
-				ChainChannel<?> chain;
+				ChainChannel chain;
 
 				try {
 					while (SELECTOR_READS.isOpen()) {
@@ -68,7 +68,7 @@ public final class ChainSelector {
 								selection_keys.remove();
 
 								if (selection_key.isReadable()) {
-									chain = (ChainChannel<?>) selection_key.attachment();
+									chain = (ChainChannel) selection_key.attachment();
 									// 通知链路接收并读取数据
 									chain.receive();
 								} else {
@@ -88,7 +88,7 @@ public final class ChainSelector {
 			public void run() {
 				Iterator<SelectionKey> selection_keys;
 				SelectionKey selection_key;
-				ChainChannel<?> chain;
+				ChainChannel chain;
 
 				try {
 					while (SELECTOR_WRITES.isOpen()) {
@@ -99,7 +99,7 @@ public final class ChainSelector {
 								selection_keys.remove();
 
 								if (selection_key.isWritable()) {
-									chain = (ChainChannel<?>) selection_key.attachment();
+									chain = (ChainChannel) selection_key.attachment();
 									// 通知链路数据发送完成
 									chain.send(null);
 								} else {
@@ -119,7 +119,7 @@ public final class ChainSelector {
 			public void run() {
 				Iterator<SelectionKey> selection_keys;
 				SelectionKey selection_key;
-				ChainChannel<?> chain;
+				ChainChannel chain;
 
 				try {
 					while (SELECTOR_CONNECTS.isOpen()) {
@@ -130,7 +130,7 @@ public final class ChainSelector {
 								selection_keys.remove();
 
 								if (selection_key.isConnectable()) {
-									chain = (ChainChannel<?>) selection_key.attachment();
+									chain = (ChainChannel) selection_key.attachment();
 									// 通知链路连接完成
 									chain.active();
 								} else {
@@ -157,7 +157,7 @@ public final class ChainSelector {
 		THREAD_CONNECTS_SELECTOR.start();
 	}
 
-	public static void register(ChainChannel<?> chain, SelectableChannel channel, int key) throws IOException {
+	public static void register(ChainChannel chain, SelectableChannel channel, int key) throws IOException {
 		switch (key) {
 			case SelectionKey.OP_ACCEPT:
 			case SelectionKey.OP_CONNECT:
@@ -175,7 +175,7 @@ public final class ChainSelector {
 		}
 	}
 
-	public static void unRegister(ChainChannel<?> chain, SelectableChannel channel) {
+	public static void unRegister(ChainChannel chain, SelectableChannel channel) {
 		SelectionKey key = channel.keyFor(SELECTOR_CONNECTS);
 		if (key != null) {
 			SELECTOR_CONNECTS.wakeup();

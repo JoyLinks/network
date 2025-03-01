@@ -20,14 +20,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author ZhangXi
  * @date 2021年4月6日
  */
-public abstract class Server<M> extends ChainChannel<M> {
+public abstract class Server extends ChainChannel {
 
 	/** 从链路 */
-	private final ConcurrentHashMap<String, Slave<M>> slaves = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Slave> slaves = new ConcurrentHashMap<>();
 	/** 消息处理对象 */
-	private final ChainHandler<M> handler;
+	private final ChainHandler handler;
 
-	public Server(ChainHandler<M> h, String k) {
+	public Server(ChainHandler h, String k) {
 		super(k);
 		handler = h;
 	}
@@ -36,18 +36,18 @@ public abstract class Server<M> extends ChainChannel<M> {
 
 	protected abstract void accepted(Throwable e);
 
-	public final ChainHandler<M> handler() {
+	public final ChainHandler handler() {
 		return handler;
 	}
 
-	protected void addSlave(Slave<M> chain) {
+	protected void addSlave(Slave chain) {
 		chain = slaves.put(chain.key(), chain);
 		if (chain != null) {
 			chain.close();
 		}
 	}
 
-	protected void offSlave(Slave<M> chain) {
+	protected void offSlave(Slave chain) {
 		if (slaves.remove(chain.key(), chain)) {
 		} else {
 			if (slaves.containsValue(chain)) {
@@ -58,18 +58,18 @@ public abstract class Server<M> extends ChainChannel<M> {
 		}
 	}
 
-	public Slave<M> getSlave(String key) {
+	public Slave getSlave(String key) {
 		return slaves.get(key);
 	}
 
-	public Collection<Slave<M>> getSlaves() {
+	public Collection<Slave> getSlaves() {
 		return slaves.values();
 	}
 
 	@Override
 	public void close() {
 		// 关闭并移除所有从链路
-		final Iterator<Entry<String, Slave<M>>> iterator = slaves.entrySet().iterator();
+		final Iterator<Entry<String, Slave>> iterator = slaves.entrySet().iterator();
 		while (iterator.hasNext()) {
 			iterator.next().getValue().close();
 			iterator.remove();

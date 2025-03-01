@@ -15,7 +15,7 @@ import com.joyzl.network.tls.SessionCertificates.CPK;
  */
 public class TLSClientHandler extends RecordHandler {
 
-	private final ChainHandler<Object> handler;
+	private final ChainHandler handler;
 
 	private Signaturer signaturer;
 	private CipherSuiter cipher;
@@ -24,12 +24,12 @@ public class TLSClientHandler extends RecordHandler {
 	private long time;
 	private String sni;
 
-	public TLSClientHandler(ChainHandler<Object> handler) {
+	public TLSClientHandler(ChainHandler handler) {
 		this.handler = handler;
 	}
 
 	@Override
-	protected ChainHandler<Object> handler() {
+	protected ChainHandler handler() {
 		return handler;
 	}
 
@@ -118,7 +118,7 @@ public class TLSClientHandler extends RecordHandler {
 	}
 
 	@Override
-	public void sent(ChainChannel<Object> chain, Object message) throws Exception {
+	public void sent(ChainChannel chain, Object message) throws Exception {
 		if (message instanceof Record) {
 			System.out.println(message);
 			if (message instanceof Finished) {
@@ -140,7 +140,7 @@ public class TLSClientHandler extends RecordHandler {
 	}
 
 	@Override
-	protected void received(ChainChannel<Object> chain, Handshake message) throws Exception {
+	protected void received(ChainChannel chain, Handshake message) throws Exception {
 		System.out.print('\t');
 		System.out.println(message);
 
@@ -275,7 +275,7 @@ public class TLSClientHandler extends RecordHandler {
 	}
 
 	@Override
-	public void connected(ChainChannel<Object> chain) throws Exception {
+	public void connected(ChainChannel chain) throws Exception {
 		time = System.currentTimeMillis();
 		sni = ServerName.findServerName(chain.getRemoteAddress());
 

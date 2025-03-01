@@ -42,7 +42,7 @@ abstract class RecordCoder extends TLS {
 	/**
 	 * 通知接收到的握手消息，执行必要的协商处理。
 	 */
-	protected abstract void received(ChainChannel<Object> chain, Handshake handshake) throws Exception;
+	protected abstract void received(ChainChannel chain, Handshake handshake) throws Exception;
 
 	/**
 	 * 编码除APPLICATION_DATA之外的记录消息，视连接状态加密消息<br>
@@ -171,7 +171,7 @@ abstract class RecordCoder extends TLS {
 	 * 
 	 * @return null/Record/DataBuffer
 	 */
-	protected Object decode(ChainChannel<Object> chain, DataBuffer buffer) throws Exception {
+	protected Object decode(ChainChannel chain, DataBuffer buffer) throws Exception {
 		buffer.mark();
 		// ContentType 1Byte
 		int type = buffer.readByte();

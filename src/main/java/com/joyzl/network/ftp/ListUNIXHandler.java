@@ -26,7 +26,7 @@ public class ListUNIXHandler extends ListHandler {
 	final static ListUNIXHandler INSTANCES = new ListUNIXHandler();
 
 	@Override
-	public FTPMessage decode(ChainChannel<FTPMessage> chain, DataBuffer reader) throws Exception {
+	public FTPMessage decode(ChainChannel chain, DataBuffer reader) throws Exception {
 		final ListClient client = (ListClient) chain;
 
 		FTPFile file;

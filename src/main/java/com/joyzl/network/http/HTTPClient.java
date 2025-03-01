@@ -9,12 +9,12 @@ import com.joyzl.network.chain.ChainType;
 import com.joyzl.network.chain.TCPLink;
 
 /**
- * WEB HTTP 客户端
+ * HTTP 客户端
  * 
  * @author ZhangXi
  * @date 2020年6月26日
  */
-public class HTTPClient extends TCPLink<Message> {
+public class HTTPClient extends TCPLink {
 
 	public HTTPClient(HTTPClientHandler handler, String host, int port) {
 		super(handler, host, port);

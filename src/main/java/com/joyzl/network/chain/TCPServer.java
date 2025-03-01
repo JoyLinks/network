@@ -22,7 +22,7 @@ import com.joyzl.network.Point;
  * @author ZhangXi 2019年7月12日
  *
  */
-public class TCPServer<M> extends Server<M> {
+public class TCPServer extends Server {
 
 	/** MAX pending connections */
 	private final static int BACKLOG = 512;
@@ -30,7 +30,7 @@ public class TCPServer<M> extends Server<M> {
 	private final SocketAddress local;
 	private final AsynchronousServerSocketChannel server_socket_channel;
 
-	public TCPServer(ChainHandler<M> handler, String host, int port) throws IOException {
+	public TCPServer(ChainHandler handler, String host, int port) throws IOException {
 		super(handler, Point.getPoint(host, port));
 
 		server_socket_channel = AsynchronousServerSocketChannel.open(Executor.channelGroup());
@@ -38,7 +38,7 @@ public class TCPServer<M> extends Server<M> {
 			// 禁用最大报文段生存时间，服务重启可立即绑定之前端口
 			server_socket_channel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.TRUE);
 			// 禁用多个服务监听相同端口
-			server_socket_channel.setOption(StandardSocketOptions.SO_REUSEPORT, Boolean.FALSE);
+			// server_socket_channel.setOption(StandardSocketOptions.SO_REUSEPORT,Boolean.FALSE);
 			if (port > 0) {
 				// 指定端口
 				if (host == null || host.length() == 0) {
@@ -139,7 +139,7 @@ public class TCPServer<M> extends Server<M> {
 		accept();
 	}
 
-	protected Slave<M> create(AsynchronousSocketChannel socket_channel) throws Exception {
-		return new TCPSlave<>(this, socket_channel);
+	protected Slave create(AsynchronousSocketChannel socket_channel) throws Exception {
+		return new TCPSlave(this, socket_channel);
 	}
 }

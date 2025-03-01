@@ -11,14 +11,21 @@ package com.joyzl.network.chain;
  * @author ZhangXi
  * @date 2021年4月6日
  */
-public abstract class Slave<M> extends ChainChannel<M> {
+public abstract class Slave extends ChainChannel {
 
-	private final Server<M> server;
-	private long read, write;
+	private final Server server;
 
-	public Slave(Server<M> s, String k) {
+	public Slave(Server s, String k) {
 		super(k);
 		server = s;
+	}
+
+	public final Server server() {
+		return server;
+	}
+
+	public final ChainHandler handler() {
+		return server.handler();
 	}
 
 	protected abstract void received(int size);
@@ -28,28 +35,4 @@ public abstract class Slave<M> extends ChainChannel<M> {
 	protected abstract void sent(int size);
 
 	protected abstract void sent(Throwable e);
-
-	public final Server<M> server() {
-		return server;
-	}
-
-	public final ChainHandler<M> handler() {
-		return server.handler();
-	}
-
-	protected void refreshLastRead() {
-		read = System.currentTimeMillis();
-	}
-
-	protected void refreshLastWrite() {
-		read = System.currentTimeMillis();
-	}
-
-	public long getLastRead() {
-		return read;
-	}
-
-	public long getLastWrite() {
-		return write;
-	}
 }

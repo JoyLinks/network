@@ -5,20 +5,25 @@
  */
 package com.joyzl.network.odbs;
 
-import com.joyzl.network.chain.ChainHandler;
-
 /**
  * ODBS 编解码
- *
+ * 
+ * <pre>
+ * 帧结构
+ * +--------+----------+-------+-------------+
+ * | HEAD 1 | LENGTH 4 | TAG 1 | DATA ODBS n |
+ * +--------+----------+-------+-------------+
+ * </pre>
+ * 
  * @author ZhangXi 2019年7月15日
  *
  */
-public abstract class ODBSFrame<M extends ODBSMessage> implements ChainHandler<M> {
+public abstract class ODBSFrame {
 
 	/** 帧最小长度(字节) */
-	public final static int MIN_FRAME = 1 + 3 + 1;
-	/** 帧最大长度(字节) */
-	public final static int MAX_FRAME = 65536 * 256;// 16384 Kb / 16Mb
+	public final static int MIN_FRAME = 1 + 4 + 1;
+	/** 帧最大长度(64M 字节) */
+	public final static int MAX_FRAME = 1024 * 1024 * 64;
 	/** 帧数据最大长度(字节) */
 	public final static int MAX_LENGTH = MAX_FRAME - MIN_FRAME;
 	/** 帧开始标记 */

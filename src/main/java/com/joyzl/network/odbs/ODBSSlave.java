@@ -7,9 +7,9 @@ package com.joyzl.network.odbs;
 
 import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
-import java.util.ArrayDeque;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.joyzl.network.MessageQueue;
 import com.joyzl.network.chain.ChainType;
 import com.joyzl.network.chain.TCPSlave;
 
@@ -19,12 +19,12 @@ import com.joyzl.network.chain.TCPSlave;
  * @author ZhangXi 2019年7月9日
  *
  */
-public class ODBSSlave<M extends ODBSMessage> extends TCPSlave<M> {
+public class ODBSSlave extends TCPSlave {
 
 	private final ReentrantLock k = new ReentrantLock(true);
-	private final ArrayDeque<M> messages = new ArrayDeque<>(Byte.MAX_VALUE);
+	private final MessageQueue<ODBSMessage> messages = new MessageQueue<>();
 
-	public ODBSSlave(ODBSServer<M> server, AsynchronousSocketChannel channel) throws IOException {
+	public ODBSSlave(ODBSServer server, AsynchronousSocketChannel channel) throws IOException {
 		super(server, channel);
 	}
 
@@ -34,39 +34,43 @@ public class ODBSSlave<M extends ODBSMessage> extends TCPSlave<M> {
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
 	public void send(Object message) {
 		k.lock();
 		try {
-			if (messages.isEmpty()) {
-				messages.addLast((M) message);
-			} else {
-				messages.addLast((M) message);
+			if (sendMessage() != null) {
+				messages.add((ODBSMessage) message);
 				return;
 			}
+			if (messages.queue() > 0) {
+				messages.add((ODBSMessage) message);
+				return;
+			}
+			sendMessage(message);
 		} finally {
 			k.unlock();
 		}
 		super.send(message);
 	}
 
-	/**
-	 * 当前消息发送完成，如果有其它消息继续发送
-	 */
-	protected void sent(M message) {
+	protected void sendNext() {
+		ODBSMessage message;
 		k.lock();
 		try {
-			message = messages.removeFirst();
+			if (sendMessage() != null) {
+				return;
+			}
+			message = messages.poll();
 			if (message == null) {
 				return;
 			}
-			message = messages.peekFirst();
-			if (message == null) {
-				return;
-			}
+			sendMessage(message);
 		} finally {
 			k.unlock();
 		}
 		super.send(message);
+	}
+
+	public MessageQueue<ODBSMessage> messages() {
+		return messages;
 	}
 }

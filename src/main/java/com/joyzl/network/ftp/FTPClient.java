@@ -9,7 +9,7 @@ import com.joyzl.network.chain.TCPLink;
  * 
  * @author ZhangXi 2024年7月8日
  */
-public class FTPClient extends TCPLink<FTPMessage> {
+public class FTPClient extends TCPLink {
 
 	/** 当前消息，等待回复的消息，涉及数据传输的消息可能会收到多次回复 */
 	private FTPMessage current;

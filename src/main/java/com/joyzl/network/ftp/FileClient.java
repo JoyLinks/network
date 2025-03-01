@@ -12,12 +12,12 @@ import com.joyzl.network.chain.TCPLink;
  * 
  * @author ZhangXi 2024年7月12日
  */
-public class FileClient extends TCPLink<FileMessage> {
+public class FileClient extends TCPLink {
 
 	private FileMessage command;
 	private FileChannel channel;
 
-	public FileClient(ChainHandler<FileMessage> handler, String host, int port) {
+	public FileClient(ChainHandler handler, String host, int port) {
 		super(handler, host, port);
 	}
 

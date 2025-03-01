@@ -17,7 +17,7 @@ public class FileStreamHandler extends FileHandler {
 	// decode() received() 用于接收文件数据
 
 	@Override
-	public FileMessage decode(ChainChannel<FileMessage> chain, DataBuffer reader) throws Exception {
+	public FileMessage decode(ChainChannel chain, DataBuffer reader) throws Exception {
 		final FileClient client = (FileClient) chain;
 
 		client.getCommand().setTransferred(client.getCommand().getTransferred() + reader.readable());
@@ -27,7 +27,7 @@ public class FileStreamHandler extends FileHandler {
 	}
 
 	@Override
-	public void received(ChainChannel<FileMessage> chain, FileMessage message) throws Exception {
+	protected void received(ChainChannel chain, FileMessage message) throws Exception {
 		final FileClient client = (FileClient) chain;
 		if (message == null) {
 			message = client.getCommand();
@@ -41,7 +41,7 @@ public class FileStreamHandler extends FileHandler {
 	// encode() sent() 用于发送文件数据
 
 	@Override
-	public DataBuffer encode(ChainChannel<FileMessage> chain, FileMessage message) throws Exception {
+	protected DataBuffer encode(ChainChannel chain, FileMessage message) throws Exception {
 		final FileClient client = (FileClient) chain;
 		final FileChannel channel = client.getChannel();
 
@@ -61,7 +61,7 @@ public class FileStreamHandler extends FileHandler {
 	}
 
 	@Override
-	public void sent(ChainChannel<FileMessage> chain, FileMessage message) throws Exception {
+	public void sent(ChainChannel chain, FileMessage message) throws Exception {
 		final FileClient client = (FileClient) chain;
 		if (message == null) {
 			message = client.getCommand();

@@ -13,39 +13,39 @@ import com.joyzl.network.buffer.DataBuffer;
  * @author ZhangXi
  * @date 2021年4月6日
  */
-public final class ChainHandlerEmpty<M> implements ChainHandler<M> {
+public final class ChainHandlerEmpty implements ChainHandler {
 
 	@Override
-	public void connected(ChainChannel<M> chain) throws Exception {
+	public void connected(ChainChannel chain) throws Exception {
 	}
 
 	@Override
-	public M decode(ChainChannel<M> chain, DataBuffer buffer) throws Exception {
+	public Object decode(ChainChannel chain, DataBuffer buffer) throws Exception {
 		return null;
 	}
 
 	@Override
-	public void received(ChainChannel<M> chain, M message) throws Exception {
+	public void received(ChainChannel chain, Object message) throws Exception {
 	}
 
 	@Override
-	public void beat(ChainChannel<M> chain) throws Exception {
+	public void beat(ChainChannel chain) throws Exception {
 	}
 
 	@Override
-	public DataBuffer encode(ChainChannel<M> chain, M message) throws Exception {
+	public DataBuffer encode(ChainChannel chain, Object message) throws Exception {
 		return null;
 	}
 
 	@Override
-	public void sent(ChainChannel<M> chain, M message) throws Exception {
+	public void sent(ChainChannel chain, Object message) throws Exception {
 	}
 
 	@Override
-	public void disconnected(ChainChannel<M> chain) throws Exception {
+	public void disconnected(ChainChannel chain) throws Exception {
 	}
 
 	@Override
-	public void error(ChainChannel<M> chain, Throwable e) {
+	public void error(ChainChannel chain, Throwable e) {
 	}
 }

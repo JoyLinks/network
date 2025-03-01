@@ -17,25 +17,15 @@ import com.joyzl.network.chain.ChainType;
  * @author ZhangXi
  * @date 2020年6月26日
  */
-public abstract class HTTPServerHandler implements ChainHandler<Message> {
+public abstract class HTTPServerHandler implements ChainHandler {
 
 	@Override
-	public long getTimeoutRead() {
-		return 3000L;
-	}
-
-	@Override
-	public long getTimeoutWrite() {
-		return 3000L;
-	}
-
-	@Override
-	public void connected(ChainChannel<Message> chain) throws Exception {
+	public void connected(ChainChannel chain) throws Exception {
 		chain.receive();
 	}
 
 	@Override
-	public Message decode(ChainChannel<Message> chain, DataBuffer buffer) throws Exception {
+	public Message decode(ChainChannel chain, DataBuffer buffer) throws Exception {
 		if (chain.type() == ChainType.TCP_HTTP_SLAVE) {
 			final HTTPSlave slave = (HTTPSlave) chain;
 			// 获取暂存消息,通常是数据接收不足解码未完成的消息
@@ -80,7 +70,7 @@ public abstract class HTTPServerHandler implements ChainHandler<Message> {
 	}
 
 	@Override
-	public void received(ChainChannel<Message> chain, Message message) throws Exception {
+	public void received(ChainChannel chain, Object message) throws Exception {
 		final HTTPSlave slave = (HTTPSlave) chain;
 		if (chain.type() == ChainType.TCP_HTTP_SLAVE) {
 			if (message == null) {
@@ -120,12 +110,12 @@ public abstract class HTTPServerHandler implements ChainHandler<Message> {
 	protected abstract void received(HTTPSlave slave, Request request, Response response);
 
 	@Override
-	public void beat(ChainChannel<Message> chain) throws Exception {
+	public void beat(ChainChannel chain) throws Exception {
 		// HTTP 无心跳
 	}
 
 	@Override
-	public DataBuffer encode(ChainChannel<Message> chain, Message message) throws Exception {
+	public DataBuffer encode(ChainChannel chain, Object message) throws Exception {
 		if (chain.type() == ChainType.TCP_HTTP_SLAVE) {
 			final DataBuffer buffer = DataBuffer.instance();
 			final Response response = (Response) message;
@@ -156,7 +146,7 @@ public abstract class HTTPServerHandler implements ChainHandler<Message> {
 				return buffer;
 			}
 
-			throw new IllegalStateException("消息状态无效:" + message.state());
+			throw new IllegalStateException("消息状态无效:" + response.state());
 		}
 		if (chain.type() == ChainType.TCP_HTTP_SLAVE_WEB_SOCKET) {
 			final WEBSocketMessage websocket = (WEBSocketMessage) message;
@@ -170,40 +160,43 @@ public abstract class HTTPServerHandler implements ChainHandler<Message> {
 	}
 
 	@Override
-	public void sent(ChainChannel<Message> chain, Message message) throws Exception {
+	public void sent(ChainChannel chain, Object message) throws Exception {
 		if (message == null) {
 			// 超时
-		} else if (message.state() == Message.COMPLETE) {
-			if (message.after() == Message.CLOSE) {
-				message.reset();
-				chain.close();
-			} else {
-				if (message.after() == Message.UPGRADE) {
-					final WEBSocketHandler handler = (WEBSocketHandler) message.getContent();
-					((HTTPSlave) chain).upgrade(handler);
-					handler.connected((HTTPSlave) chain);
-					message.reset();
-					chain.receive();
-				} else if (chain.type() == ChainType.TCP_HTTP_SLAVE_WEB_SOCKET) {
-					((HTTPSlave) chain).getUpgradedHandler().sent((HTTPSlave) chain, (WEBSocketMessage) message);
-				} else {
-					message.reset();
-					chain.receive();
-				}
-			}
 		} else {
-			// 再次发送当前消息直至完成
-			chain.send(message);
+			final Message response = (Message) message;
+			if (response.state() == Message.COMPLETE) {
+				if (response.after() == Message.CLOSE) {
+					response.reset();
+					chain.close();
+				} else {
+					if (response.after() == Message.UPGRADE) {
+						final WEBSocketHandler handler = (WEBSocketHandler) response.getContent();
+						((HTTPSlave) chain).upgrade(handler);
+						handler.connected((HTTPSlave) chain);
+						response.reset();
+						chain.receive();
+					} else if (chain.type() == ChainType.TCP_HTTP_SLAVE_WEB_SOCKET) {
+						((HTTPSlave) chain).getUpgradedHandler().sent((HTTPSlave) chain, (WEBSocketMessage) response);
+					} else {
+						response.reset();
+						chain.receive();
+					}
+				}
+			} else {
+				// 再次发送当前消息直至完成
+				chain.send(response);
+			}
 		}
 	}
 
 	@Override
-	public void disconnected(ChainChannel<Message> chain) throws Exception {
+	public void disconnected(ChainChannel chain) throws Exception {
 		((HTTPSlave) chain).getUpgradedHandler().disconnected((HTTPSlave) chain);
 	}
 
 	@Override
-	public void error(ChainChannel<Message> chain, Throwable e) {
+	public void error(ChainChannel chain, Throwable e) {
 		chain.close();
 	}
 }

@@ -20,7 +20,7 @@ import java.net.SocketAddress;
  * @author ZhangXi 2019年7月20日
  *
  */
-public abstract class ChainChannel<M> extends Chain {
+public abstract class ChainChannel extends Chain {
 
 	public ChainChannel(String k) {
 		super(k);

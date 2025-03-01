@@ -31,7 +31,7 @@ import com.joyzl.network.Executor;
  * @author ZhangXi 2019年7月12日
  *
  */
-public class TCPClient<M> extends TCPLink<M> {
+public class TCPClient extends TCPLink {
 
 	private final ScheduledFuture<?> future;
 	/** 数据收发时间戳 */
@@ -50,7 +50,7 @@ public class TCPClient<M> extends TCPLink<M> {
 	 * @param host 主机
 	 * @param port 端口
 	 */
-	public TCPClient(ChainHandler<M> handler, String host, int port) {
+	public TCPClient(ChainHandler handler, String host, int port) {
 		super(handler, host, port);
 
 		// 每秒触发检查重连和心跳以及超时

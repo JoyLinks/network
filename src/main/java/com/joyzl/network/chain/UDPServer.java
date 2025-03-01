@@ -23,13 +23,13 @@ import com.joyzl.network.buffer.DataBuffer;
  * @author ZhangXi 2019年7月9日
  *
  */
-public class UDPServer<M> extends Server<M> {
+public class UDPServer extends Server {
 
 	private final SocketAddress address;
 	// UDP从连接与Server连接共用通道
 	private final DatagramChannel datagram_channel;
 
-	public UDPServer(ChainHandler<M> handler, String host, int port) throws IOException {
+	public UDPServer(ChainHandler handler, String host, int port) throws IOException {
 		super(handler, Point.getPoint(host, port));
 
 		datagram_channel = DatagramChannel.open();
@@ -95,7 +95,7 @@ public class UDPServer<M> extends Server<M> {
 	public void receive() {
 		DataBuffer read = DataBuffer.instance();
 		ByteBuffer buffer = read.write();
-		Slave<M> slave = null;
+		Slave slave = null;
 		try {
 			// receive 未提供读取数量返回，需要通过位置计算
 			int size = buffer.position();
@@ -109,10 +109,10 @@ public class UDPServer<M> extends Server<M> {
 				read.written(size);
 				slave = getSlave(Point.getPoint(address));
 				if (slave == null) {
-					addSlave(slave = new UDPSlave<>(this, address));
+					addSlave(slave = new UDPSlave(this, address));
 					handler().connected(slave);
 				}
-				final M message = handler().decode(this, read);
+				final Object message = handler().decode(this, read);
 				if (message == null) {
 					// 数据不足,无补救措施
 					// UDP特性决定后续接收的数据只会是另外的数据帧
@@ -136,11 +136,11 @@ public class UDPServer<M> extends Server<M> {
 		throw new UnsupportedOperationException();
 	}
 
-	protected void send(UDPSlave<M> slave, M message) throws IOException {
+	protected void send(UDPSlave slave, Object message) throws IOException {
 		// 执行消息编码
 		DataBuffer buffer = null;
 		try {
-			buffer = handler().encode(this, (M) message);
+			buffer = handler().encode(this, message);
 			if (buffer == null) {
 				throw new IllegalStateException("消息未编码数据 " + message);
 			} else if (buffer.readable() <= 0) {
@@ -153,7 +153,7 @@ public class UDPServer<M> extends Server<M> {
 					int length = datagram_channel.send(buffer.read(), slave.getRemoteAddress());
 					buffer.read(length);
 				}
-				handler().sent(this, (M) message);
+				handler().sent(this, message);
 			}
 		} catch (Exception e) {
 			if (buffer != null) {

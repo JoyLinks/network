@@ -17,7 +17,7 @@ import com.joyzl.network.chain.TCPServer;
  * @author ZhangXi
  * @date 2020年6月26日
  */
-public class HTTPServer extends TCPServer<Message> {
+public class HTTPServer extends TCPServer {
 
 	public HTTPServer(HTTPServerHandler handler, String host, int port) throws IOException {
 		super(handler, host, port);

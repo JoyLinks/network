@@ -17,7 +17,7 @@ import com.joyzl.network.chain.TCPSlave;
  * @author ZhangXi
  * @date 2020年6月26日
  */
-public class HTTPSlave extends TCPSlave<Message> {
+public class HTTPSlave extends TCPSlave {
 
 	public HTTPSlave(HTTPServer server, AsynchronousSocketChannel channel) throws IOException {
 		super(server, channel);

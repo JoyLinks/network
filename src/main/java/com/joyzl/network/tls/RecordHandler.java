@@ -4,12 +4,12 @@ import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.chain.ChainHandler;
 
-public abstract class RecordHandler extends RecordCoder implements ChainHandler<Object> {
+public abstract class RecordHandler extends RecordCoder implements ChainHandler {
 
-	protected abstract ChainHandler<Object> handler();
+	protected abstract ChainHandler handler();
 
 	@Override
-	public DataBuffer encode(ChainChannel<Object> chain, Object message) throws Exception {
+	public DataBuffer encode(ChainChannel chain, Object message) throws Exception {
 		if (message instanceof Record) {
 			return encode((Record) message);
 		} else {
@@ -20,7 +20,7 @@ public abstract class RecordHandler extends RecordCoder implements ChainHandler<
 	}
 
 	@Override
-	public final Object decode(ChainChannel<Object> chain, DataBuffer buffer) throws Exception {
+	public final Object decode(ChainChannel chain, DataBuffer buffer) throws Exception {
 		Object message = super.decode(chain, buffer);
 		if (message instanceof DataBuffer data) {
 			while (true) {
@@ -41,7 +41,7 @@ public abstract class RecordHandler extends RecordCoder implements ChainHandler<
 	}
 
 	@Override
-	public void received(ChainChannel<Object> chain, Object message) throws Exception {
+	public void received(ChainChannel chain, Object message) throws Exception {
 		if (message == null) {
 			// TIMEOUT
 			handler().received(chain, message);
@@ -74,21 +74,21 @@ public abstract class RecordHandler extends RecordCoder implements ChainHandler<
 	}
 
 	@Override
-	public void disconnected(ChainChannel<Object> chain) throws Exception {
+	public void disconnected(ChainChannel chain) throws Exception {
 		handler().disconnected(chain);
 	}
 
 	@Override
-	public void error(ChainChannel<Object> chain, Throwable e) {
+	public void error(ChainChannel chain, Throwable e) {
 		handler().error(chain, e);
 	}
 
 	@Override
-	public void beat(ChainChannel<Object> chain) throws Exception {
-		//chain.send(new HeartbeatMessage(HeartbeatMessage.HEARTBEAT_REQUEST));
+	public void beat(ChainChannel chain) throws Exception {
+		// chain.send(new HeartbeatMessage(HeartbeatMessage.HEARTBEAT_REQUEST));
 	};
 
-	protected void heartbeat(ChainChannel<Object> chain, HeartbeatMessage message) {
+	protected void heartbeat(ChainChannel chain, HeartbeatMessage message) {
 		if (message.getMessageType() == HeartbeatMessage.HEARTBEAT_REQUEST) {
 			message.setMessageType(HeartbeatMessage.HEARTBEAT_RESPONSE);
 			chain.send(message);

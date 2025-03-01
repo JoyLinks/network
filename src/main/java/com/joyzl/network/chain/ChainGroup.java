@@ -17,62 +17,62 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class ChainGroup {
 
-	private final static Map<String, Server<?>> SERVERS = new ConcurrentHashMap<>();
-	private final static Map<String, Client<?>> CLIENTS = new ConcurrentHashMap<>();
+	private final static Map<String, Server> SERVERS = new ConcurrentHashMap<>();
+	private final static Map<String, Client> CLIENTS = new ConcurrentHashMap<>();
 
 	private ChainGroup() {
 		// 此类无需实例化
 	}
 
-	public final static void add(Server<?> chain) {
-		Server<?> old = SERVERS.put(chain.key(), chain);
+	public final static void add(Server chain) {
+		Server old = SERVERS.put(chain.key(), chain);
 		if (old != null) {
 			old.close();
 		}
 	}
 
-	public final static void remove(Server<?> chain) {
-		Server<?> old = SERVERS.remove(chain.key());
+	public final static void remove(Server chain) {
+		Server old = SERVERS.remove(chain.key());
 		if (old != null) {
 			old.close();
 		}
 	}
 
-	public final static void add(Client<?> chain) {
-		Client<?> old = CLIENTS.put(chain.key(), chain);
+	public final static void add(Client chain) {
+		Client old = CLIENTS.put(chain.key(), chain);
 		if (old != null) {
 			old.close();
 		}
 	}
 
-	public final static void remove(Client<?> chain) {
-		Client<?> old = CLIENTS.remove(chain.key());
+	public final static void remove(Client chain) {
+		Client old = CLIENTS.remove(chain.key());
 		if (old != null) {
 			old.close();
 		}
 	}
 
-	public boolean hasServer() {
+	public static boolean hasServer() {
 		return SERVERS.isEmpty();
 	}
 
-	public boolean hasClient() {
+	public static boolean hasClient() {
 		return CLIENTS.isEmpty();
 	}
 
-	public final static Server<?> getServer(String key) {
+	public final static Server getServer(String key) {
 		return SERVERS.get(key);
 	}
 
-	public final static Client<?> getClient(String key) {
+	public final static Client getClient(String key) {
 		return CLIENTS.get(key);
 	}
 
-	public final static Collection<Server<?>> getServers() {
+	public final static Collection<Server> getServers() {
 		return SERVERS.values();
 	}
 
-	public final static Collection<Client<?>> getClients() {
+	public final static Collection<Client> getClients() {
 		return CLIENTS.values();
 	}
 
@@ -90,10 +90,10 @@ public final class ChainGroup {
 	 */
 	public final static int sendSlaves(ChainType server, Object message) {
 		int size = 0;
-		for (Server<?> s : SERVERS.values()) {
+		for (Server s : SERVERS.values()) {
 			if (s.type() == server) {
 				if (s.active()) {
-					for (Slave<?> slave : s.getSlaves()) {
+					for (Slave slave : s.getSlaves()) {
 						if (slave.active()) {
 							slave.send(message);
 							size++;
@@ -117,10 +117,10 @@ public final class ChainGroup {
 	 */
 	public final static int sendLogonSlaves(ChainType server, Object message) {
 		int size = 0;
-		for (Server<?> s : SERVERS.values()) {
+		for (Server s : SERVERS.values()) {
 			if (s.type() == server) {
 				if (s.active()) {
-					for (Slave<?> slave : s.getSlaves()) {
+					for (Slave slave : s.getSlaves()) {
 						if (slave.active() && slave.getToken() != null) {
 							slave.send(message);
 							size++;
@@ -145,10 +145,10 @@ public final class ChainGroup {
 	 */
 	public final static int sendLogonSlaves(ChainType server, Chain exclude, Object message) {
 		int size = 0;
-		for (Server<?> s : SERVERS.values()) {
+		for (Server s : SERVERS.values()) {
 			if (s.type() == server) {
 				if (s.active()) {
-					for (Slave<?> slave : s.getSlaves()) {
+					for (Slave slave : s.getSlaves()) {
 						if (slave.active() && slave != exclude && slave.getToken() != null) {
 							slave.send(message);
 							size++;
@@ -172,7 +172,7 @@ public final class ChainGroup {
 	 */
 	public final static int sendClients(ChainType type, Object message) {
 		int size = 0;
-		for (Client<?> client : CLIENTS.values()) {
+		for (Client client : CLIENTS.values()) {
 			if (client.type() == type) {
 				if (client.active()) {
 					client.send(message);

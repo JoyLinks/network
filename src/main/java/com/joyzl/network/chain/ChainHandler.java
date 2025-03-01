@@ -72,7 +72,7 @@ import com.joyzl.network.buffer.DataBuffer;
  * @author ZhangXi 2019年7月12日
  *
  */
-public interface ChainHandler<M> {
+public interface ChainHandler {
 
 	/**
 	 * 获取读取数据超时时间（毫秒）
@@ -97,7 +97,7 @@ public interface ChainHandler<M> {
 	 * <p>
 	 * 如果要立即开始接收,应当在此方法中调用chain.receive()
 	 */
-	void connected(ChainChannel<M> chain) throws Exception;
+	void connected(ChainChannel chain) throws Exception;
 
 	/**
 	 * 数据接收
@@ -124,7 +124,7 @@ public interface ChainHandler<M> {
 	 * @param chain 链路
 	 * @param reader 如果接收数据超时可能为null
 	 */
-	M decode(ChainChannel<M> chain, DataBuffer reader) throws Exception;
+	Object decode(ChainChannel chain, DataBuffer reader) throws Exception;
 
 	/**
 	 * 对象已接收
@@ -134,14 +134,14 @@ public interface ChainHandler<M> {
 	 * @param chain
 	 * @param message 如果接收数据超时可能为null
 	 */
-	void received(ChainChannel<M> chain, M message) throws Exception;
+	void received(ChainChannel chain, Object message) throws Exception;
 
 	/**
 	 * 心跳
 	 * 
 	 * @param chain 链路
 	 */
-	default void beat(ChainChannel<M> chain) throws Exception {
+	default void beat(ChainChannel chain) throws Exception {
 	};
 
 	/**
@@ -154,7 +154,7 @@ public interface ChainHandler<M> {
 	 * @param chain 链路
 	 * @param message 要编码的对象
 	 */
-	DataBuffer encode(ChainChannel<M> chain, M message) throws Exception;
+	DataBuffer encode(ChainChannel chain, Object message) throws Exception;
 
 	/**
 	 * 对象和数据已发送
@@ -164,19 +164,19 @@ public interface ChainHandler<M> {
 	 * @param chain 链路
 	 * @param message 已发送的对象
 	 */
-	void sent(ChainChannel<M> chain, M message) throws Exception;
+	void sent(ChainChannel chain, Object message) throws Exception;
 
 	/**
 	 * 连接断开
 	 * 
 	 * @param chain 链路
 	 */
-	void disconnected(ChainChannel<M> chain) throws Exception;
+	void disconnected(ChainChannel chain) throws Exception;
 
 	/**
 	 * 异常捕获
 	 * <p>
 	 * 此方法实现不应当抛出任何异常
 	 */
-	void error(ChainChannel<M> chain, Throwable e);
+	void error(ChainChannel chain, Throwable e);
 }

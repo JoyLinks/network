@@ -33,12 +33,12 @@ import com.joyzl.network.buffer.DataBuffer;
  *
  * @author simon(ZhangXi TEL : 13883833982) 2019年7月9日
  */
-public class UDPClient<M> extends Client<M> {
+public class UDPClient extends Client {
 
 	private final SocketAddress remote;
 	private final DatagramChannel datagram_channel;
 
-	public UDPClient(ChainHandler<M> handler, String host, int port) throws IOException {
+	public UDPClient(ChainHandler handler, String host, int port) throws IOException {
 		super(handler);
 
 		remote = new InetSocketAddress(host, port);
@@ -131,7 +131,7 @@ public class UDPClient<M> extends Client<M> {
 				// 确认接收到的数据量
 				buffer.written(size);
 				// 解包
-				final M message = handler().decode(this, buffer);
+				final Object message = handler().decode(this, buffer);
 				if (message == null) {
 					// 数据不足，无补救措施
 					// UDP特性决定后续接收的数据只会是另外的数据帧
@@ -161,12 +161,11 @@ public class UDPClient<M> extends Client<M> {
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
 	public void send(Object message) {
 		// 执行消息编码
 		DataBuffer buffer = null;
 		try {
-			buffer = handler().encode(this, (M) message);
+			buffer = handler().encode(this, message);
 			if (buffer == null) {
 				throw new IllegalStateException("消息未编码数据 " + message);
 			} else if (buffer.readable() <= 0) {
@@ -184,7 +183,7 @@ public class UDPClient<M> extends Client<M> {
 					// 经Windows11测试65536数据时发送数量为16384(16Kb)
 					throw new IllegalStateException("数据未能全部送出 " + message);
 				} else {
-					handler().sent(this, (M) message);
+					handler().sent(this, message);
 				}
 			}
 		} catch (Exception e) {

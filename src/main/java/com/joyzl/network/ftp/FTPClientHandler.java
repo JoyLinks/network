@@ -11,7 +11,7 @@ import com.joyzl.network.chain.ChainHandler;
  * 
  * @author ZhangXi 2024年7月9日
  */
-public class FTPClientHandler implements ChainHandler<FTPMessage> {
+public class FTPClientHandler implements ChainHandler {
 
 	// 访问控制：USER PASS ACCT CWD CDUP SMNT QUIT REIN
 	// 传输参数：PORT PASV TYPE STRU MODE
@@ -22,42 +22,43 @@ public class FTPClientHandler implements ChainHandler<FTPMessage> {
 	final static FTPClientHandler INSTANCE = new FTPClientHandler();
 
 	@Override
-	public void connected(ChainChannel<FTPMessage> chain) throws Exception {
+	public void connected(ChainChannel chain) throws Exception {
 		chain.receive();
 	}
 
 	@Override
-	public DataBuffer encode(ChainChannel<FTPMessage> chain, FTPMessage message) throws Exception {
+	public DataBuffer encode(ChainChannel chain, Object message) throws Exception {
 		final DataBuffer buffer = DataBuffer.instance();
+		final FTPMessage command = (FTPMessage) message;
 		// COMMAND
-		buffer.writeASCIIs(message.getCommand().name());
-		switch (message.getCommand()) {
+		buffer.writeASCIIs(command.getCommand().name());
+		switch (command.getCommand()) {
 			case USER:
 				// 用户 USER SP username CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case PASS:
 				// 密码 PASS SP password CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case ACCT:
 				// 账户 ACCT SP account-information CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case CWD:
 				// 改变工作目录 CWD SP pathname CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case CDUP:
@@ -66,8 +67,8 @@ public class FTPClientHandler implements ChainHandler<FTPMessage> {
 			case SMNT:
 				// 结构装备 SMNT SP pathname CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case QUIT:
@@ -79,8 +80,8 @@ public class FTPClientHandler implements ChainHandler<FTPMessage> {
 			case PORT:
 				// 数据端口 PORT SP host-port CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case PASV:
@@ -89,36 +90,36 @@ public class FTPClientHandler implements ChainHandler<FTPMessage> {
 			case TYPE:
 				// 表示类型 TYPE SP type-code CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case STRU:
 				// 文件结构 STRU SP structure-code CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case MODE:
 				// 传输模式 MODE SP mode-code CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case RETR:
 				// 获得 RETR SP pathname CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case STOR:
 				// 保存 STOR SP pathname CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case STOU:
@@ -127,36 +128,36 @@ public class FTPClientHandler implements ChainHandler<FTPMessage> {
 			case APPE:
 				// 追加 APPE SP pathname CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case ALLO:
 				// 分配 ALLO SP decimal-integer [SP R SP decimal-integer] CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case REST:
 				// 重新开始 REST SP marker CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case RNFR:
 				// 重命名开始 RNFR SP pathname CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case RNTO:
 				// 重命名为 RNTO SP pathname CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case ABOR:
@@ -165,22 +166,22 @@ public class FTPClientHandler implements ChainHandler<FTPMessage> {
 			case DELE:
 				// 删除 DELE SP pathname CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case RMD:
 				// 删除目录 RMD SP pathname CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case MKD:
 				// 新建目录 MKD SP pathname CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case PWD:
@@ -189,22 +190,22 @@ public class FTPClientHandler implements ChainHandler<FTPMessage> {
 			case LIST:
 				// 列表 LIST [SP pathname] CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case NLST:
 				// 名字列表 NLST [SP pathname] CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case SITE:
 				// 站点参数 SITE SP string CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case SYST:
@@ -213,15 +214,15 @@ public class FTPClientHandler implements ChainHandler<FTPMessage> {
 			case STAT:
 				// 状态 STAT [SP pathname] CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case HELP:
 				// 帮助 HELP [SP string] CRLF */
 				buffer.writeASCII(FTP.SPACE);
-				if (message.getParameter() != null) {
-					buffer.writeASCIIs(message.getParameter());
+				if (command.getParameter() != null) {
+					buffer.writeASCIIs(command.getParameter());
 				}
 				break;
 			case NOOP:
@@ -236,19 +237,20 @@ public class FTPClientHandler implements ChainHandler<FTPMessage> {
 	}
 
 	@Override
-	public void sent(ChainChannel<FTPMessage> chain, FTPMessage message) throws Exception {
+	public void sent(ChainChannel chain, Object message) throws Exception {
 		final FTPClient link = (FTPClient) chain;
-		if (message == null) {
-			message = link.getCurrent();
-			message.setCode(999);
-			message.finish();
+		FTPMessage command = (FTPMessage) message;
+		if (command == null) {
+			command = link.getCurrent();
+			command.setCode(999);
+			command.finish();
 		} else {
 			chain.receive();
 		}
 	}
 
 	@Override
-	public FTPMessage decode(ChainChannel<FTPMessage> chain, DataBuffer reader) throws Exception {
+	public FTPMessage decode(ChainChannel chain, DataBuffer reader) throws Exception {
 		if (reader.readable() < 5) {
 			return null;
 		}
@@ -262,22 +264,22 @@ public class FTPClientHandler implements ChainHandler<FTPMessage> {
 		// CODE<SP>TEXT<CRLF>
 
 		final FTPClient link = (FTPClient) chain;
-		FTPMessage message = link.getCurrent();
-		if (message == null) {
-			message = new NOOP();
+		FTPMessage command = link.getCurrent();
+		if (command == null) {
+			command = new NOOP();
 		}
 		int value;
-		if (message.getCode() < 1000) {
+		if (command.getCode() < 1000) {
 			// CODE 3
-			message.setCode(readCode(reader));
+			command.setCode(readCode(reader));
 
 			value = reader.readASCII();
 			if (value == FTP.SPACE) {
 				value = checkCRLF(reader);
 				if (value >= 0) {
-					message.setText(new String(reader.readASCIIs(value)));
+					command.setText(new String(reader.readASCIIs(value)));
 					reader.skipBytes(2);
-					return message;
+					return command;
 				} else {
 					return null;
 				}
@@ -285,7 +287,7 @@ public class FTPClientHandler implements ChainHandler<FTPMessage> {
 			if (value == FTP.HYPHEN) {
 				value = checkCRLF(reader);
 				if (value >= 0) {
-					message.setText(new String(reader.readASCIIs(value)));
+					command.setText(new String(reader.readASCIIs(value)));
 					reader.skipBytes(2);
 					// NEXT
 				} else {
@@ -296,7 +298,7 @@ public class FTPClientHandler implements ChainHandler<FTPMessage> {
 			}
 		} else {
 			// 还原代码
-			message.setCode(message.getCode() - 1000);
+			command.setCode(command.getCode() - 1000);
 		}
 
 		// NEXT ROW
@@ -304,57 +306,58 @@ public class FTPClientHandler implements ChainHandler<FTPMessage> {
 			value = checkCRLF(reader);
 			if (value >= 0) {
 				if (reader.get(3) == FTP.SPACE) {
-					if (readCode(reader) == message.getCode()) {
+					if (readCode(reader) == command.getCode()) {
 						reader.readByte();
 						value -= 4;
 
-						message.setText(new String(reader.readASCIIs(value)));
+						command.setText(new String(reader.readASCIIs(value)));
 						reader.skipBytes(2);
-						return message;
+						return command;
 					} else {
 						// 读取了CODE，但不是首行相同值
 						// 已经读取了CODE，如何恢复这三个字符呢？
 						value -= 3;
 					}
 				}
-				message.setText(new String(reader.readASCIIs(value)));
+				command.setText(new String(reader.readASCIIs(value)));
 				reader.skipBytes(2);
 			} else {
 				break;
 			}
 		}
 		// 通过code标记多行继续接收
-		message.setCode(message.getCode() + 1000);
+		command.setCode(command.getCode() + 1000);
 		return null;
 	}
 
 	@Override
-	public void received(ChainChannel<FTPMessage> chain, FTPMessage message) throws Exception {
+	public void received(ChainChannel chain, Object message) throws Exception {
 		final FTPClient link = (FTPClient) chain;
-		if (message == null) {
-			message = link.getCurrent();
-			message.setCode(999);
-			message.finish();
+		FTPMessage command = (FTPMessage) message;
+		if (command == null) {
+			command = link.getCurrent();
+			command.setCode(999);
+			command.finish();
 		} else {
-			if (link.getCurrent() == message) {
-				message.finish();
+			if (link.getCurrent() == command) {
+				command.finish();
 			} else {
-				link.getListener().finish(message);
+				link.getListener().finish(command);
 			}
 			// 1**状态很可能还有后续状态反馈
-			if (message.getCode() < 200) {
+			if (command.getCode() < 200) {
 				chain.receive();
 			}
 		}
 	}
 
 	@Override
-	public void disconnected(ChainChannel<FTPMessage> chain) throws Exception {
+	public void disconnected(ChainChannel chain) throws Exception {
 
 	}
 
 	@Override
-	public void error(ChainChannel<FTPMessage> chain, Throwable e) {
+	public void error(ChainChannel chain, Throwable e) {
 		e.printStackTrace();
 	}
 

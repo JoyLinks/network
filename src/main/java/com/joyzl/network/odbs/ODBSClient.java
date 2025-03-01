@@ -5,10 +5,9 @@
  */
 package com.joyzl.network.odbs;
 
-import java.util.ArrayDeque;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.joyzl.network.IndexItems;
+import com.joyzl.network.MessageQueue;
 import com.joyzl.network.chain.ChainType;
 import com.joyzl.network.chain.TCPClient;
 
@@ -18,13 +17,12 @@ import com.joyzl.network.chain.TCPClient;
  * @author ZhangXi 2019年7月12日
  *
  */
-public class ODBSClient<M extends ODBSMessage> extends TCPClient<M> {
+public class ODBSClient extends TCPClient {
 
 	private final ReentrantLock k = new ReentrantLock(true);
-	private final IndexItems<M> items = new IndexItems<>(Byte.MAX_VALUE);
-	private final ArrayDeque<M> messages = new ArrayDeque<>(Byte.MAX_VALUE);
+	private final MessageQueue<ODBSMessage> messages = new MessageQueue<>();
 
-	public ODBSClient(ODBSClientHandler<M> h, String host, int port) {
+	public ODBSClient(ODBSClientHandler<?> h, String host, int port) {
 		super(h, host, port);
 	}
 
@@ -34,40 +32,35 @@ public class ODBSClient<M extends ODBSMessage> extends TCPClient<M> {
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
 	public void send(Object message) {
 		k.lock();
 		try {
-			if (messages.isEmpty()) {
-				messages.addLast((M) message);
-				((M) message).tag(items.put((M) message));
-			} else {
-				messages.addLast((M) message);
+			((ODBSMessage) message).tag(messages.add((ODBSMessage) message));
+			if (messages.queue() > 1) {
 				return;
 			}
+			if (sendMessage() != null) {
+				return;
+			}
+			sendMessage(message = messages.peek());
 		} finally {
 			k.unlock();
 		}
 		super.send(message);
 	}
 
-	/**
-	 * 当前消息发送完成，如果有其它消息继续发送
-	 */
-	protected void sent(M message) {
+	protected void sendNext() {
+		ODBSMessage message;
 		k.lock();
 		try {
-			// 消息发送排队，发送完成移除队列（不必等待消息回复）
-			message = messages.removeFirst();
+			if (sendMessage() != null) {
+				return;
+			}
+			message = messages.peek();
 			if (message == null) {
 				return;
 			}
-			message = messages.peekFirst();
-			if (message == null) {
-				return;
-			} else {
-				((M) message).tag(items.put((M) message));
-			}
+			sendMessage(message);
 		} finally {
 			k.unlock();
 		}
@@ -76,23 +69,17 @@ public class ODBSClient<M extends ODBSMessage> extends TCPClient<M> {
 
 	/**
 	 * 取出标识的消息
-	 * 
-	 * @param tag
-	 * @return M / null
 	 */
-	protected M take(int tag) {
+	protected ODBSMessage take(int tag) {
 		k.lock();
 		try {
-			return items.take(tag);
+			return messages.take(tag);
 		} finally {
 			k.unlock();
 		}
 	}
 
-	/**
-	 * 获取所有标识的项
-	 */
-	public IndexItems<M> items() {
-		return items;
+	public MessageQueue<ODBSMessage> messages() {
+		return messages;
 	}
 }

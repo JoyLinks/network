@@ -7,7 +7,7 @@ import com.joyzl.network.chain.TCPLink;
  * 
  * @author ZhangXi 2024年7月11日
  */
-public class ListClient extends TCPLink<FTPMessage> {
+public class ListClient extends TCPLink {
 
 	private final LIST list;
 
