@@ -14,7 +14,7 @@ import java.util.Arrays;
  * @see NamedGroup
  * @author ZhangXi 2024年12月19日
  */
-public class SupportedGroups extends Extension {
+class SupportedGroups extends Extension {
 
 	private final static short[] EMPTY = new short[0];
 	private short[] items = EMPTY;
@@ -58,5 +58,26 @@ public class SupportedGroups extends Extension {
 
 	public int size() {
 		return items.length;
+	}
+
+	/**
+	 * 检查
+	 */
+	public boolean check(short other) {
+		return NamedGroup.check(other, items);
+	}
+
+	/**
+	 * 匹配
+	 */
+	public short match(short[] others) {
+		for (int i = 0; i < items.length; i++) {
+			for (int s = 0; s < others.length; s++) {
+				if (items[i] == others[s]) {
+					return others[s];
+				}
+			}
+		}
+		return 0;
 	}
 }

@@ -1,14 +1,21 @@
 package com.joyzl.network.tls;
 
-public class KeyShareHelloRetryRequest extends KeyShare {
+class KeyShareHelloRetryRequest extends KeyShare {
 
-	private final short selected_group;
+	private short selected_group;
+
+	public KeyShareHelloRetryRequest() {
+	}
 
 	public KeyShareHelloRetryRequest(short group) {
 		selected_group = group;
 	}
 
-	public short selectedGroup() {
+	public short getSelectedGroup() {
 		return selected_group;
+	}
+
+	public void setSelectedGroup(short value) {
+		selected_group = value;
 	}
 }

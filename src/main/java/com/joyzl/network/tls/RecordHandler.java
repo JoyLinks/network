@@ -4,7 +4,7 @@ import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.chain.ChainHandler;
 
-public abstract class RecordHandler extends RecordCoder implements ChainHandler {
+abstract class RecordHandler extends RecordCoder implements ChainHandler {
 
 	protected abstract ChainHandler handler();
 
@@ -85,7 +85,7 @@ public abstract class RecordHandler extends RecordCoder implements ChainHandler 
 
 	@Override
 	public void beat(ChainChannel chain) throws Exception {
-		// chain.send(new HeartbeatMessage(HeartbeatMessage.HEARTBEAT_REQUEST));
+		chain.send(new HeartbeatMessage(HeartbeatMessage.HEARTBEAT_REQUEST));
 	};
 
 	protected void heartbeat(ChainChannel chain, HeartbeatMessage message) {

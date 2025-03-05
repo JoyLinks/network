@@ -1,14 +1,21 @@
 package com.joyzl.network.tls;
 
-public class KeyShareServerHello extends KeyShare {
+class KeyShareServerHello extends KeyShare {
 
-	private final KeyShareEntry server_share;
+	private KeyShareEntry server_share;
+
+	public KeyShareServerHello() {
+	}
 
 	public KeyShareServerHello(KeyShareEntry value) {
 		server_share = value;
 	}
 
-	public KeyShareEntry serverShare() {
+	public KeyShareEntry getServerShare() {
 		return server_share;
+	}
+
+	public void setServerShare(KeyShareEntry value) {
+		server_share = value;
 	}
 }

@@ -20,7 +20,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class Heartbeat extends Extension {
+class Heartbeat extends Extension {
 
 	// HeartbeatMode MAX(255)
 

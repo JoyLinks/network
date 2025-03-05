@@ -9,11 +9,14 @@ import java.util.List;
  * @see CertificateTypes
  * @author ZhangXi 2024年12月21日
  */
-public class CertificateEntry implements Extensions {
+class CertificateEntry implements Extensions {
 
 	public final static byte X509 = 0;
 	public final static byte RAW_PUBLIC_KEY = 2;
 
+	/**
+	 * 证书的扩展，可用：OCSP,SignedCertificateTimestamp
+	 */
 	private List<Extension> extensions = new ArrayList<>();
 	private byte type = X509;
 	private byte[] data = TLS.EMPTY_BYTES;

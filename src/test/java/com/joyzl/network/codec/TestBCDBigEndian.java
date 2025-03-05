@@ -1,4 +1,4 @@
-package com.joyzl.network.codec.test;
+package com.joyzl.network.codec;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -12,26 +12,23 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.joyzl.network.codec.LittleEndianBCDInput;
-import com.joyzl.network.codec.LittleEndianBCDOutput;
-
 /**
- * 测试BCD编码 {@link LittleEndianBCDOutput}
+ * 测试BCD编码 {@link BigEndianBCDOutput}
  * 
  * @author ZhangXi
  * @date 2023年9月3日
  */
-class TestBCDLittleEndian {
+class TestBCDBigEndian {
 
 	final ByteArrayOutputStream out = new ByteArrayOutputStream();
-	final LittleEndianBCDOutput output = new LittleEndianBCDOutput() {
+	final BigEndianBCDOutput output = new BigEndianBCDOutput() {
 		@Override
 		public void writeByte(int b) {
 			out.write(b);
 		}
 	};
 	ByteArrayInputStream in;
-	final LittleEndianBCDInput input = new LittleEndianBCDInput() {
+	final BigEndianBCDInput input = new BigEndianBCDInput() {
 		@Override
 		public byte readByte() {
 			return (byte) in.read();
@@ -60,11 +57,13 @@ class TestBCDLittleEndian {
 		output.writeBCD(99);
 		output.writeBCDs(987654321);
 		output.writeBCDs("00000000");
+		output.writeBCDs("123456789");
 
 		output.writeBCD8421(11);
 		output.writeBCD8421(88);
 		output.writeBCD8421s(123456789);
 		output.writeBCD8421s("111111111111");
+		output.writeBCD8421s("1234567890123");
 
 		in = new ByteArrayInputStream(out.toByteArray());
 
@@ -72,11 +71,13 @@ class TestBCDLittleEndian {
 		assertEquals(input.readBCD(), 99);
 		assertEquals(input.readBCDs(9), 987654321);
 		assertEquals(input.readBCDString(8), "00000000");
+		assertEquals(input.readBCDString(10), "0123456789");
 
 		assertEquals(input.readBCD8421(), 11);
 		assertEquals(input.readBCD8421(), 88);
 		assertEquals(input.readBCD8421s(9), 123456789);
 		assertEquals(input.readBCD8421String(12), "111111111111");
+		assertEquals(input.readBCD8421String(14), "01234567890123");
 
 		assertEquals(in.available(), 0);
 	}

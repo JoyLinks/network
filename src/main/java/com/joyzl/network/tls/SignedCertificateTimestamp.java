@@ -14,10 +14,9 @@ import java.util.Arrays;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class SignedCertificateTimestamp extends Extension {
+class SignedCertificateTimestamp extends Extension {
 
-	private final static byte[][] EMPTY = new byte[0][];
-	private byte[][] items = EMPTY;
+	private byte[][] items = TLS.EMPTY_STRINGS;
 
 	@Override
 	public short type() {
@@ -38,14 +37,14 @@ public class SignedCertificateTimestamp extends Extension {
 
 	public void set(byte[]... value) {
 		if (value == null) {
-			items = EMPTY;
+			items = TLS.EMPTY_STRINGS;
 		} else {
 			items = value;
 		}
 	}
 
 	public void add(byte[] value) {
-		if (items == EMPTY) {
+		if (items == TLS.EMPTY_STRINGS) {
 			items = new byte[][] { value };
 		} else {
 			items = Arrays.copyOf(items, items.length + 1);

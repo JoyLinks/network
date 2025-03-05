@@ -1,6 +1,5 @@
 package com.joyzl.network.tls;
 
-import java.security.SecureRandom;
 import java.util.Arrays;
 
 import com.joyzl.network.buffer.DataBuffer;
@@ -52,9 +51,11 @@ public class TLSClientHandler extends RecordHandler {
 	}
 
 	@Override
-	protected DataBuffer encrypt(DataBuffer buffer) throws Exception {
-		cipher.encryptAdditional(buffer.readable() + cipher.tagLength());
-		cipher.encryptFinal(buffer);
+	protected DataBuffer encrypt(DataBuffer data) throws Exception {
+		final DataBuffer buffer = DataBuffer.instance();
+		cipher.encryptAdditional(data.readable() + cipher.tagLength());
+		cipher.encryptFinal(data, buffer);
+		data.release();
 		return buffer;
 	}
 
@@ -177,8 +178,8 @@ public class TLSClientHandler extends RecordHandler {
 							}
 						} else if (extension.type() == Extension.KEY_SHARE) {
 							final KeyShareServerHello keyShare = (KeyShareServerHello) extension;
-							if (keyShare.serverShare().group() == key.group()) {
-								cipher.sharedKey(key.sharedKey(keyShare.serverShare().getKeyExchange()));
+							if (keyShare.getServerShare().getGroup() == key.group()) {
+								cipher.sharedKey(key.sharedKey(keyShare.getServerShare().getKeyExchange()));
 							} else {
 								chain.send(new Alert(Alert.ILLEGAL_PARAMETER));
 								return;
@@ -255,7 +256,7 @@ public class TLSClientHandler extends RecordHandler {
 		} else if (message.msgType() == Handshake.NEW_SESSION_TICKET) {
 			final NewSessionTicket newSessionTicket = (NewSessionTicket) message;
 			newSessionTicket.setNonce(cipher.resumption(newSessionTicket.getNonce()));
-			SessionTickets.put(sni, key.group(), cipher.suite(), newSessionTicket);
+			ClientSessionTickets.put(sni, key.group(), cipher.suite(), newSessionTicket);
 			chain.receive();
 		} else if (message.msgType() == Handshake.FINISHED) {
 			final Finished finished = (Finished) message;
@@ -281,10 +282,11 @@ public class TLSClientHandler extends RecordHandler {
 
 		final ClientHello hello = new ClientHello();
 		hello.setVersion(TLS.V12);
-		hello.setRandom(SecureRandom.getSeed(32));
-		hello.setSessionId(SecureRandom.getSeed(32));
+		hello.makeSessionId();
+		hello.makeRandom();
+
 		// AEAD HKDF
-		hello.setCipherSuites(CipherSuite.V13_ALL);
+		hello.setCipherSuites(CipherSuite.V13);
 		hello.setCompressionMethods(CompressionMethod.METHODS);
 		// Extensions
 		hello.addExtension(new ServerNames(new ServerName(sni)));
@@ -292,10 +294,11 @@ public class TLSClientHandler extends RecordHandler {
 		hello.addExtension(new SignatureAlgorithms(SignatureAlgorithms.ALL));
 		hello.addExtension(new ECPointFormats(ECPointFormats.UNCOMPRESSED));
 		hello.addExtension(new SessionTicket());
-		hello.addExtension(new ApplicationLayerProtocolNegotiation(//
-			// ApplicationLayerProtocolNegotiation.H2, //
-			ApplicationLayerProtocolNegotiation.HTTP_1_1));
-		hello.addExtension(new ApplicationSettings(ApplicationSettings.HTTP_1_1));
+		// hello.addExtension(new ApplicationLayerProtocolNegotiation(//
+		// ApplicationLayerProtocolNegotiation.H2, //
+		// ApplicationLayerProtocolNegotiation.HTTP_1_1));
+		// hello.addExtension(new
+		// ApplicationSettings(ApplicationSettings.HTTP_1_1));
 		hello.addExtension(new SupportedVersions(TLS.ALL_VERSIONS));
 		hello.addExtension(new ExtendedMasterSecret());
 		hello.addExtension(new RenegotiationInfo());
@@ -310,16 +313,16 @@ public class TLSClientHandler extends RecordHandler {
 		key = new KeyExchange(NamedGroup.X25519);
 		hello.addExtension(new SupportedGroups(NamedGroup.ALL));
 		hello.addExtension(new KeyShareClientHello(new KeyShareEntry(NamedGroup.X25519, key.publicKey())));
-		hello.addExtension(new PskKeyExchangeModes(PskKeyExchangeModes.PSK_DHE_KE));
+		hello.addExtension(new PskKeyExchangeModes(PskKeyExchangeModes.ALL));
 		// 获取缓存的PSK
-		final NewSessionTicket ticket = SessionTickets.get(sni, NamedGroup.X25519, CipherSuite.TLS_AES_128_GCM_SHA256);
+		final NewSessionTicket ticket = ClientSessionTickets.get(sni, NamedGroup.X25519, CipherSuite.TLS_AES_128_GCM_SHA256);
 		if (ticket != null) {
 			// early_data
 
 			// 0-RTT PSK
 			final OfferedPsks psk = new OfferedPsks();
 			final PskIdentity pskIdentity = new PskIdentity();
-			pskIdentity.setTicketAge(ticket.obfuscatedTicketAge());
+			pskIdentity.setTicketAge(ticket.obfuscatedAgeAdd());
 			pskIdentity.setIdentity(ticket.getTicket());
 			psk.add(pskIdentity);
 			hello.addExtension(psk);

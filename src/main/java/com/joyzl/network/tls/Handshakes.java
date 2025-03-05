@@ -5,7 +5,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2025年2月12日
  */
-public class Handshakes extends Record {
+class Handshakes extends Record {
 
 	private int size = 0;
 	private final Handshake[] handshakes = new Handshake[8];

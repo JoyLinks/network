@@ -20,16 +20,15 @@ import com.joyzl.network.Utility;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class SupportedVersions extends Extension {
+class SupportedVersions extends Extension {
 
-	private final static short[] EMPTY = new short[0];
-	private short[] items = EMPTY;
+	private short[] versions = TLS.EMPTY_SHORTS;
 
 	public SupportedVersions() {
 	}
 
 	public SupportedVersions(short... versions) {
-		items = versions;
+		this.versions = versions;
 	}
 
 	@Override
@@ -38,46 +37,75 @@ public class SupportedVersions extends Extension {
 	}
 
 	public short[] get() {
-		return items;
+		return versions;
 	}
 
 	public short get(int index) {
-		return items[index];
+		return versions[index];
 	}
 
 	public void set(short... value) {
 		if (value == null) {
-			items = EMPTY;
+			versions = TLS.EMPTY_SHORTS;
 		} else {
-			items = value;
+			versions = value;
 		}
 	}
 
 	public void add(short value) {
-		if (items == EMPTY) {
-			items = new short[] { value };
+		if (versions == TLS.EMPTY_SHORTS) {
+			versions = new short[] { value };
 		} else {
-			items = Arrays.copyOf(items, items.length + 1);
-			items[items.length - 1] = value;
+			versions = Arrays.copyOf(versions, versions.length + 1);
+			versions[versions.length - 1] = value;
 		}
 	}
 
 	public int size() {
-		return items.length;
+		return versions.length;
 	}
 
 	@Override
 	public String toString() {
 		final StringBuilder builder = Utility.getStringBuilder();
 		builder.append("supported_versions:");
-		if (items != null && items.length > 0) {
-			for (int index = 0; index < items.length; index++) {
+		if (versions != null && versions.length > 0) {
+			for (int index = 0; index < versions.length; index++) {
 				if (index > 0) {
 					builder.append(',');
 				}
-				builder.append(Short.toString(items[index]));
+				builder.append(Short.toString(versions[index]));
 			}
 		}
 		return builder.toString();
+	}
+
+	/**
+	 * 选择版本，匹配成功之后内部数组将缩减为仅包含选择项
+	 */
+	public short select(short[] others) {
+		for (int i = 0; i < versions.length; i++) {
+			for (int s = 0; s < others.length; s++) {
+				if (versions[i] == others[s]) {
+					versions = new short[] { others[s] };
+					return others[s];
+				}
+			}
+		}
+		return 0;
+	}
+
+	/**
+	 * 匹配版本
+	 */
+	public short match(short[] others) {
+		for (int i = 0; i < versions.length; i++) {
+			for (int s = 0; s < others.length; s++) {
+				if (versions[i] == others[s]) {
+					return others[s];
+				}
+			}
+		}
+		return 0;
 	}
 }

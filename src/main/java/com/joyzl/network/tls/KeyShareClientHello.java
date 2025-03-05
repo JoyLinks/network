@@ -2,7 +2,7 @@ package com.joyzl.network.tls;
 
 import java.util.Arrays;
 
-public class KeyShareClientHello extends KeyShare {
+class KeyShareClientHello extends KeyShare {
 
 	private final static KeyShareEntry[] EMPTY = new KeyShareEntry[0];
 	private KeyShareEntry[] items = EMPTY;

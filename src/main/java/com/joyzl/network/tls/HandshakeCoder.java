@@ -4,7 +4,7 @@ import java.io.IOException;
 
 import com.joyzl.network.buffer.DataBuffer;
 
-public class HandshakeCoder extends TLS {
+class HandshakeCoder extends TLS {
 
 	public static void encode(Handshake message, DataBuffer buffer) throws IOException {
 		int position, length;
@@ -15,8 +15,7 @@ public class HandshakeCoder extends TLS {
 		position = buffer.readable();
 		buffer.writeMedium(0);
 		// SUB Handshake
-		if (message.msgType() == Handshake.HELLO_REQUEST) {
-		} else if (message.msgType() == Handshake.CLIENT_HELLO) {
+		if (message.msgType() == Handshake.CLIENT_HELLO) {
 			encode((ClientHello) message, buffer);
 		} else if (message.msgType() == Handshake.SERVER_HELLO) {
 			encode((ServerHello) message, buffer);
@@ -33,13 +32,17 @@ public class HandshakeCoder extends TLS {
 		} else if (message.msgType() == Handshake.CLIENT_KEY_EXCHANGE) {
 			encode((ClientKeyExchange) message, buffer);
 		} else if (message.msgType() == Handshake.ENCRYPTED_EXTENSIONS) {
+			// EMPTY
 		} else if (message.msgType() == Handshake.SERVER_KEY_EXCHANGE) {
 			encode((ServerKeyExchange) message, buffer);
 		} else if (message.msgType() == Handshake.SERVER_HELLO_DONE) {
 			encode((ServerHelloDone) message, buffer);
 		} else if (message.msgType() == Handshake.END_OF_EARLY_DATA) {
+			// EMPTY
 		} else if (message.msgType() == Handshake.NEW_SESSION_TICKET) {
 			encode((NewSessionTicket) message, buffer);
+		} else if (message.msgType() == Handshake.HELLO_REQUEST) {
+			// EMPTY
 		} else if (message.msgType() == Handshake.MESSAGE_HASH) {
 			encode((MessageHash) message, buffer);
 		} else if (message.msgType() == Handshake.KEY_UPDATE) {

@@ -7,7 +7,7 @@ package com.joyzl.network.tls;
  * struct {
  *     select (Handshake.msg_type) {
  *      case new_session_ticket:   uint32 max_early_data_size;
- *      case client_hello: *    Empty;
+ *      case client_hello:         Empty;
  *      case encrypted_extensions: Empty;
  *     };
  * } EarlyDataIndication;
@@ -15,10 +15,19 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class EarlyData extends Extension {
+class EarlyDataIndication extends Extension {
 
-	public final static EarlyData EMPTY = new EarlyData();
+	public final static EarlyDataIndication EMPTY = new EarlyDataIndication();
+	public final static EarlyDataIndication MAX_EARLY_DATA_SIZE = new EarlyDataIndication(Record.PLAINTEXT_MAX);
+
 	private int maxSize = 0;
+
+	public EarlyDataIndication() {
+	}
+
+	public EarlyDataIndication(int max) {
+		maxSize = max;
+	}
 
 	@Override
 	public short type() {

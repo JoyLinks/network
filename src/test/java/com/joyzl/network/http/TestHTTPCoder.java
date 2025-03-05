@@ -3,7 +3,7 @@
  * 中翌智联（重庆）科技有限公司
  * Copyright © JOY-Links Company. All rights reserved. 
  */
-package com.joyzl.network.http.test;
+package com.joyzl.network.http;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -18,15 +18,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.joyzl.network.buffer.DataBuffer;
-import com.joyzl.network.http.Accept;
-import com.joyzl.network.http.CacheControl;
-import com.joyzl.network.http.Connection;
-import com.joyzl.network.http.HTTP;
-import com.joyzl.network.http.HTTPCoder;
-import com.joyzl.network.http.HTTPStatus;
-import com.joyzl.network.http.QueryCoder;
-import com.joyzl.network.http.Request;
-import com.joyzl.network.http.Response;
 
 /**
  * HTTP Coder 相关测试

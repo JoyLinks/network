@@ -12,16 +12,17 @@ class ServerName {
 
 	////////////////////////////////////////////////////////////////////////////////
 
-	private final byte type;
-	private byte[] name;
+	private byte type = HOST_NAME;
+	private byte[] name = TLS.EMPTY_BYTES;
+
+	public ServerName() {
+	}
 
 	public ServerName(String name) {
-		type = HOST_NAME;
 		setName(name);
 	}
 
 	public ServerName(SocketAddress remote) {
-		type = HOST_NAME;
 		setName(findServerName(remote));
 	}
 
@@ -35,20 +36,36 @@ class ServerName {
 		setName(name);
 	}
 
-	public byte type() {
+	public byte getType() {
 		return type;
+	}
+
+	public void setType(byte value) {
+		type = value;
 	}
 
 	public byte[] getName() {
 		return name;
 	}
 
+	public String getNameString() {
+		return new String(name, StandardCharsets.US_ASCII);
+	}
+
 	public void setName(byte[] value) {
-		name = value;
+		if (value == null) {
+			name = TLS.EMPTY_BYTES;
+		} else {
+			name = value;
+		}
 	}
 
 	public void setName(String value) {
-		this.name = value.getBytes(StandardCharsets.US_ASCII);
+		if (value == null) {
+			name = TLS.EMPTY_BYTES;
+		} else {
+			name = value.getBytes(StandardCharsets.US_ASCII);
+		}
 	}
 
 	@Override

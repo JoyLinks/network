@@ -1,6 +1,6 @@
 package com.joyzl.network.tls;
 
-public abstract class CertificateStatusRequest {
+abstract class CertificateStatusRequest {
 
 	// CertificateStatusType MAX(255)
 

@@ -1,4 +1,4 @@
-package com.joyzl.network.verifies.test;
+package com.joyzl.network.verifies;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -9,31 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.joyzl.network.buffer.DataBuffer;
-import com.joyzl.network.verifies.BCC;
-import com.joyzl.network.verifies.CRC16;
-import com.joyzl.network.verifies.CRC16_CCITT;
-import com.joyzl.network.verifies.CRC16_CCITT_FALSE;
-import com.joyzl.network.verifies.CRC16_DNP;
-import com.joyzl.network.verifies.CRC16_IBM;
-import com.joyzl.network.verifies.CRC16_MAXIM;
-import com.joyzl.network.verifies.CRC16_MODBUS;
-import com.joyzl.network.verifies.CRC16_USB;
-import com.joyzl.network.verifies.CRC16_X25;
-import com.joyzl.network.verifies.CRC16_XMODEM;
-import com.joyzl.network.verifies.CRC32;
-import com.joyzl.network.verifies.CRC32_MPEG_2;
-import com.joyzl.network.verifies.CRC4_ITU;
-import com.joyzl.network.verifies.CRC5_EPC;
-import com.joyzl.network.verifies.CRC5_ITU;
-import com.joyzl.network.verifies.CRC5_USB;
-import com.joyzl.network.verifies.CRC6_ITU;
-import com.joyzl.network.verifies.CRC7_MMC;
-import com.joyzl.network.verifies.CRC8;
-import com.joyzl.network.verifies.CRC8_ITU;
-import com.joyzl.network.verifies.CRC8_MAXIM;
-import com.joyzl.network.verifies.CRC8_ROHC;
-import com.joyzl.network.verifies.CS;
-import com.joyzl.network.verifies.LRC;
 
 /**
  * TEST verifies

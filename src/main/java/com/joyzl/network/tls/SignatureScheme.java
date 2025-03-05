@@ -10,11 +10,11 @@ public interface SignatureScheme {
 	// SignatureScheme MAX (0xFFFF)
 	// Secure Hash Standard (SHS)
 
-	/** RSASSA-PKCS1-v1_5 algorithms RFC8017 */
+	/** TLS 1.2 RSASSA-PKCS1-v1_5 algorithms RFC8017 */
 	public final static short RSA_PKCS1_SHA256 = 0x0401;
-	/** RSASSA-PKCS1-v1_5 algorithms RFC8017 */
+	/** TLS 1.2 RSASSA-PKCS1-v1_5 algorithms RFC8017 */
 	public final static short RSA_PKCS1_SHA384 = 0x0501;
-	/** RSASSA-PKCS1-v1_5 algorithms RFC8017 */
+	/** TLS 1.2 RSASSA-PKCS1-v1_5 algorithms RFC8017 */
 	public final static short RSA_PKCS1_SHA512 = 0x0601;
 
 	/** ECDSA algorithms */
@@ -60,27 +60,31 @@ public interface SignatureScheme {
 	// obsolete_RESERVED(0x0604..0x06FF),
 	// private_use(0xFE00..0xFFFF),
 
+	/**
+	 * 全部数字签名算法
+	 */
 	public final static short[] ALL = new short[] { //
-			RSA_PKCS1_SHA256, //
-			RSA_PKCS1_SHA384, //
-			RSA_PKCS1_SHA512, //
 			ECDSA_SECP256R1_SHA256, //
 			ECDSA_SECP384R1_SHA384, //
 			ECDSA_SECP521R1_SHA512, //
+
 			RSA_PSS_RSAE_SHA256, //
 			RSA_PSS_RSAE_SHA384, //
 			RSA_PSS_RSAE_SHA512, //
+
 			ED25519, //
 			ED448, //
+
 			RSA_PSS_PSS_SHA256, //
 			RSA_PSS_PSS_SHA384, //
 			RSA_PSS_PSS_SHA512, //
+
+			RSA_PKCS1_SHA256, //
+			RSA_PKCS1_SHA384, //
+			RSA_PKCS1_SHA512, //
+
 			RSA_PKCS1_SHA1, //
-			ECDSA_SHA1, //
-			DSA_SHA1_RESERVED, //
-			DSA_SHA256_RESERVED, //
-			DSA_SHA384_RESERVED, //
-			DSA_SHA512_RESERVED,//
+			ECDSA_SHA1,//
 	};
 
 	public static String named(short value) {
@@ -117,16 +121,22 @@ public interface SignatureScheme {
 				return "RSA_PKCS1_SHA1";
 			case ECDSA_SHA1:
 				return "ECDSA_SHA1";
-			case DSA_SHA1_RESERVED:
-				return "DSA_SHA1_RESERVED";
-			case DSA_SHA256_RESERVED:
-				return "DSA_SHA256_RESERVED";
-			case DSA_SHA384_RESERVED:
-				return "DSA_SHA384_RESERVED";
-			case DSA_SHA512_RESERVED:
-				return "DSA_SHA512_RESERVED";
 			default:
 				return null;
 		}
+	}
+
+	/**
+	 * 匹配
+	 */
+	public static short match(short[] others) {
+		for (int i = 0; i < ALL.length; i++) {
+			for (int o = 0; o < others.length; o++) {
+				if (ALL[i] == others[o]) {
+					return others[o];
+				}
+			}
+		}
+		return 0;
 	}
 }

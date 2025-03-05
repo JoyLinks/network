@@ -77,4 +77,13 @@ public interface NamedGroup {
 				return null;
 		}
 	}
+
+	public static boolean check(short value, short[] items) {
+		for (int i = 0; i < items.length; i++) {
+			if (items[i] == value) {
+				return true;
+			}
+		}
+		return false;
+	}
 }

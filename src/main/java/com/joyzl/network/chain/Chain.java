@@ -91,8 +91,12 @@ public abstract class Chain {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T> T context() {
+	public <T> T getContext() {
 		return (T) context;
+	}
+
+	public void setContext(Object value) {
+		context = value;
 	}
 
 	@Override

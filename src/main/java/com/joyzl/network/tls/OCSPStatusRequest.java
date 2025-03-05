@@ -1,6 +1,6 @@
 package com.joyzl.network.tls;
 
-public class OCSPStatusRequest extends CertificateStatusRequest {
+class OCSPStatusRequest extends CertificateStatusRequest {
 
 	private byte[] responderID = TLS.EMPTY_BYTES;
 	private byte[] extensions = TLS.EMPTY_BYTES;

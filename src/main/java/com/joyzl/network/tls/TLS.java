@@ -1,6 +1,9 @@
 package com.joyzl.network.tls;
 
-public class TLS {
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+
+abstract class TLS {
 
 	/** SSL 3.0 */
 	public final static short SSL30 = 0x0300;
@@ -17,4 +20,14 @@ public class TLS {
 
 	final static byte[] EMPTY_BYTES = new byte[0];
 	final static short[] EMPTY_SHORTS = new short[0];
+	final static byte[][] EMPTY_STRINGS = new byte[0][];
+
+	final static SecureRandom RANDOM;
+	static {
+		try {
+			RANDOM = SecureRandom.getInstanceStrong();
+		} catch (NoSuchAlgorithmException e) {
+			throw new RuntimeException(e);
+		}
+	}
 }

@@ -12,7 +12,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月20日
  */
-public class Alert extends Record {
+class Alert extends Record {
 
 	// AlertLevel MAX(255)
 
@@ -72,6 +72,10 @@ public class Alert extends Record {
 	public Alert(byte level, byte description) {
 		this.description = description;
 		this.level = level;
+	}
+
+	public Alert(TLSException e) {
+		this(e.getDescription());
 	}
 
 	@Override

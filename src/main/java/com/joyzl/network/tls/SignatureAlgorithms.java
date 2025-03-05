@@ -13,14 +13,13 @@ import java.util.Arrays;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class SignatureAlgorithms extends Extension implements SignatureScheme {
+class SignatureAlgorithms extends Extension implements SignatureScheme {
 
 	// CertificateVerify 消息中的签名算法
 	// 如果没有 "signature_algorithms_cert" 扩展，
 	// 则 "signature_algorithms" 扩展同样适用于证书中的签名
 
-	private final static short[] EMPTY = new short[0];
-	private short[] items = EMPTY;
+	private short[] algorithms = TLS.EMPTY_SHORTS;
 
 	public SignatureAlgorithms() {
 	}
@@ -35,31 +34,43 @@ public class SignatureAlgorithms extends Extension implements SignatureScheme {
 	}
 
 	public short[] get() {
-		return items;
+		return algorithms;
 	}
 
 	public short get(int index) {
-		return items[index];
+		return algorithms[index];
 	}
 
 	public void set(short... value) {
 		if (value == null) {
-			items = EMPTY;
+			algorithms = TLS.EMPTY_SHORTS;
 		} else {
-			items = value;
+			algorithms = value;
 		}
 	}
 
 	public void add(short value) {
-		if (items == EMPTY) {
-			items = new short[] { value };
+		if (algorithms == TLS.EMPTY_SHORTS) {
+			algorithms = new short[] { value };
 		} else {
-			items = Arrays.copyOf(items, items.length + 1);
-			items[items.length - 1] = value;
+			algorithms = Arrays.copyOf(algorithms, algorithms.length + 1);
+			algorithms[algorithms.length - 1] = value;
 		}
 	}
 
 	public int size() {
-		return items.length;
+		return algorithms.length;
+	}
+
+	/**
+	 * 匹配签名算法
+	 */
+	public short match(short other) {
+		for (int i = 0; i < algorithms.length; i++) {
+			if (algorithms[i] == other) {
+				return other;
+			}
+		}
+		return 0;
 	}
 }

@@ -8,7 +8,7 @@ import java.util.List;
  * 
  * @author ZhangXi 2024年12月13日
  */
-public abstract class HandshakeExtensions extends Handshake implements Extensions {
+abstract class HandshakeExtensions extends Handshake implements Extensions {
 
 	private List<Extension> extensions = new ArrayList<>();
 

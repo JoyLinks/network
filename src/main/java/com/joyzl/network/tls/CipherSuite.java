@@ -50,28 +50,28 @@ public interface CipherSuite {
 	 * TLS_DH_anon_WITH_3DES_EDE_CBC_SHA       DH_anon        3DES_EDE_CBC SHA
 	 */
 
-	/** v1.0 Key Exchange:NULL,Cipher:NULL,Hash:NULL */
+	/** v1.2 Key Exchange:NULL,Cipher:NULL,Hash:NULL */
 	short TLS_NULL_WITH_NULL_NULL = 0x0000;
 
-	/** v1.0 Key Exchange:RSA,Cipher:NULL,Hash:MD5 */
+	/** v1.2 Key Exchange:RSA,Cipher:NULL,Hash:MD5 */
 	short TLS_RSA_WITH_NULL_MD5 = 0x0001;
-	/** v1.0 Key Exchange:RSA,Cipher:NULL,Hash:SHA */
+	/** v1.2 Key Exchange:RSA,Cipher:NULL,Hash:SHA */
 	short TLS_RSA_WITH_NULL_SHA = 0x0002;
-	/** v1.0 Key Exchange:RSA_EXPORT,Cipher:RC4_40,Hash:MD5 */
+	/** v1.2 Key Exchange:RSA_EXPORT,Cipher:RC4_40,Hash:MD5 */
 	short TLS_RSA_EXPORT_WITH_RC4_40_MD5 = 0x0003;
-	/** v1.0 Key:RSA,Cipher:RC4_128,Hash:MD5 */
+	/** v1.2 Key:RSA,Cipher:RC4_128,Hash:MD5 */
 	short TLS_RSA_WITH_RC4_128_MD5 = 0x0004;
-	/** v1.0 Key:RSA,Cipher:RC4_128,Hash:SHA */
+	/** v1.2 Key:RSA,Cipher:RC4_128,Hash:SHA */
 	short TLS_RSA_WITH_RC4_128_SHA = 0x0005;
-	/** v1.0 Key Exchange:RSA_EXPORT,Cipher:RC2_CBC_40,Hash:MD5 */
+	/** v1.2 Key Exchange:RSA_EXPORT,Cipher:RC2_CBC_40,Hash:MD5 */
 	short TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5 = 0x0006;
-	/** v1.0 Key:RSA,Cipher:IDEA_CBC,Hash:SHA */
+	/** v1.2 Key:RSA,Cipher:IDEA_CBC,Hash:SHA */
 	short TLS_RSA_WITH_IDEA_CBC_SHA = 0x0007;
-	/** v1.0 Key Exchange:RSA_EXPORT,Cipher:DES40_CBC,Hash:SHA */
+	/** v1.2 Key Exchange:RSA_EXPORT,Cipher:DES40_CBC,Hash:SHA */
 	short TLS_RSA_EXPORT_WITH_DES40_CBC_SHA = 0x0008;
-	/** v1.0 Key Exchange:RSA,Cipher:DES_CBC,Hash:SHA */
+	/** v1.2 Key Exchange:RSA,Cipher:DES_CBC,Hash:SHA */
 	short TLS_RSA_WITH_DES_CBC_SHA = 0x0009;
-	/** v1.0 Key Exchange:RSA,Cipher:3DES_EDE_CBC,Hash:SHA */
+	/** v1.2 Key Exchange:RSA,Cipher:3DES_EDE_CBC,Hash:SHA */
 	short TLS_RSA_WITH_3DES_EDE_CBC_SHA = 0x000A;
 
 	/** v1.0 Key Exchange:DH_DSS_EXPORT,Cipher:DES40_CBC,Hash:SHA */
@@ -110,15 +110,18 @@ public interface CipherSuite {
 	/** v1.0 Key Exchange:DH_ANON,Cipher:3DES_EDE_CBC,Hash:SHA */
 	short TLS_DH_ANON_WITH_3DES_EDE_CBC_SHA = 0x001B;
 
-	// v1.3
-
+	/** TLS 1.3 RFC5116 */
 	short TLS_AES_128_GCM_SHA256 = 0x1301;
+	/** TLS 1.3 RFC5116 */
 	short TLS_AES_256_GCM_SHA384 = 0x1302;
+	/** TLS 1.3 RFC8439 */
 	short TLS_CHACHA20_POLY1305_SHA256 = 0x1303;
+	/** TLS 1.3 RFC5116 */
 	short TLS_AES_128_CCM_SHA256 = 0x1304;
+	/** TLS 1.3 RFC6655 */
 	short TLS_AES_128_CCM_8_SHA256 = 0x1305;
 
-	short[] V13_ALL = new short[] { //
+	short[] V13 = new short[] { //
 			TLS_AES_128_GCM_SHA256, //
 			TLS_AES_256_GCM_SHA384, //
 			TLS_CHACHA20_POLY1305_SHA256, //
@@ -162,8 +165,6 @@ public interface CipherSuite {
 			TLS_DH_ANON_EXPORT_WITH_DES40_CBC_SHA, //
 			TLS_DH_ANON_WITH_DES_CBC_SHA, //
 			TLS_DH_ANON_WITH_3DES_EDE_CBC_SHA, //
-
-			TLS_NULL_WITH_NULL_NULL, //
 	};
 
 	static String named(short suite) {
@@ -237,5 +238,21 @@ public interface CipherSuite {
 			default:
 				return null;
 		}
+	}
+
+	/**
+	 * 匹配
+	 */
+	public static short match(short version, short[] others) {
+		if (version == TLS.V13) {
+			for (int i = 0; i < V13.length; i++) {
+				for (int s = 0; s < others.length; s++) {
+					if (V13[i] == others[s]) {
+						return others[s];
+					}
+				}
+			}
+		}
+		return 0;
 	}
 }

@@ -14,10 +14,13 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class KeyShareEntry {
+class KeyShareEntry {
 
-	private final short group;
+	private short group;
 	private byte[] key_exchange;
+
+	public KeyShareEntry() {
+	}
 
 	public KeyShareEntry(short group) {
 		this.group = group;
@@ -28,8 +31,12 @@ public class KeyShareEntry {
 		this.key_exchange = key_exchange;
 	}
 
-	public short group() {
+	public short getGroup() {
 		return group;
+	}
+
+	public void setGroup(short value) {
+		group = value;
 	}
 
 	public byte[] getKeyExchange() {

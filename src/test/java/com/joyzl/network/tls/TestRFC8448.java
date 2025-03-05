@@ -1,4 +1,4 @@
-package com.joyzl.network.tls.test;
+package com.joyzl.network.tls;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -19,17 +19,6 @@ import org.junit.jupiter.api.Test;
 import com.joyzl.network.Utility;
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.buffer.DataBufferInput;
-import com.joyzl.network.tls.CertificateAuthorities;
-import com.joyzl.network.tls.CipherSuite;
-import com.joyzl.network.tls.CipherSuiter;
-import com.joyzl.network.tls.DeriveSecret;
-import com.joyzl.network.tls.KeyExchange;
-import com.joyzl.network.tls.NamedGroup;
-import com.joyzl.network.tls.Record;
-import com.joyzl.network.tls.SecretCache;
-import com.joyzl.network.tls.SignatureScheme;
-import com.joyzl.network.tls.Signaturer;
-import com.joyzl.network.tls.TranscriptHash;
 
 class TestRFC8448 {
 
@@ -872,6 +861,7 @@ class TestRFC8448 {
 		final CipherSuiter server = new CipherSuiter(CipherSuite.TLS_AES_128_GCM_SHA256);
 		final CipherSuiter client = new CipherSuiter(CipherSuite.TLS_AES_128_GCM_SHA256);
 		final DataBuffer buffer = DataBuffer.instance();
+		final DataBuffer temp = DataBuffer.instance();
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Simple 1-RTT Handshake
@@ -927,8 +917,9 @@ class TestRFC8448 {
 		buffer.clear();
 
 		// {server} encrypt
+		temp.replicate(plain1);
 		server.encryptAdditional(0x02a2);
-		server.encryptFinal(plain1, buffer);
+		server.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher1);
 
 		// {client} decrypt
@@ -954,8 +945,9 @@ class TestRFC8448 {
 				26c40546""");
 
 		// {client} encrypt
+		temp.replicate(plain2);
 		client.encryptAdditional(0x0035);
-		client.encryptFinal(plain2, buffer);
+		client.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher2);
 
 		// {server} decrypt
@@ -989,8 +981,9 @@ class TestRFC8448 {
 				f15985684f""");
 
 		// {server} encrypt
+		temp.replicate(plain3);
 		server.encryptAdditional(0x00de);
-		server.encryptFinal(plain3, buffer);
+		server.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher3);
 
 		// {client} decrypt
@@ -1018,8 +1011,9 @@ class TestRFC8448 {
 				92a2977014bd1e3deae63aeebb21694915e4""");
 
 		// {client} encrypt
+		temp.replicate(plain4);
 		client.encryptAdditional(0x0043);
-		client.encryptFinal(plain4, buffer);
+		client.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher4);
 
 		// {server} decrypt
@@ -1043,8 +1037,9 @@ class TestRFC8448 {
 
 		buffer.clear();
 		// {server} encrypt
+		temp.replicate(plain5);
 		server.encryptAdditional(0x0043);
-		server.encryptFinal(plain5, buffer);
+		server.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher5);
 
 		// {client} decrypt
@@ -1061,8 +1056,9 @@ class TestRFC8448 {
 
 		buffer.clear();
 		// {client} encrypt
+		temp.replicate(plain6);
 		client.encryptAdditional(0x0013);
-		client.encryptFinal(plain6, buffer);
+		client.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher6);
 
 		// {server} send alert record:
@@ -1074,8 +1070,9 @@ class TestRFC8448 {
 
 		buffer.clear();
 		// {server} encrypt
+		temp.replicate(plain7);
 		server.encryptAdditional(0x0013);
-		server.encryptFinal(plain7, buffer);
+		server.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher7);
 
 		////////////////////////////////////////////////////////////////////////////////
@@ -1095,8 +1092,9 @@ class TestRFC8448 {
 
 		buffer.clear();
 		// {client} encrypt
+		temp.replicate(plain10);
 		client.encryptAdditional(0x0017);
-		client.encryptFinal(plain10, buffer);
+		client.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher10);
 
 		// {server} decrypt
@@ -1125,8 +1123,9 @@ class TestRFC8448 {
 
 		buffer.clear();
 		// {server} encrypt
+		temp.replicate(plain11);
 		server.encryptAdditional(0x0061);
-		server.encryptFinal(plain11, buffer);
+		server.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher11);
 
 		// {client} decrypt
@@ -1144,8 +1143,9 @@ class TestRFC8448 {
 
 		buffer.clear();
 		// {client} encrypt
+		temp.replicate(plain12);
 		client.encryptAdditional(0x0015);
-		client.encryptFinal(plain12, buffer);
+		client.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher12);
 
 		// {server} decrypt
@@ -1170,8 +1170,9 @@ class TestRFC8448 {
 
 		buffer.clear();
 		// {client} encrypt
+		temp.replicate(plain13);
 		client.encryptAdditional(0x0035);
-		client.encryptFinal(plain13, buffer);
+		client.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher13);
 
 		// {server} decrypt
@@ -1209,8 +1210,9 @@ class TestRFC8448 {
 		buffer.clear();
 
 		// {client} encrypt
+		temp.replicate(plain14);
 		client.encryptAdditional(0x0043);
-		client.encryptFinal(plain14, buffer);
+		client.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher14);
 
 		// {server} decrypt
@@ -1234,8 +1236,9 @@ class TestRFC8448 {
 		buffer.clear();
 
 		// {server} encrypt
+		temp.replicate(plain15);
 		server.encryptAdditional(0x0043);
-		server.encryptFinal(plain15, buffer);
+		server.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher15);
 
 		// {client} decrypt
@@ -1254,8 +1257,9 @@ class TestRFC8448 {
 		buffer.clear();
 
 		// {client} encrypt
+		temp.replicate(plain16);
 		client.encryptAdditional(0x0013);
-		client.encryptFinal(plain16, buffer);
+		client.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher16);
 
 		// {server} decrypt
@@ -1274,8 +1278,9 @@ class TestRFC8448 {
 		buffer.clear();
 
 		// {server} encrypt
+		temp.replicate(plain17);
 		server.encryptAdditional(0x0013);
-		server.encryptFinal(plain17, buffer);
+		server.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher17);
 
 		// {client} decrypt
@@ -1284,15 +1289,17 @@ class TestRFC8448 {
 		assertEquals(buffer, plain17);
 
 		// 额外的测试
-		final DataBuffer plain = DataBuffer.instance();
+
 		// 额外的少量测试
+		final DataBuffer plain = DataBuffer.instance();
 		plain.write(Utility.hex(ClientFinished));
 		buffer.clear();
-		buffer.write(Utility.hex(ClientFinished));
 		client.encryptAdditional(plain.readable() + 16);
-		client.encryptFinal(plain);
-		server.decryptAdditional(plain.readable());
-		server.decryptFinal(plain);
+		temp.replicate(plain);
+		client.encryptFinal(temp, buffer);
+
+		server.decryptAdditional(buffer.readable());
+		server.decryptFinal(buffer);
 		assertEquals(buffer, plain);
 
 		// 额外的满载测试
@@ -1304,17 +1311,18 @@ class TestRFC8448 {
 		}
 
 		buffer.clear();
-		buffer.replicate(plain);
+		temp.replicate(plain);
 		client.encryptAdditional(16 * 1024);
-		client.encryptFinal(buffer);
+		client.encryptFinal(temp, buffer);
 		System.out.println(buffer);
 		server.decryptAdditional(16 * 1024);
 		server.decryptFinal(buffer);
 		assertEquals(buffer, plain);
 
 		buffer.clear();
+		temp.replicate(plain);
 		client.encryptAdditional(16 * 1024);
-		client.encryptFinal(plain, buffer);
+		client.encryptFinal(temp, buffer);
 		System.out.println(buffer);
 		server.decryptAdditional(16 * 1024);
 		server.decryptFinal(buffer);
@@ -1466,8 +1474,6 @@ class TestRFC8448 {
 				System.out.println(CipherSuite.named(suite) + ":" + e.getMessage());
 			}
 		}
-
-		CertificateAuthorities.load();
 	}
 
 	/**

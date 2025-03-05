@@ -12,7 +12,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月21日
  */
-public class EncryptedClientHello extends Extension {
+class EncryptedClientHello extends Extension {
 
 	@Override
 	public short type() {

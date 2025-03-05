@@ -1,11 +1,13 @@
 package com.joyzl.network.tls;
 
+import java.util.Arrays;
+
 /**
  * pre shared key
  * 
  * @author ZhangXi 2025年2月15日
  */
-public class PskIdentity {
+class PskIdentity {
 
 	/** ticket */
 	private byte[] identity = TLS.EMPTY_BYTES;
@@ -52,5 +54,21 @@ public class PskIdentity {
 		} else {
 			binder = value;
 		}
+	}
+
+	@Override
+	public int hashCode() {
+		return Arrays.hashCode(identity);
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (o == this) {
+			return true;
+		}
+		if (o instanceof PskIdentity p) {
+			return Arrays.equals(identity, p.identity);
+		}
+		return false;
 	}
 }

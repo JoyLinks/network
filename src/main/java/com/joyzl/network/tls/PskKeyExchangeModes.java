@@ -15,7 +15,7 @@ import java.util.Arrays;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class PskKeyExchangeModes extends Extension {
+class PskKeyExchangeModes extends Extension {
 
 	// PskKeyExchangeMode MAX(255)
 
@@ -70,5 +70,14 @@ public class PskKeyExchangeModes extends Extension {
 
 	public int size() {
 		return items.length;
+	}
+
+	public boolean has(byte value) {
+		for (int i = 0; i < items.length; i++) {
+			if (items[i] == value) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

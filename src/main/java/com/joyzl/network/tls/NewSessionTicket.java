@@ -15,14 +15,16 @@ import com.joyzl.network.Utility;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class NewSessionTicket extends HandshakeExtensions {
+class NewSessionTicket extends HandshakeExtensions {
 
 	/** 2^32 */
 	final static long MOD = 4294967296L;
 	/** MAX 7Day */
 	public final static int LIFETIME_MAX = 604800;
 
+	/** 票据构建的时间戳 */
 	private final long timestamp;
+
 	private int lifetime;
 	private int age_add;
 	private byte[] nonce;
@@ -73,11 +75,30 @@ public class NewSessionTicket extends HandshakeExtensions {
 		return timestamp;
 	}
 
-	public int obfuscatedTicketAge() {
+	/**
+	 * 计算用于客户端发送的AgeAdd值
+	 */
+	public int obfuscatedAgeAdd() {
 		long a = age_add & 0xFFFFFFFFL;
 		return (int) ((System.currentTimeMillis() - timestamp + a) % MOD);
 	}
 
+	/**
+	 * 验证客户端发送的AgeAdd值是否有效
+	 */
+	public boolean checkAgeAdd(int value) {
+		if (age_add == 0) {
+			return true;
+		}
+		if (value - age_add < lifetime * 1000) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * 验证票据是否有效（未过期）
+	 */
 	public boolean valid() {
 		return (System.currentTimeMillis() - timestamp) / 1000 < lifetime;
 	}

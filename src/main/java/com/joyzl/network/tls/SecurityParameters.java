@@ -1,6 +1,6 @@
 package com.joyzl.network.tls;
 
-public class SecurityParameters {
+class SecurityParameters {
 
 //	ConnectionEnd          entity;
 //    BulkCipherAlgorithm    bulk_cipher_algorithm;

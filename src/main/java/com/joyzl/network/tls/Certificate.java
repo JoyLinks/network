@@ -51,7 +51,7 @@ import java.util.Arrays;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class Certificate extends Handshake {
+class Certificate extends Handshake {
 
 	private final static CertificateEntry[] EMPTY = new CertificateEntry[0];
 	private CertificateEntry[] certificates = EMPTY;

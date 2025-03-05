@@ -18,7 +18,7 @@ import javax.crypto.KeyAgreement;
  * 
  * @author ZhangXi 2025年2月3日
  */
-public class KeyExchange implements NamedGroup {
+class KeyExchange implements NamedGroup {
 
 	private short group;
 

@@ -11,8 +11,11 @@ import java.util.Arrays;
  * 
  * enum {
  *     deprecated(1..22),
- *     secp256r1 (23), secp384r1 (24), secp521r1 (25),
- *     x25519(29), x448(30),
+ *     secp256r1 (23), 
+ *     secp384r1 (24), 
+ *     secp521r1 (25),
+ *     x25519(29), 
+ *     x448(30),
  *     reserved (0xFE00..0xFEFF),
  *     deprecated(0xFF01..0xFF02),
  *     (0xFFFF)
@@ -33,7 +36,7 @@ import java.util.Arrays;
  * 
  * @author ZhangXi 2024年12月21日
  */
-public class ECPointFormats extends Extension {
+class ECPointFormats extends Extension {
 
 	// ECPointFormat MAX(255);
 

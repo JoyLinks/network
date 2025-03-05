@@ -1,6 +1,6 @@
 package com.joyzl.network.tls;
 
-public class ClientKeyExchange extends Handshake {
+class ClientKeyExchange extends Handshake {
 
 	@Override
 	public byte msgType() {

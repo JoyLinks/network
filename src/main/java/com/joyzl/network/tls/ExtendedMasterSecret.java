@@ -7,7 +7,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月21日
  */
-public class ExtendedMasterSecret extends Extension {
+class ExtendedMasterSecret extends Extension {
 
 	public final static ExtendedMasterSecret INSTANCE = new ExtendedMasterSecret();
 

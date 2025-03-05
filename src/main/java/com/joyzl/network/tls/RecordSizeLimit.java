@@ -5,7 +5,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2025年2月10日
  */
-public class RecordSizeLimit extends Extension {
+class RecordSizeLimit extends Extension {
 
 	private int value;
 

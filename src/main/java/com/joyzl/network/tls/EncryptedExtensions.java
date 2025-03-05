@@ -9,7 +9,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class EncryptedExtensions extends HandshakeExtensions {
+class EncryptedExtensions extends HandshakeExtensions {
 
 	@Override
 	public byte msgType() {

@@ -1,4 +1,4 @@
-package com.joyzl.network.tls.test;
+package com.joyzl.network.tls;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 
 import com.joyzl.network.Utility;
 import com.joyzl.network.buffer.DataBuffer;
-import com.joyzl.network.tls.TranscriptHash;
 
 public class TestTranscriptHash {
 

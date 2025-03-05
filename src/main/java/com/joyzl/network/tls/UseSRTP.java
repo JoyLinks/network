@@ -16,7 +16,7 @@ import java.util.Arrays;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class UseSRTP extends Extension {
+class UseSRTP extends Extension {
 
 	// SRTPProtectionProfile MAX(65535)
 
@@ -27,8 +27,7 @@ public class UseSRTP extends Extension {
 
 	////////////////////////////////////////////////////////////////////////////////
 
-	private final static short[] EMPTY = new short[0];
-	private short[] profiles = EMPTY;
+	private short[] profiles = TLS.EMPTY_SHORTS;
 	private byte[] mki;
 
 	@Override
@@ -54,14 +53,14 @@ public class UseSRTP extends Extension {
 
 	public void set(short... value) {
 		if (value == null) {
-			profiles = EMPTY;
+			profiles = TLS.EMPTY_SHORTS;
 		} else {
 			profiles = value;
 		}
 	}
 
 	public void add(short value) {
-		if (profiles == EMPTY) {
+		if (profiles == TLS.EMPTY_SHORTS) {
 			profiles = new short[] { value };
 		} else {
 			profiles = Arrays.copyOf(profiles, profiles.length + 1);

@@ -1,6 +1,6 @@
 package com.joyzl.network.tls;
 
-public class PreSharedKeySelected extends PreSharedKey {
+class PreSharedKeySelected extends PreSharedKey {
 
 	private int selected;
 

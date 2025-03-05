@@ -19,7 +19,7 @@ package com.joyzl.network.tls;
  * } URLAndHash;
  * </pre>
  */
-public class CertificateURL extends Handshake {
+class CertificateURL extends Handshake {
 
 	// CertChainType MAX(255)
 

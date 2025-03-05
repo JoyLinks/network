@@ -24,7 +24,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public abstract class KeyShare extends Extension {
+abstract class KeyShare extends Extension {
 
 	@Override
 	public short type() {

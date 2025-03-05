@@ -38,7 +38,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public abstract class Record extends TLS {
+abstract class Record extends TLS {
 
 	/** TLSPlaintext 16K (2^14) */
 	final static int PLAINTEXT_MAX = 16384;
@@ -49,22 +49,22 @@ public abstract class Record extends TLS {
 
 	/** 1.3 */
 	public final static byte INVALID = 0;
-	/** 1.0 */
+	/** 1.3 1.2 1.1 1.0 */
 	public final static byte CHANGE_CIPHER_SPEC = 20;
-	/** 1.0 */
+	/** 1.3 1.2 1.1 1.0 */
 	public final static byte ALERT = 21;
-	/** 1.0 */
+	/** 1.3 1.2 1.1 1.0 */
 	public final static byte HANDSHAKE = 22;
-	/** 1.0 */
+	/** 1.3 1.2 1.1 1.0 */
 	public final static byte APPLICATION_DATA = 23;
 	/** 1.3 */
 	public final static byte HEARTBEAT = 24;
 
 	////////////////////////////////////////////////////////////////////////////////
 
-	private short version = TLS.V12;
-
 	public abstract byte contentType();
+
+	private short version = TLS.V12;
 
 	public final short getProtocolVersion() {
 		return version;

@@ -5,7 +5,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2025年2月10日
  */
-public class ChangeCipherSpec extends Record {
+class ChangeCipherSpec extends Record {
 
 	public final static byte ONE = 0x01;
 	public final static ChangeCipherSpec INSTANCE = new ChangeCipherSpec();

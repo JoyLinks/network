@@ -6,14 +6,21 @@ import java.security.KeyFactory;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import javax.security.auth.x500.X500Principal;
 
 /**
  * 提供终端可用与会话的证书
@@ -22,20 +29,70 @@ import java.util.Map;
  */
 public class SessionCertificates {
 
-	/** SNI,Entry */
+	/** SNI,CPK */
 	private final static Map<String, CPK> ENTRIES = new HashMap<>();
+	/** CA */
+	private final static Set<X500Principal> CAS = new HashSet<>();
 
 	public static CPK get(String name) {
 		return ENTRIES.get(name);
 	}
 
+	public static CPK get(ServerName name) {
+		return ENTRIES.get(name.getNameString());
+	}
+
+	public static CPK get(ServerName... names) {
+		CPK cpk;
+		for (int i = 0; i < names.length; i++) {
+			cpk = ENTRIES.get(names[i].getNameString());
+			if (cpk != null) {
+				return cpk;
+			}
+		}
+		return null;
+	}
+
+	public static Collection<CPK> all() {
+		return Collections.unmodifiableCollection(ENTRIES.values());
+	}
+
+	/**
+	 * 根据用户提供的证书构造信任证书签发机构扩展对象(CertificateAuthorities)
+	 */
+	static CertificateAuthorities makeCASExtension() {
+		final CertificateAuthorities cas = new CertificateAuthorities();
+		for (X500Principal p : CAS) {
+			cas.add(p.getEncoded());
+		}
+		return cas;
+	}
+
+	/**
+	 * 根据用户指定构造客户端证书筛选扩展对象(OIDFilters)
+	 */
+	static OIDFilters makeOIDFiltersExtension() {
+		final OIDFilters filters = new OIDFilters();
+		// TODO 须进一步实现
+		return filters;
+	}
+
 	public static String checkString() {
 		final StringBuilder b = new StringBuilder();
+		b.append("CERTIFICATES:");
 		for (Map.Entry<String, CPK> e : ENTRIES.entrySet()) {
+			b.append('\n');
+			b.append('\t');
 			b.append(e.getKey());
 			b.append(':');
+			b.append(' ');
 			b.append(e.getValue());
+		}
+		b.append("\nAUTHORITIES:");
+		for (X500Principal p : CAS) {
 			b.append('\n');
+			b.append('\t');
+			b.append(p.getName());
 		}
 		return b.toString();
 	}
@@ -78,11 +135,11 @@ public class SessionCertificates {
 				if (key != null) {
 					final Certificate[] certificates = store.getCertificateChain(alias);
 					if (certificates != null) {
-						entry(key, certificates);
+						create(key, certificates);
 					} else {
 						final Certificate certificate = store.getCertificate(alias);
 						if (certificate != null) {
-							entry(key, certificate);
+							create(key, certificate);
 						} else {
 							throw new Exception("未能获取证书" + c);
 						}
@@ -108,7 +165,7 @@ public class SessionCertificates {
 			certificates = factory.generateCertificates(input);
 		}
 		if (certificates.size() > 0) {
-			entry(key, certificates.toArray(new Certificate[0]));
+			create(key, certificates.toArray(new Certificate[0]));
 		} else {
 			throw new Exception("未包含证书" + c);
 		}
@@ -133,24 +190,19 @@ public class SessionCertificates {
 	/**
 	 * 创建并缓存证书集，以证书集中的第一项证书中包含的名称为键
 	 */
-	static void entry(PrivateKey key, Certificate... certificates) throws Exception {
-		final CertificateEntry[] entries = new CertificateEntry[certificates.length];
-		X509Certificate x509;
-		for (int index = 0; index < certificates.length; index++) {
-			x509 = (X509Certificate) certificates[index];
-			entries[index] = new CertificateEntry(x509.getEncoded());
+	static void create(PrivateKey key, Certificate... certificates) throws Exception {
+		final X509Certificate[] x509s = new X509Certificate[certificates.length];
+		for (int i = 0; i < certificates.length; i++) {
+			x509s[i] = (X509Certificate) certificates[i];
+			CAS.add(x509s[i].getIssuerX500Principal());
 		}
-		x509 = (X509Certificate) certificates[0];
-		final short scheme = Signaturer.scheme(x509.getSigAlgName());
-		final CPK entry = new CPK(entries, key, scheme);
+		final X509Certificate x509 = (X509Certificate) certificates[0];
+		final CPK cpk = new CPK(x509s, key);
 		final Collection<List<?>> names = x509.getSubjectAlternativeNames();
 		for (List<?> name : names) {
 			// [0 Integer,1 String]
-			ENTRIES.put(name.get(1).toString(), entry);
+			ENTRIES.put(name.get(1).toString(), cpk);
 		}
-		x509.getIssuerX500Principal();
-		x509.getExtendedKeyUsage();
-		x509.getExtensionValue(null);
 	}
 
 	/**
@@ -158,15 +210,60 @@ public class SessionCertificates {
 	 * 
 	 * @author ZhangXi 2025年2月25日
 	 */
-	public static class CPK {
+	static class CPK {
+		private final X509Certificate[] certificates;
 		private final CertificateEntry[] entries;
 		private final PrivateKey privateKey;
 		private final short scheme;
 
-		public CPK(CertificateEntry[] entries, PrivateKey key, short scheme) {
-			this.entries = entries;
-			this.scheme = scheme;
-			privateKey = key;
+		public CPK(X509Certificate[] certificates, PrivateKey privateKey) throws CertificateException {
+			this.certificates = certificates;
+			this.privateKey = privateKey;
+			scheme = Signaturer.scheme(certificates[0].getSigAlgName());
+			entries = new CertificateEntry[certificates.length];
+			for (int i = 0; i < certificates.length; i++) {
+				entries[i] = new CertificateEntry(certificates[i].getEncoded());
+			}
+		}
+
+		public boolean check(OIDFilters filters) {
+			final X509Certificate certificate = certificates[0];
+			OIDFilter filter;
+			Set<String> oids;
+			byte[] value;
+			for (int f = 0; f < filters.size(); f++) {
+				filter = filters.get(f);
+				oids = certificate.getCriticalExtensionOIDs();
+				if (oids == null || !oids.contains(filter.getOIDString())) {
+					oids = certificate.getNonCriticalExtensionOIDs();
+					if (oids == null || !oids.contains(filter.getOIDString())) {
+						return false;
+					}
+				}
+				for (int v = 0; v < filter.valueSize(); v++) {
+					value = certificate.getExtensionValue(filter.getOIDString());
+					if (value == null) {
+						return false;
+					}
+					if (Arrays.equals(filter.getValues(v), value)) {
+						continue;
+					}
+				}
+			}
+			return true;
+		}
+
+		public boolean check(CertificateAuthorities cas) {
+			X509Certificate certificate;
+			for (int c = 0; c < certificates.length; c++) {
+				certificate = certificates[c];
+				for (int a = 0; a < cas.size(); a++) {
+					if (Arrays.equals(cas.get(a), certificate.getIssuerX500Principal().getEncoded())) {
+						return true;
+					}
+				}
+			}
+			return false;
 		}
 
 		public CertificateEntry[] getEntries() {
@@ -184,6 +281,28 @@ public class SessionCertificates {
 		@Override
 		public String toString() {
 			return SignatureScheme.named(scheme) + " " + entries.length;
+		}
+	}
+
+	/**
+	 * 加载指定信任证书签发机构的证书，默认位于JAVA-HOME/lib/security/cacerts，默认密码 changeit
+	 */
+	public static void load(File cacerts, String password) throws Exception {
+		final KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
+		try (FileInputStream input = new FileInputStream(cacerts)) {
+			store.load(input, password.toCharArray());
+		}
+
+		Certificate cert;
+		final Enumeration<String> aliases = store.aliases();
+		while (aliases.hasMoreElements()) {
+			String alias = aliases.nextElement();
+			if (store.isCertificateEntry(alias)) {
+				cert = store.getCertificate(alias);
+				if (cert instanceof X509Certificate x509) {
+					CAS.add(x509.getIssuerX500Principal());
+				}
+			}
 		}
 	}
 }

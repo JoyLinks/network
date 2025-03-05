@@ -76,7 +76,7 @@ abstract class RecordCoder extends TLS {
 	/**
 	 * 编码明文记录，如有必要执行分块
 	 */
-	protected DataBuffer encodePlaintext(Record record, DataBuffer data) throws IOException {
+	static DataBuffer encodePlaintext(Record record, DataBuffer data) throws IOException {
 		final DataBuffer buffer = DataBuffer.instance();
 
 		while (data.readable() > Record.PLAINTEXT_MAX) {
@@ -166,6 +166,63 @@ abstract class RecordCoder extends TLS {
 	}
 
 	/**
+	 * 编码APPLICATION_DATA的记录消息，始终加密消息，如有必要执行分块和填充
+	 */
+	static DataBuffer encodeCiphertext(CipherSuiter cipher, Record record, DataBuffer data) throws Exception {
+		final DataBuffer buffer = DataBuffer.instance();
+		while (data.readable() > Record.PLAINTEXT_MAX) {
+			// ContentType 1Byte
+			buffer.writeByte(Record.APPLICATION_DATA);
+			// ProtocolVersion 2Byte
+			buffer.writeShort(record.getProtocolVersion());
+			// length 2Byte(uint16)
+			buffer.writeShort(Record.PLAINTEXT_MAX + 1);
+
+			// encrypted_record: DATA + ContentType
+			// 负载已满时无填充数据(padding)
+			cipher.encryptAdditional(Record.PLAINTEXT_MAX + 1 + cipher.tagLength());
+			cipher.encryptUpdate(data, buffer, Record.PLAINTEXT_MAX);
+			cipher.encryptUpdate(new byte[] { record.contentType() }, buffer);
+			cipher.encryptFinal(buffer);
+		}
+
+		// encrypted_record: DATA + ContentType + PADDING(n)
+		// ContentType 1Byte
+		data.writeByte(record.contentType());
+		padding(data);
+
+		// ContentType 1Byte
+		buffer.writeByte(Record.APPLICATION_DATA);
+		// ProtocolVersion 2Byte
+		buffer.writeShort(record.getProtocolVersion());
+		// length 2Byte(uint16)
+		buffer.writeShort(data.readable() + cipher.tagLength());
+		// encrypted_record
+		cipher.encryptAdditional(data.readable() + cipher.tagLength());
+		cipher.encryptFinal(data, buffer);
+		//
+		data.release();
+		return buffer;
+	}
+
+	/** PADDING(*) */
+	static void padding(DataBuffer data) {
+		int p = Record.PLAINTEXT_MAX - data.readable();
+		if (p > 16) {
+			p = 16 - (p % 16);
+		} else if (p > 8) {
+			p = 8 - (p % 8);
+		} else if (p > 4) {
+			p = 4 - (p % 4);
+		} else {
+			p = 4 - p;
+		}
+		while (p-- > 0) {
+			data.writeByte(0);
+		}
+	}
+
+	/**
 	 * 解码数据为消息，如果数据不足以解析消息对象则返回null，如果为应用数据之外的消息已记录对象返回；
 	 * 应用数据以DataBuffer返回，注意：不会返回实例化的ApplicationData对象。
 	 * 
@@ -180,116 +237,120 @@ abstract class RecordCoder extends TLS {
 		// length 2Byte(uint16)
 		int length = buffer.readUnsignedShort();
 
-		if (version == TLS.V12) {
-			if (type == Record.APPLICATION_DATA) {
+		if (type == Record.APPLICATION_DATA) {
+			// CIPHERTEXT
 
-				// CIPHERTEXT
+			if (length > Record.CIPHERTEXT_MAX) {
+				buffer.clear();
+				return new Alert(Alert.RECORD_OVERFLOW);
+			}
 
-				if (length > Record.CIPHERTEXT_MAX) {
-					buffer.clear();
-					return new Alert(Alert.RECORD_OVERFLOW);
-				}
-
-				// 解密
-				final DataBuffer data;
-				if (buffer.readable() == length) {
-					data = decrypt(buffer, length);
-				} else if (buffer.readable() > length) {
-					data = decrypt(buffer, length);
-				} else {
-					buffer.reset();
-					return null;
-				}
-				// 解密失败
-				if (data == null) {
-					return new Alert(Alert.BAD_RECORD_MAC);
-				}
-
-				// 删除 zeros 查找 ContentType
-				type = data.backByte();
-				while (type == 0) {
-					type = data.backByte();
-				}
-
-				if (type == Record.APPLICATION_DATA) {
-					if (data.readable() > 0) {
-						return data;
-					} else {
-						data.release();
-						return null;
-					}
-				}
-
-				Record record;
-				// System.out.println(data);
-				if (type == Record.HANDSHAKE) {
-					// 如果负载包含多项握手消息
-					// 必须返回最后解码的握手消息
-					record = decode(data);
-					while (data.readable() > 0) {
-						received(chain, (Handshake) record);
-						record = decode(data);
-					}
-				} else if (type == Record.CHANGE_CIPHER_SPEC) {
-					record = decodeChangeCipherSpec(data);
-				} else if (type == Record.HEARTBEAT) {
-					record = decodeHeartbeat(data, data.readable());
-				} else if (type == Record.INVALID) {
-					record = decodeInvalid(data, data.readable());
-				} else if (type == Record.ALERT) {
-					record = decodeAlert(data);
-				} else {
-					record = new Alert(Alert.UNEXPECTED_MESSAGE);
-				}
-				if (data.readable() > 0) {
-					data.release();
-					throw new IOException("TLS:数据残留");
-				} else {
-					data.release();
-				}
-				return record;
+			// 解密
+			final DataBuffer data;
+			if (buffer.readable() == length) {
+				data = decrypt(buffer, length);
+			} else if (buffer.readable() > length) {
+				data = decrypt(buffer, length);
 			} else {
+				buffer.reset();
+				return null;
+			}
+			// 解密失败
+			if (data == null) {
+				return new Alert(Alert.BAD_RECORD_MAC);
+			}
 
-				// PLAINTEXT
+			// 删除 zeros 查找 ContentType
+			type = data.backByte();
+			while (type == 0) {
+				type = data.backByte();
+			}
 
-				if (length > Record.PLAINTEXT_MAX) {
-					buffer.clear();
-					return new Alert(Alert.RECORD_OVERFLOW);
-				}
-
-				if (buffer.readable() >= length) {
-					if (type == Record.CHANGE_CIPHER_SPEC) {
-						return decodeChangeCipherSpec(buffer);
-					} else if (type == Record.HANDSHAKE) {
-						return decode(buffer);
-					} else if (type == Record.HEARTBEAT) {
-						return decodeHeartbeat(buffer, length);
-					} else if (type == Record.INVALID) {
-						return decodeInvalid(buffer, length);
-					} else if (type == Record.ALERT) {
-						return decodeAlert(buffer);
-					} else {
-						buffer.clear();
-						return new Alert(Alert.UNEXPECTED_MESSAGE);
-					}
+			if (type == Record.APPLICATION_DATA) {
+				if (data.readable() > 0) {
+					return data;
 				} else {
-					buffer.reset();
+					data.release();
 					return null;
 				}
 			}
+
+			Record record;
+			// System.out.println(data);
+			if (type == Record.HANDSHAKE) {
+				// 如果负载包含多项握手消息
+				// 必须返回最后解码的握手消息
+				record = decode(data);
+				while (data.readable() > 0) {
+					received(chain, (Handshake) record);
+					record = decode(data);
+				}
+			} else if (type == Record.CHANGE_CIPHER_SPEC) {
+				record = decodeChangeCipherSpec(data);
+			} else if (type == Record.HEARTBEAT) {
+				record = decodeHeartbeat(data, data.readable());
+			} else if (type == Record.INVALID) {
+				record = decodeInvalid(data, data.readable());
+			} else if (type == Record.ALERT) {
+				record = decodeAlert(data);
+			} else {
+				record = new Alert(Alert.UNEXPECTED_MESSAGE);
+			}
+			if (data.readable() > 0) {
+				data.release();
+				throw new IOException("TLS:数据残留");
+			} else {
+				data.release();
+			}
+			return record;
 		} else {
-			// buffer.reset();
-			// System.out.println(buffer);
-			// return null;
-			buffer.clear();
-			throw new UnsupportedOperationException();
+			// PLAINTEXT
+
+			if (length > Record.PLAINTEXT_MAX) {
+				buffer.clear();
+				return new Alert(Alert.RECORD_OVERFLOW);
+			}
+
+			if (buffer.readable() >= length) {
+				if (type == Record.CHANGE_CIPHER_SPEC) {
+					return decodeChangeCipherSpec(buffer);
+				} else if (type == Record.HANDSHAKE) {
+					return decode(buffer);
+				} else if (type == Record.HEARTBEAT) {
+					return decodeHeartbeat(buffer, length);
+				} else if (type == Record.INVALID) {
+					return decodeInvalid(buffer, length);
+				} else if (type == Record.ALERT) {
+					return decodeAlert(buffer);
+				} else {
+					buffer.clear();
+					return new Alert(Alert.UNEXPECTED_MESSAGE);
+				}
+			} else {
+				buffer.reset();
+				return null;
+			}
 		}
+	}
+
+	/**
+	 * 零长度应用数据，此方法始终执行完整的记录编码
+	 */
+	static DataBuffer encode(ApplicationData message) throws Exception {
+		final DataBuffer buffer = DataBuffer.instance();
+		// ContentType 1Byte
+		buffer.writeByte(message.contentType());
+		// ProtocolVersion 2Byte
+		buffer.writeShort(message.getProtocolVersion());
+		// length 2Byte(uint16)
+		buffer.writeShort(0);
+		return buffer;
 	}
 
 	/**
 	 * 此消息始终明文编码，此方法始终执行完整的记录编码
 	 */
-	protected DataBuffer encode(ChangeCipherSpec message) throws Exception {
+	static DataBuffer encode(ChangeCipherSpec message) throws Exception {
 		final DataBuffer buffer = DataBuffer.instance();
 		// ContentType 1Byte
 		buffer.writeByte(message.contentType());
@@ -299,6 +360,34 @@ abstract class RecordCoder extends TLS {
 		buffer.writeShort(1);
 		// 0x01 1Byte
 		buffer.writeByte(ChangeCipherSpec.ONE);
+		return buffer;
+	}
+
+	static DataBuffer encode(HeartbeatMessage message) throws IOException {
+		final DataBuffer buffer = DataBuffer.instance();
+		// HeartbeatMessageType 1Byte
+		buffer.writeByte(message.getMessageType());
+		// payload_length 2Byte(uint16)
+		// opaque payload nByte
+		buffer.writeShort(message.getPayload().length);
+		buffer.write(message.getPayload());
+		// opaque padding >= 16Byte
+		int size = Record.PLAINTEXT_MAX - message.getPayload().length - 3;
+		if (size > 64) {
+			size = 64;
+		}
+		while (size-- > 0) {
+			buffer.writeByte(size);
+		}
+		return buffer;
+	}
+
+	static DataBuffer encode(Alert message) {
+		final DataBuffer buffer = DataBuffer.instance();
+		// AlertLevel 1Byte
+		buffer.writeByte(message.getLevel());
+		// AlertDescription 1Byte
+		buffer.writeByte(message.getDescription());
 		return buffer;
 	}
 

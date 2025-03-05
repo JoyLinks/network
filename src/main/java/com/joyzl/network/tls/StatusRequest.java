@@ -25,7 +25,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class StatusRequest extends Extension {
+class StatusRequest extends Extension {
 
 	private CertificateStatusRequest request;
 

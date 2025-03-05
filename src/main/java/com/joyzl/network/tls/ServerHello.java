@@ -16,7 +16,7 @@ import java.util.Arrays;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class ServerHello extends HandshakeExtensions {
+class ServerHello extends HandshakeExtensions {
 
 	/** SHA-256("HelloRetryRequest") */
 	final static byte[] HELLO_RETRY_REQUEST_RANDOM = new byte[] { (byte) 0xCF, 0x21, (byte) 0xAD, 0x74, (byte) 0xE5, (byte) 0x9A, 0x61, 0x11, (byte) 0xBE, 0x1D, (byte) 0x8C, 0x02, 0x1E, 0x65, (byte) 0xB8, (byte) 0x91, (byte) 0xC2, (byte) 0xA2, 0x11, 0x16, 0x7A, (byte) 0xBB, (byte) 0x8C, 0x5E, 0x07, (byte) 0x9E, 0x09, (byte) 0xE2, (byte) 0xC8, (byte) 0xA8, 0x33, (byte) 0x9C };
@@ -29,7 +29,7 @@ public class ServerHello extends HandshakeExtensions {
 	private byte[] random;
 	private byte[] session_id;
 	private short cipher_suite;
-	private byte compression_method;
+	private byte compression_method = 0;
 
 	@Override
 	public byte msgType() {
@@ -41,6 +41,14 @@ public class ServerHello extends HandshakeExtensions {
 		return Arrays.equals(random, HELLO_RETRY_REQUEST_RANDOM);
 	}
 
+	public short getVersion() {
+		return version;
+	}
+
+	public void setVersion(short value) {
+		version = value;
+	}
+
 	public byte[] getRandom() {
 		return random;
 	}
@@ -49,12 +57,17 @@ public class ServerHello extends HandshakeExtensions {
 		random = value;
 	}
 
-	public short getVersion() {
-		return version;
-	}
-
-	public void setVersion(short value) {
-		version = value;
+	public void makeRandom(short version) {
+		TLS.RANDOM.nextBytes(random = new byte[32]);
+		if (version == TLS.V12) {
+			for (int i = 0; i < V12_LAST8.length; i++) {
+				random[i + 24] = V12_LAST8[i];
+			}
+		} else if (version == TLS.V11 || version == TLS.V10) {
+			for (int i = 0; i < V11_LAST8.length; i++) {
+				random[i + 24] = V11_LAST8[i];
+			}
+		}
 	}
 
 	public byte[] getSessionId() {

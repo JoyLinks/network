@@ -16,7 +16,7 @@ import java.util.Arrays;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class OIDFilters extends Extension {
+class OIDFilters extends Extension {
 
 	private final static OIDFilter[] EMPTY = new OIDFilter[0];
 	private OIDFilter[] items = EMPTY;

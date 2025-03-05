@@ -13,7 +13,7 @@ import javax.crypto.spec.SecretKeySpec;
  * 
  * @author ZhangXi 2024年12月22日
  */
-public class HKDF extends TranscriptHash {
+class HKDF extends TranscriptHash {
 
 	/*-
 	 * RFC 5869 HMAC-based Extract-and-Expand Key Derivation Function (HKDF)

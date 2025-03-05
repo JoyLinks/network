@@ -9,7 +9,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月21日
  */
-public class RenegotiationInfo extends Extension {
+class RenegotiationInfo extends Extension {
 
 	public final static byte[] TLS_EMPTY_RENEGOTIATION_INFO_SCSV = new byte[] { 0x00, (byte) 0xFF };
 
@@ -25,6 +25,10 @@ public class RenegotiationInfo extends Extension {
 	}
 
 	public void setValue(byte[] value) {
-		this.value = value;
+		if (value == null) {
+			this.value = TLS.EMPTY_BYTES;
+		} else {
+			this.value = value;
+		}
 	}
 }

@@ -7,7 +7,7 @@ import java.util.List;
  * 
  * @author ZhangXi 2025年2月12日
  */
-public interface Extensions {
+interface Extensions {
 
 	/** 本实现的特殊方法以协助编码识别扩展所属的握手消息 */
 	byte msgType();

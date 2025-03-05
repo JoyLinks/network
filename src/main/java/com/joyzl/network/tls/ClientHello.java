@@ -54,7 +54,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class ClientHello extends HandshakeExtensions {
+class ClientHello extends HandshakeExtensions {
 
 	private short version = TLS.V12;
 	private byte[] random = TLS.EMPTY_BYTES;
@@ -67,14 +67,6 @@ public class ClientHello extends HandshakeExtensions {
 		return CLIENT_HELLO;
 	}
 
-	public byte[] getRandom() {
-		return random;
-	}
-
-	public void setRandom(byte[] value) {
-		random = value;
-	}
-
 	public short getVersion() {
 		return version;
 	}
@@ -83,12 +75,60 @@ public class ClientHello extends HandshakeExtensions {
 		version = value;
 	}
 
+	/**
+	 * 匹配
+	 */
+	public short matchVersion(short[] others) {
+		for (int s = 0; s < others.length; s++) {
+			if (version == others[s]) {
+				return others[s];
+			}
+		}
+		return 0;
+	}
+
+	public boolean hasRandom() {
+		return random.length > 0;
+	}
+
+	public byte[] getRandom() {
+		return random;
+	}
+
+	public void setRandom(byte[] value) {
+		if (value == null) {
+			random = TLS.EMPTY_BYTES;
+		} else {
+			random = value;
+		}
+	}
+
+	public void makeRandom() {
+		TLS.RANDOM.nextBytes(random = new byte[32]);
+	}
+
+	public boolean hasSessionId() {
+		return session_id.length > 0;
+	}
+
 	public byte[] getSessionId() {
 		return session_id;
 	}
 
 	public void setSessionId(byte[] value) {
-		session_id = value;
+		if (value == null) {
+			session_id = TLS.EMPTY_BYTES;
+		} else {
+			session_id = value;
+		}
+	}
+
+	public void makeSessionId() {
+		TLS.RANDOM.nextBytes(session_id = new byte[32]);
+	}
+
+	public boolean hasCipherSuites() {
+		return cipher_suites.length > 0;
 	}
 
 	public short[] getCipherSuites() {
@@ -96,7 +136,15 @@ public class ClientHello extends HandshakeExtensions {
 	}
 
 	public void setCipherSuites(short[] value) {
-		cipher_suites = value;
+		if (value == null) {
+			cipher_suites = TLS.EMPTY_SHORTS;
+		} else {
+			cipher_suites = value;
+		}
+	}
+
+	public boolean hasCompressionMethods() {
+		return compression_methods.length > 0;
 	}
 
 	public byte[] getCompressionMethods() {
@@ -104,6 +152,10 @@ public class ClientHello extends HandshakeExtensions {
 	}
 
 	public void setCompressionMethods(byte[] value) {
-		compression_methods = value;
+		if (value == null) {
+			compression_methods = TLS.EMPTY_BYTES;
+		} else {
+			compression_methods = value;
+		}
 	}
 }

@@ -10,7 +10,7 @@ import com.joyzl.network.buffer.DataBufferUnit;
  * 
  * @author ZhangXi 2024年12月30日
  */
-public class TranscriptHash {
+class TranscriptHash {
 
 	// Transcript-Hash("")
 	// SHA256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

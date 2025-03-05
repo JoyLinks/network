@@ -1,6 +1,6 @@
 package com.joyzl.network.tls;
 
-public enum CipherType {
+enum CipherType {
 	STREAM(0), BLOCK(1),
 	// MAX(255)
 	;

@@ -13,7 +13,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class KeyUpdate extends Handshake {
+class KeyUpdate extends Handshake {
 
 	// KeyUpdateRequest MAX(255)
 

@@ -1,10 +1,8 @@
-package com.joyzl.network.codec.test;
+package com.joyzl.network.codec;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
-
-import com.joyzl.network.codec.Binary;
 
 class TestBinary {
 

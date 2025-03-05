@@ -29,8 +29,7 @@ public class ApplicationLayerProtocolNegotiation extends Extension {
 
 	////////////////////////////////////////////////////////////////////////////////
 
-	private final static byte[][] EMPTY = new byte[0][];
-	private byte[][] items = EMPTY;
+	private byte[][] items = TLS.EMPTY_STRINGS;
 
 	public ApplicationLayerProtocolNegotiation() {
 	}
@@ -58,7 +57,7 @@ public class ApplicationLayerProtocolNegotiation extends Extension {
 
 	public void set(byte[]... value) {
 		if (value == null) {
-			items = EMPTY;
+			items = TLS.EMPTY_STRINGS;
 		} else {
 			items = value;
 		}
@@ -66,7 +65,7 @@ public class ApplicationLayerProtocolNegotiation extends Extension {
 
 	public void set(String... value) {
 		if (value == null) {
-			items = EMPTY;
+			items = TLS.EMPTY_STRINGS;
 		} else {
 			items = new byte[value.length][];
 			for (int index = 0; index < items.length; index++) {
@@ -76,7 +75,7 @@ public class ApplicationLayerProtocolNegotiation extends Extension {
 	}
 
 	public void add(byte[] value) {
-		if (items == EMPTY) {
+		if (items == TLS.EMPTY_STRINGS) {
 			items = new byte[][] { value };
 		} else {
 			items = Arrays.copyOf(items, items.length + 1);
@@ -85,7 +84,7 @@ public class ApplicationLayerProtocolNegotiation extends Extension {
 	}
 
 	public void add(String value) {
-		if (items == EMPTY) {
+		if (items == TLS.EMPTY_STRINGS) {
 			items = new byte[][] { value.getBytes(StandardCharsets.US_ASCII) };
 		} else {
 			items = Arrays.copyOf(items, items.length + 1);
@@ -111,5 +110,20 @@ public class ApplicationLayerProtocolNegotiation extends Extension {
 			}
 		}
 		return sb.toString();
+	}
+
+	/**
+	 * 匹配选择，移除扩展中其余协议名称
+	 */
+	public boolean select(byte[][] others) {
+		for (int i = 0; i < items.length; i++) {
+			for (int s = 0; s < others.length; s++) {
+				if (Arrays.equals(items[i], others[s])) {
+					items = new byte[][] { items[i] };
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 }

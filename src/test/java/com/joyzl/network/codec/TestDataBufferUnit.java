@@ -1,4 +1,4 @@
-package com.joyzl.network.codec.test;
+package com.joyzl.network.codec;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

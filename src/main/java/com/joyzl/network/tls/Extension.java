@@ -38,7 +38,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月20日
  */
-public abstract class Extension {
+abstract class Extension extends TLS {
 
 	// Extension TYPE MAX(65535)
 
@@ -80,7 +80,7 @@ public abstract class Extension {
 	public final static short COMPRESS_CERTIFICATE = 27;
 	/** RFC 8449 */
 	public final static short RECORD_SIZE_LIMIT = 28;
-	/** RFC ???? */
+	/** RFC 5077 */
 	public final static short SESSION_TICKET = 35;
 	/** RESERVED */
 	public final static short RESERVED1 = 40;

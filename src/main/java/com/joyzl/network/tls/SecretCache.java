@@ -5,7 +5,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月30日
  */
-public class SecretCache extends DeriveSecret {
+class SecretCache extends DeriveSecret {
 
 	private byte[] early;
 	private byte[] master;
@@ -13,7 +13,7 @@ public class SecretCache extends DeriveSecret {
 	private byte[] clientHTraffic, clientATraffic;
 	private byte[] serverHTraffic, serverATraffic;
 
-	public SecretCache() throws Exception {
+	public SecretCache() {
 	}
 
 	public SecretCache(String digest, String hmac) throws Exception {

@@ -5,7 +5,9 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2025年1月24日
  */
-public class SignatureAlgorithmsCert extends SignatureAlgorithms {
+class SignatureAlgorithmsCert extends SignatureAlgorithms {
+
+	// 结构与SignatureAlgorithms完全相同
 
 	@Override
 	public short type() {

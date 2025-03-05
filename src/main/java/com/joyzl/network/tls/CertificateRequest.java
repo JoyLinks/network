@@ -10,7 +10,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class CertificateRequest extends HandshakeExtensions {
+class CertificateRequest extends HandshakeExtensions {
 
 	private byte[] context = TLS.EMPTY_BYTES;
 

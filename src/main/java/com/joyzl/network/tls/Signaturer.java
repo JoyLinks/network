@@ -18,7 +18,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
  * 
  * @author ZhangXi 2025年2月24日
  */
-public class Signaturer implements SignatureScheme {
+class Signaturer implements SignatureScheme {
 
 	static {
 		Security.addProvider(new BouncyCastleProvider());

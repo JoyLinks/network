@@ -11,7 +11,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月18日
  */
-public class MaxFragmentLength extends Extension {
+class MaxFragmentLength extends Extension {
 
 	// MaxFragmentType MAX(255)
 

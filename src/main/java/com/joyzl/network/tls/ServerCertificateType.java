@@ -14,7 +14,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class ServerCertificateType extends CertificateTypes {
+class ServerCertificateType extends CertificateTypes {
 
 	@Override
 	public short type() {

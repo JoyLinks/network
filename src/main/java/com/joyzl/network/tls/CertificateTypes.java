@@ -2,7 +2,7 @@ package com.joyzl.network.tls;
 
 import java.util.Arrays;
 
-public abstract class CertificateTypes extends Extension {
+abstract class CertificateTypes extends Extension {
 
 	// CertificateType MAX(255)
 

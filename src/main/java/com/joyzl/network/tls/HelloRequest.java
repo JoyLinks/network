@@ -7,7 +7,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月20日
  */
-public class HelloRequest extends Handshake {
+class HelloRequest extends Handshake {
 
 	public static final HelloRequest INSTANCE = new HelloRequest();
 

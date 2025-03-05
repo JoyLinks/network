@@ -1,6 +1,8 @@
 package com.joyzl.network.tls;
 
 /**
+ * 扩展：协商使用截断为 80-bit 的 truncated HMAC 值
+ * 
  * <pre>
  * RFC 6066
  * {EMPTY}
@@ -8,7 +10,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class TruncatedHMAC extends Extension {
+class TruncatedHMAC extends Extension {
 
 	public final static TruncatedHMAC INSTANCE = new TruncatedHMAC();
 

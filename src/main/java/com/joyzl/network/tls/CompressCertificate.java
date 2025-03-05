@@ -20,7 +20,7 @@ import java.util.Arrays;
  * 
  * @author ZhangXi 2024年12月21日
  */
-public class CompressCertificate extends Extension {
+class CompressCertificate extends Extension {
 
 	// CertificateCompressionAlgorithm MAX(65535)
 

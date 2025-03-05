@@ -1,5 +1,5 @@
 package com.joyzl.network.tls;
 
-public enum ConnectionEnd {
+enum ConnectionEnd {
 	SERVER, CLIENT
 }

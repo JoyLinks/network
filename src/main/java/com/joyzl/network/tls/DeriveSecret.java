@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets;
  * 
  * @author ZhangXi 2025年1月9日
  */
-public class DeriveSecret extends HKDF {
+class DeriveSecret extends HKDF {
 
 	/*-
 	 * 	         0

@@ -10,7 +10,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class Cookie extends Extension {
+class Cookie extends Extension {
 
 	private byte[] cookie = TLS.EMPTY_BYTES;
 
@@ -24,7 +24,11 @@ public class Cookie extends Extension {
 	}
 
 	public void setCookie(byte[] value) {
-		cookie = value;
+		if (value == null) {
+			cookie = TLS.EMPTY_BYTES;
+		} else {
+			cookie = value;
+		}
 	}
 
 	@Override

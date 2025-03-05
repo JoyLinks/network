@@ -1,4 +1,4 @@
-package com.joyzl.network.tls.test;
+package com.joyzl.network.tls;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
@@ -19,8 +19,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.joyzl.network.Utility;
-import com.joyzl.network.tls.KeyExchange;
-import com.joyzl.network.tls.NamedGroup;
 
 /**
  * 密钥交换测试

@@ -2,7 +2,7 @@ package com.joyzl.network.tls;
 
 import java.util.Arrays;
 
-public class OfferedPsks extends PreSharedKey {
+class OfferedPsks extends PreSharedKey {
 
 	private final static PskIdentity[] EMPTY = new PskIdentity[0];
 	private PskIdentity[] identities = EMPTY;

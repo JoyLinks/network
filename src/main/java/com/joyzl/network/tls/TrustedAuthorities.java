@@ -30,7 +30,7 @@ import java.util.Arrays;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class TrustedAuthorities extends Extension {
+class TrustedAuthorities extends Extension {
 
 	private final static TrustedAuthority[] EMPTY = new TrustedAuthority[0];
 	private TrustedAuthority[] items = EMPTY;

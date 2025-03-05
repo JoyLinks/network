@@ -30,10 +30,10 @@ import com.joyzl.network.Utility;
  * 
  * @author ZhangXi 2024年12月18日
  */
-public class ServerNames extends Extension {
+class ServerNames extends Extension {
 
-	private final static ServerName[] EMPTY = new ServerName[0];
-	private ServerName[] items = EMPTY;
+	private final static ServerName[] EMPTY_NAMES = new ServerName[0];
+	private ServerName[] items = EMPTY_NAMES;
 
 	public ServerNames() {
 	}
@@ -57,14 +57,14 @@ public class ServerNames extends Extension {
 
 	public void set(ServerName... value) {
 		if (value == null) {
-			items = EMPTY;
+			items = EMPTY_NAMES;
 		} else {
 			items = value;
 		}
 	}
 
 	public void add(ServerName value) {
-		if (items == EMPTY) {
+		if (items == EMPTY_NAMES) {
 			items = new ServerName[] { value };
 		} else {
 			items = Arrays.copyOf(items, items.length + 1);

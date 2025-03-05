@@ -9,7 +9,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月19日
  */
-public class Finished extends Handshake {
+class Finished extends Handshake {
 
 	/** 这个特殊常量标记完成校验成功 */
 	final static byte[] OK = new byte[] { 1, 2 };

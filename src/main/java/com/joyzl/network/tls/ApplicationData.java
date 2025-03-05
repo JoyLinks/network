@@ -20,7 +20,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月20日
  */
-public class ApplicationData extends Record {
+class ApplicationData extends Record {
 
 	final static ApplicationData INSTANCE = new ApplicationData();
 

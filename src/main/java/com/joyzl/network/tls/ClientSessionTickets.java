@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * 
  * @author ZhangXi 2025年2月18日
  */
-public class SessionTickets {
+public class ClientSessionTickets {
 
 	private final static Map<Key, Queue<NewSessionTicket>> M = new ConcurrentHashMap<>();
 
