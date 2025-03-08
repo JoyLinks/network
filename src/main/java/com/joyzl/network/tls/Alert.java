@@ -48,10 +48,10 @@ class Alert extends Record {
 	public final static byte NO_RENEGOTIATION = 100;
 	public final static byte MISSING_EXTENSION = 109;
 	public final static byte UNSUPPORTED_EXTENSION = 110;
-	public final static byte CERTIFICATE_UNOBTAINABLE_RESERVED = 111;
+	public final static byte CERTIFICATE_UNOBTAINABLE = 111;
 	public final static byte UNRECOGNIZED_NAME = 112;
 	public final static byte BAD_CERTIFICATE_STATUS_RESPONSE = 113;
-	public final static byte BAD_CERTIFICATE_HASH_VALUE_RESERVED = 114;
+	public final static byte BAD_CERTIFICATE_HASH_VALUE = 114;
 	public final static byte UNKNOWN_PSK_IDENTITY = 115;
 	public final static byte CERTIFICATE_REQUIRED = 116;
 	public final static byte NO_APPLICATION_PROTOCOL = 120;
@@ -170,14 +170,14 @@ class Alert extends Record {
 				return "missing extension";
 			case UNSUPPORTED_EXTENSION:
 				return "unsupported extension";
-			case CERTIFICATE_UNOBTAINABLE_RESERVED:
-				return "certificate unobtainable reserved";
+			case CERTIFICATE_UNOBTAINABLE:
+				return "certificate unobtainable ";
 			case UNRECOGNIZED_NAME:
 				return "unrecognized name";
 			case BAD_CERTIFICATE_STATUS_RESPONSE:
 				return "bad certificate status response";
-			case BAD_CERTIFICATE_HASH_VALUE_RESERVED:
-				return "bad certificate hash value reserved";
+			case BAD_CERTIFICATE_HASH_VALUE:
+				return "bad certificate hash value ";
 			case UNKNOWN_PSK_IDENTITY:
 				return "unknown psk identity";
 			case CERTIFICATE_REQUIRED:

@@ -3,6 +3,7 @@ package com.joyzl.network.tls;
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.chain.ChainHandler;
+import com.joyzl.network.codec.Binary;
 
 abstract class RecordHandler extends RecordCoder implements ChainHandler {
 
@@ -85,13 +86,22 @@ abstract class RecordHandler extends RecordCoder implements ChainHandler {
 
 	@Override
 	public void beat(ChainChannel chain) throws Exception {
-		chain.send(new HeartbeatMessage(HeartbeatMessage.HEARTBEAT_REQUEST));
+		final HeartbeatMessage heartbeat = new HeartbeatMessage();
+		heartbeat.setMessageType(HeartbeatMessage.HEARTBEAT_REQUEST);
+		heartbeat.setPayload(Binary.split(chain.hashCode()));
+		chain.send(heartbeat);
 	};
 
 	protected void heartbeat(ChainChannel chain, HeartbeatMessage message) {
-		if (message.getMessageType() == HeartbeatMessage.HEARTBEAT_REQUEST) {
-			message.setMessageType(HeartbeatMessage.HEARTBEAT_RESPONSE);
-			chain.send(message);
+		if (message.getMessageType() == HeartbeatMessage.HEARTBEAT_RESPONSE) {
+			if (message.getPayload().length == 4) {
+				int hashCode = Binary.getInteger(message.getPayload(), 0);
+				if (hashCode == chain.hashCode()) {
+					// OK
+				}
+			}
+		} else {
+			chain.send(new Alert(Alert.UNEXPECTED_MESSAGE));
 		}
 	}
 }

@@ -105,6 +105,11 @@ public class TCPServer extends Server {
 			} catch (IOException e) {
 				handler().error(this, e);
 			}
+			try {
+				clearContext();
+			} catch (IOException e) {
+				handler().error(this, e);
+			}
 		}
 	}
 

@@ -14,6 +14,13 @@ class Cookie extends Extension {
 
 	private byte[] cookie = TLS.EMPTY_BYTES;
 
+	public Cookie() {
+	}
+
+	public Cookie(byte[] cookie) {
+		this.cookie = cookie;
+	}
+
 	@Override
 	public short type() {
 		return COOKIE;

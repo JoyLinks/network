@@ -3,6 +3,14 @@ package com.joyzl.network.tls;
 import java.io.IOException;
 
 import com.joyzl.network.buffer.DataBuffer;
+import com.joyzl.network.tls.CertificateStatusRequest.OCSPStatusRequest;
+import com.joyzl.network.tls.CertificateType.ClientCertificateType;
+import com.joyzl.network.tls.CertificateType.ServerCertificateType;
+import com.joyzl.network.tls.CertificateTypes.ClientCertificateTypes;
+import com.joyzl.network.tls.CertificateTypes.ServerCertificateTypes;
+import com.joyzl.network.tls.KeyShare.KeyShareEntry;
+import com.joyzl.network.tls.PreSharedKey.PskIdentity;
+import com.joyzl.network.tls.TrustedAuthorities.TrustedAuthority;
 
 /**
  * 扩展字段编解码
@@ -15,7 +23,7 @@ import com.joyzl.network.buffer.DataBuffer;
  */
 class ExtensionCoder {
 
-	public static void encode(Extensions extensions, DataBuffer buffer) throws IOException {
+	static void encode(Extensions extensions, DataBuffer buffer) throws IOException {
 		int p1, p2, length;
 
 		// Length 2Byte
@@ -40,13 +48,13 @@ class ExtensionCoder {
 			} else if (extension.type() == Extension.MAX_FRAGMENT_LENGTH) {
 				encode((MaxFragmentLength) extension, buffer);
 			} else if (extension.type() == Extension.CLIENT_CERTIFICATE_URL) {
-				encode((ClientCertificateURL) extension, buffer);
+				// EMPTY
 			} else if (extension.type() == Extension.TRUSTED_CA_KEYS) {
 				encode((TrustedAuthorities) extension, buffer);
 			} else if (extension.type() == Extension.TRUNCATED_HMAC) {
-				encode((TruncatedHMAC) extension, buffer);
+				// EMPTY
 			} else if (extension.type() == Extension.STATUS_REQUEST) {
-				encode((StatusRequest) extension, buffer);
+				encode((CertificateStatusRequest) extension, buffer);
 			} else if (extension.type() == Extension.SUPPORTED_GROUPS) {
 				encode((SupportedGroups) extension, buffer);
 			} else if (extension.type() == Extension.EC_POINT_FORMATS) {
@@ -62,11 +70,25 @@ class ExtensionCoder {
 			} else if (extension.type() == Extension.SIGNED_CERTIFICATE_TIMESTAMP) {
 				encode((SignedCertificateTimestamp) extension, buffer);
 			} else if (extension.type() == Extension.CLIENT_CERTIFICATE_TYPE) {
-				encode((ClientCertificateType) extension, buffer);
+				if (extensions.msgType() == Handshake.CLIENT_HELLO) {
+					encode((CertificateTypes) extension, buffer);
+				} else//
+				if (extensions.msgType() == Handshake.SERVER_HELLO) {
+					encode((CertificateType) extension, buffer);
+				} else {
+					throw new IOException("TLS:混乱的扩展");
+				}
 			} else if (extension.type() == Extension.SERVER_CERTIFICATE_TYPE) {
-				encode((ServerCertificateType) extension, buffer);
+				if (extensions.msgType() == Handshake.CLIENT_HELLO) {
+					encode((CertificateTypes) extension, buffer);
+				} else//
+				if (extensions.msgType() == Handshake.SERVER_HELLO) {
+					encode((CertificateType) extension, buffer);
+				} else {
+					throw new IOException("TLS:混乱的扩展");
+				}
 			} else if (extension.type() == Extension.EXTENDED_MASTER_SECRET) {
-				encode((ExtendedMasterSecret) extension, buffer);
+				// EMPTY
 			} else if (extension.type() == Extension.COMPRESS_CERTIFICATE) {
 				encode((CompressCertificate) extension, buffer);
 			} else if (extension.type() == Extension.SESSION_TICKET) {
@@ -74,8 +96,9 @@ class ExtensionCoder {
 			} else if (extension.type() == Extension.PRE_SHARED_KEY) {
 				if (extensions.msgType() == Handshake.SERVER_HELLO) {
 					encode((PreSharedKeySelected) extension, buffer);
-				} else if (extensions.msgType() == Handshake.CLIENT_HELLO) {
-					encode((OfferedPsks) extension, buffer);
+				} else //
+				if (extensions.msgType() == Handshake.CLIENT_HELLO) {
+					encode((PreSharedKeys) extension, buffer);
 				} else {
 					throw new IOException("TLS:混乱的扩展");
 				}
@@ -83,9 +106,10 @@ class ExtensionCoder {
 				encode((EarlyDataIndication) extension, buffer);
 			} else if (extension.type() == Extension.SUPPORTED_VERSIONS) {
 				if (extensions.msgType() == Handshake.SERVER_HELLO) {
-					encode((SupportedVersions) extension, buffer, true);
-				} else if (extensions.msgType() == Handshake.CLIENT_HELLO) {
-					encode((SupportedVersions) extension, buffer, false);
+					encode((SelectedVersion) extension, buffer);
+				} else //
+				if (extensions.msgType() == Handshake.CLIENT_HELLO) {
+					encode((SupportedVersions) extension, buffer);
 				} else {
 					throw new IOException("TLS:混乱的扩展");
 				}
@@ -98,13 +122,14 @@ class ExtensionCoder {
 			} else if (extension.type() == Extension.OID_FILTERS) {
 				encode((OIDFilters) extension, buffer);
 			} else if (extension.type() == Extension.POST_HANDSHAKE_AUTH) {
-				encode((PostHandshakeAuth) extension, buffer);
+				// EMPTY
 			} else if (extension.type() == Extension.SIGNATURE_ALGORITHMS_CERT) {
 				encode((SignatureAlgorithmsCert) extension, buffer);
 			} else if (extension.type() == Extension.KEY_SHARE) {
 				if (extensions.msgType() == Handshake.CLIENT_HELLO) {
 					encode((KeyShareClientHello) extension, buffer);
-				} else if (extensions.msgType() == Handshake.SERVER_HELLO) {
+				} else//
+				if (extensions.msgType() == Handshake.SERVER_HELLO) {
 					if (extensions.isHelloRetryRequest()) {
 						encode((KeyShareHelloRetryRequest) extension, buffer);
 					} else {
@@ -151,7 +176,7 @@ class ExtensionCoder {
 		buffer.set(p1, (byte) length);
 	}
 
-	public static void decode(Extensions extensions, DataBuffer buffer) throws IOException {
+	static void decode(Extensions extensions, DataBuffer buffer) throws IOException {
 		// Length 2Byte
 		int length = buffer.readUnsignedShort();
 		// 计算扩展字段全部解码后的剩余字节
@@ -171,13 +196,13 @@ class ExtensionCoder {
 			} else if (type == Extension.MAX_FRAGMENT_LENGTH) {
 				extension = decodeMaxFragmentLength(buffer, size);
 			} else if (type == Extension.CLIENT_CERTIFICATE_URL) {
-				extension = decodeClientCertificateURL(buffer, size);
+				extension = ClientCertificateURL.INSTANCE;
 			} else if (type == Extension.TRUSTED_CA_KEYS) {
 				extension = decodeTrustedCAKeys(buffer, size);
 			} else if (type == Extension.TRUNCATED_HMAC) {
-				extension = decodeTruncatedHMAC(buffer, size);
+				extension = TruncatedHMAC.INSTANCE;
 			} else if (type == Extension.STATUS_REQUEST) {
-				extension = decodeStatusRequest(buffer, size);
+				extension = decodeCertificateStatusRequest(buffer, size);
 			} else if (type == Extension.SUPPORTED_GROUPS) {
 				extension = decodeSupportedGroups(buffer, size);
 			} else if (type == Extension.EC_POINT_FORMATS) {
@@ -193,11 +218,25 @@ class ExtensionCoder {
 			} else if (type == Extension.SIGNED_CERTIFICATE_TIMESTAMP) {
 				extension = decodeSignedCertificateTimestamp(buffer, size);
 			} else if (type == Extension.CLIENT_CERTIFICATE_TYPE) {
-				extension = decodeClientCertificateType(buffer, size);
+				if (extensions.msgType() == Handshake.SERVER_HELLO) {
+					extension = decode(new ClientCertificateTypes(), buffer, size);
+				} else //
+				if (extensions.msgType() == Handshake.CLIENT_HELLO) {
+					extension = decode(new ClientCertificateType(), buffer, size);
+				} else {
+					throw new IOException("TLS:混乱的扩展");
+				}
 			} else if (type == Extension.SERVER_CERTIFICATE_TYPE) {
-				extension = decodeServerCertificateType(buffer, size);
+				if (extensions.msgType() == Handshake.SERVER_HELLO) {
+					extension = decode(new ServerCertificateTypes(), buffer, size);
+				} else //
+				if (extensions.msgType() == Handshake.CLIENT_HELLO) {
+					extension = decode(new ServerCertificateType(), buffer, size);
+				} else {
+					throw new IOException("TLS:混乱的扩展");
+				}
 			} else if (type == Extension.EXTENDED_MASTER_SECRET) {
-				extension = decodeExtendedMasterSecret(buffer, size);
+				extension = ExtendedMasterSecret.INSTANCE;
 			} else if (type == Extension.COMPRESS_CERTIFICATE) {
 				extension = decodeCompressCertificate(buffer, size);
 			} else if (type == Extension.SESSION_TICKET) {
@@ -205,7 +244,8 @@ class ExtensionCoder {
 			} else if (type == Extension.PRE_SHARED_KEY) {
 				if (extensions.msgType() == Handshake.SERVER_HELLO) {
 					extension = decodePreSharedKeySelected(buffer, size);
-				} else if (extensions.msgType() == Handshake.CLIENT_HELLO) {
+				} else //
+				if (extensions.msgType() == Handshake.CLIENT_HELLO) {
 					extension = decodeOfferedPsks(buffer, size);
 				} else {
 					throw new IOException("TLS:混乱的扩展");
@@ -215,7 +255,8 @@ class ExtensionCoder {
 			} else if (type == Extension.SUPPORTED_VERSIONS) {
 				if (extensions.msgType() == Handshake.SERVER_HELLO) {
 					extension = decodeSelectedVersion(buffer, size);
-				} else if (extensions.msgType() == Handshake.CLIENT_HELLO) {
+				} else //
+				if (extensions.msgType() == Handshake.CLIENT_HELLO) {
 					extension = decodeSupportedVersions(buffer, size);
 				} else {
 					throw new IOException("TLS:混乱的扩展");
@@ -229,13 +270,14 @@ class ExtensionCoder {
 			} else if (type == Extension.OID_FILTERS) {
 				extension = decodeOIDFilters(buffer, size);
 			} else if (type == Extension.POST_HANDSHAKE_AUTH) {
-				extension = decodePostHandshakeAuth(buffer, size);
+				extension = PostHandshakeAuth.INSTANCE;
 			} else if (type == Extension.SIGNATURE_ALGORITHMS_CERT) {
 				extension = decodeSignatureAlgorithmsCert(buffer, size);
 			} else if (type == Extension.KEY_SHARE) {
 				if (extensions.msgType() == Handshake.CLIENT_HELLO) {
 					extension = decodeKeyShareClientHello(buffer, size);
-				} else if (extensions.msgType() == Handshake.SERVER_HELLO) {
+				} else //
+				if (extensions.msgType() == Handshake.SERVER_HELLO) {
 					if (extensions.isHelloRetryRequest()) {
 						extension = decodeKeyShareHelloRetryRequest(buffer, size);
 					} else {
@@ -246,7 +288,7 @@ class ExtensionCoder {
 				}
 			} else if (type == Extension.RENEGOTIATION_INFO) {
 				extension = decodeRenegotiationInfo(buffer, size);
-			} else if (type == Extension.RENEGOTIATION_INFO) {
+			} else if (type == Extension.APPLICATION_SETTINGS) {
 				extension = decodeApplicationSettings(buffer, size);
 			} else if (type == Extension.ENCRYPTED_CLIENT_HELLO) {
 				extension = decodeEncryptedClientHello(buffer, size);
@@ -259,7 +301,7 @@ class ExtensionCoder {
 	}
 
 	/** RFC 6066 */
-	private static void encode(ServerNames serverNames, DataBuffer buffer) throws IOException {
+	static void encode(ServerNames serverNames, DataBuffer buffer) throws IOException {
 		// ServerName server_name_list<1..2^16-1>
 		int position = buffer.readable();
 		// Length 2Byte
@@ -282,7 +324,7 @@ class ExtensionCoder {
 	}
 
 	/** RFC 6066 */
-	private static ServerNames decodeServerNames(DataBuffer buffer, int length) throws IOException {
+	static ServerNames decodeServerNames(DataBuffer buffer, int length) throws IOException {
 		final ServerNames serverNames = new ServerNames();
 		if (length > 0) {
 			// ServerName server_name_list<1..2^16-1>
@@ -305,91 +347,285 @@ class ExtensionCoder {
 	}
 
 	/** RFC 6066 */
-	private static void encode(MaxFragmentLength extension, DataBuffer buffer) throws IOException {
+	static void encode(MaxFragmentLength extension, DataBuffer buffer) throws IOException {
 		buffer.writeByte(extension.getType());
 	}
 
 	/** RFC 6066 */
-	private static void encode(ClientCertificateURL extension, DataBuffer buffer) throws IOException {
-		// EMPTY
-	}
-
-	/** RFC 6066 */
-	private static void encode(TrustedAuthorities extension, DataBuffer buffer) throws IOException {
-		TrustedAuthority item;
-		for (int index = 0; index < extension.size(); index++) {
-			item = extension.get(index);
-			buffer.writeByte(item.type());
-			buffer.writeShort(item.getData().length);
-			buffer.write(item.getData());
+	static MaxFragmentLength decodeMaxFragmentLength(DataBuffer buffer, int length) throws IOException {
+		if (length > 0) {
+			return new MaxFragmentLength(buffer.readByte());
+		} else {
+			return new MaxFragmentLength((byte) 0);
 		}
 	}
 
 	/** RFC 6066 */
-	private static void encode(TruncatedHMAC extension, DataBuffer buffer) throws IOException {
-		// EMPTY
+	static void encode(TrustedAuthorities extension, DataBuffer buffer) throws IOException {
+		// TrustedAuthority trusted_authorities_list<0..2^16-1>;
+		int position = buffer.readable();
+		buffer.writeShort(0);
+
+		TrustedAuthority a;
+		for (int index = 0; index < extension.size(); index++) {
+			a = extension.get(index);
+			// IdentifierType identifier_type;
+			buffer.writeByte(a.getType());
+			if (a.getType() == TrustedAuthorities.PRE_AGREED) {
+				// EMPTY
+			} else if (a.getType() == TrustedAuthorities.KEY_SHA1_HASH) {
+				// SHA1Hash[20]
+				// TODO LENGTH?
+				buffer.write(a.getData());
+			} else if (a.getType() == TrustedAuthorities.X509_NAME) {
+				// opaque DistinguishedName<1..2^16-1>;
+				buffer.writeShort(a.getData().length);
+				buffer.write(a.getData());
+			} else if (a.getType() == TrustedAuthorities.CERT_SHA1_HASH) {
+				// SHA1Hash[20]
+				// TODO LENGTH?
+				buffer.write(a.getData());
+			}
+		}
+
+		// SET Length
+		int length = buffer.readable() - position - 2;
+		buffer.set(position++, (byte) (length >>> 8));
+		buffer.set(position, (byte) length);
 	}
 
 	/** RFC 6066 */
-	private static void encode(StatusRequest extension, DataBuffer buffer) throws IOException {
-		if (extension.getRequest() != null) {
-			buffer.writeByte(extension.getRequest().type());
-			if (extension.getRequest().type() == CertificateStatusRequest.OCSP) {
-				final OCSPStatusRequest request = (OCSPStatusRequest) extension.getRequest();
-				buffer.writeShort(request.getResponderID().length);
-				buffer.write(request.getResponderID());
-				buffer.writeShort(request.getExtensions().length);
-				buffer.write(request.getExtensions());
+	static TrustedAuthorities decodeTrustedCAKeys(DataBuffer buffer, int length) throws IOException {
+		final TrustedAuthorities tas = new TrustedAuthorities();
+		if (length > 0) {
+			// TrustedAuthority trusted_authorities_list<0..2^16-1>;
+			length = buffer.readUnsignedShort();
+
+			TrustedAuthority a;
+			while (length > 0) {
+				a = new TrustedAuthority();
+				// IdentifierType identifier_type;
+				a.setType(buffer.readByte());
+				if (a.getType() == TrustedAuthorities.PRE_AGREED) {
+					// EMPTY
+				} else if (a.getType() == TrustedAuthorities.KEY_SHA1_HASH) {
+					// SHA1Hash[20]
+					// TODO LENGTH?
+					a.setData(new byte[20]);
+					buffer.readFully(a.getData());
+				} else if (a.getType() == TrustedAuthorities.X509_NAME) {
+					// opaque DistinguishedName<1..2^16-1>;
+					a.setData(new byte[buffer.readUnsignedShort()]);
+					buffer.readFully(a.getData());
+					length -= 2;
+				} else if (a.getType() == TrustedAuthorities.CERT_SHA1_HASH) {
+					// SHA1Hash[20]
+					// TODO LENGTH?
+					a.setData(new byte[20]);
+					buffer.readFully(a.getData());
+				}
+				length -= a.getData().length + 1;
+				tas.add(a);
 			}
+		}
+		return tas;
+	}
+
+	/** RFC 6066 */
+	static void encode(CertificateStatusRequest request, DataBuffer buffer) throws IOException {
+		// CertificateStatusType status_type;
+		buffer.writeByte(request.getType());
+		if (request.getType() == CertificateStatusRequest.OCSP) {
+			final OCSPStatusRequest oscp = (OCSPStatusRequest) request;
+			// ResponderID responder_id_list<0..2^16-1>;
+			int position = buffer.readable();
+			buffer.writeShort(0);
+
+			for (int i = 0; i < oscp.size(); i++) {
+				// opaque ResponderID<1..2^16-1>;
+				buffer.writeShort(oscp.getResponderID(i).length);
+				buffer.write(oscp.getResponderID(i));
+			}
+
+			// SET Length
+			int length = buffer.readable() - position - 2;
+			buffer.set(position++, (byte) (length >>> 8));
+			buffer.set(position, (byte) length);
+
+			// Extensions request_extensions;
+			// opaque Extensions<0..2^16-1>;
+			buffer.writeShort(oscp.getRequestExtensions().length);
+			buffer.write(oscp.getRequestExtensions());
+		} else {
+			// 不支持的请求类型
+			throw new UnsupportedOperationException(request.getClass().getName());
+		}
+	}
+
+	/** RFC 6066 */
+	static CertificateStatusRequest decodeCertificateStatusRequest(DataBuffer buffer, int length) throws IOException {
+		if (length > 0) {
+			if (buffer.readByte() == CertificateStatusRequest.OCSP) {
+				final OCSPStatusRequest oscp = new OCSPStatusRequest();
+				// ResponderID responder_id_list<0..2^16-1>;
+				length = buffer.readUnsignedShort();
+				byte[] opaque;
+				while (length > 0) {
+					// opaque ResponderID<1..2^16-1>;
+					buffer.readFully(opaque = new byte[buffer.readShort()]);
+					oscp.addResponderID(opaque);
+					length -= opaque.length + 2;
+				}
+
+				// opaque Extensions<0..2^16-1>;
+				buffer.readFully(opaque = new byte[buffer.readShort()]);
+				oscp.setRequestExtensions(opaque);
+				return oscp;
+			} else {
+				buffer.skipBytes(length - 1);
+			}
+		}
+		return CertificateStatusRequest.UNKNOWN;
+	}
+
+	/** RFC 7919 */
+	static void encode(SupportedGroups extension, DataBuffer buffer) throws IOException {
+		buffer.writeShort(extension.size() * 2);
+		for (int index = 0; index < extension.size(); index++) {
+			buffer.writeShort(extension.get(index));
 		}
 	}
 
 	/** RFC 7919 */
-	private static void encode(SupportedGroups extension, DataBuffer buffer) throws IOException {
-		buffer.writeShort(extension.size() * 2);
-		for (int index = 0; index < extension.size(); index++) {
-			buffer.writeShort(extension.get(index));
+	static SupportedGroups decodeSupportedGroups(DataBuffer buffer, int length) throws IOException {
+		final SupportedGroups groups = new SupportedGroups();
+		if (length > 0) {
+			length = buffer.readShort() / 2;
+			while (length-- > 0) {
+				groups.add(buffer.readShort());
+			}
 		}
+		return groups;
 	}
 
 	/** RFC 8422 */
-	private static void encode(ECPointFormats extension, DataBuffer buffer) throws IOException {
+	static void encode(ECPointFormats extension, DataBuffer buffer) throws IOException {
 		buffer.writeByte(extension.size());
+		buffer.write(extension.get());
+	}
+
+	/** RFC 8442 */
+	static ECPointFormats decodeECPointFormats(DataBuffer buffer, int length) throws IOException {
+		final ECPointFormats formats = new ECPointFormats();
+		if (length > 0) {
+			length = buffer.readUnsignedByte();
+			formats.set(new byte[length]);
+			buffer.readFully(formats.get());
+		}
+		return formats;
+	}
+
+	/** RFC 8446 */
+	static void encode(SignatureAlgorithms extension, DataBuffer buffer) throws IOException {
+		buffer.writeShort(extension.size() * 2);
 		for (int index = 0; index < extension.size(); index++) {
-			buffer.writeByte(extension.get(index));
+			buffer.writeShort(extension.get(index));
 		}
 	}
 
 	/** RFC 8446 */
-	private static void encode(SignatureAlgorithms extension, DataBuffer buffer) throws IOException {
-		buffer.writeShort(extension.size() * 2);
-		for (int index = 0; index < extension.size(); index++) {
-			buffer.writeShort(extension.get(index));
+	static SignatureAlgorithms decodeSignatureAlgorithms(DataBuffer buffer, int length) throws IOException {
+		final SignatureAlgorithms algorithms = new SignatureAlgorithms();
+		if (length > 0) {
+			length = buffer.readShort() / 2;
+			while (length-- > 0) {
+				algorithms.add(buffer.readShort());
+			}
 		}
+		return algorithms;
 	}
 
 	/** RFC 5764 */
-	private static void encode(UseSRTP extension, DataBuffer buffer) throws IOException {
-		for (int index = 0; index < extension.size(); index++) {
-			buffer.writeShort(extension.get(index));
+	static void encode(UseSRTP srtp, DataBuffer buffer) throws IOException {
+		// SRTPProtectionProfiles<2..2^16-1>;
+		// uint8 SRTPProtectionProfile[2];
+		buffer.writeShort(srtp.size() * 2);
+		for (int index = 0; index < srtp.size(); index++) {
+			buffer.writeShort(srtp.get(index));
 		}
-		buffer.writeShort(extension.getMKI().length);
-		buffer.write(extension.getMKI());
+		// opaque srtp_mki<0..255>;
+		buffer.writeShort(srtp.getMKI().length);
+		buffer.write(srtp.getMKI());
+	}
+
+	/** RFC 5764 */
+	static UseSRTP decodeUseSRTP(DataBuffer buffer, int length) throws IOException {
+		final UseSRTP srtp = new UseSRTP();
+		if (length > 0) {
+			// SRTPProtectionProfiles SRTPProtectionProfiles;
+			length = buffer.readUnsignedShort() / 2;
+			while (length-- > 0) {
+				srtp.add(buffer.readShort());
+			}
+			// opaque srtp_mki<0..255>;
+			srtp.setMKI(new byte[buffer.readUnsignedByte()]);
+			buffer.readFully(srtp.getMKI());
+		}
+		return srtp;
 	}
 
 	/** RFC 6520 */
-	private static void encode(Heartbeat extension, DataBuffer buffer) throws IOException {
-		buffer.writeByte(extension.getMode());
+	static void encode(Heartbeat heartbeat, DataBuffer buffer) throws IOException {
+		buffer.writeByte(heartbeat.getMode());
+	}
+
+	/** RFC 6520 */
+	static Heartbeat decodeHeartbeat(DataBuffer buffer, int length) throws IOException {
+		if (length > 0) {
+			return new Heartbeat(buffer.readByte());
+		} else {
+			return new Heartbeat();
+		}
 	}
 
 	/** RFC 7301 */
-	private static void encode(ApplicationLayerProtocolNegotiation extension, DataBuffer buffer) throws IOException {
+	static void encode(ApplicationLayerProtocolNegotiation alpn, DataBuffer buffer) throws IOException {
 		// Length 2Byte
 		int position = buffer.readable();
 		buffer.writeShort(0);
-		for (int index = 0; index < extension.size(); index++) {
-			buffer.writeByte(extension.get(index).length);
-			buffer.write(extension.get(index));
+		for (int index = 0; index < alpn.size(); index++) {
+			buffer.writeByte(alpn.get(index).length);
+			buffer.write(alpn.get(index));
+		}
+		// SET Length
+		int length = buffer.readable() - position - 2;
+		buffer.set(position++, (byte) (length >>> 8));
+		buffer.set(position, (byte) length);
+	}
+
+	/** RFC 7301 */
+	static ApplicationLayerProtocolNegotiation decodeApplicationLayerProtocolNegotiation(DataBuffer buffer, int length) throws IOException {
+		final ApplicationLayerProtocolNegotiation alpn = new ApplicationLayerProtocolNegotiation();
+		if (length > 0) {
+			length = buffer.readShort();
+			byte[] opaque;
+			while (length > 0) {
+				buffer.readFully(opaque = new byte[buffer.readByte()]);
+				alpn.add(opaque);
+				length -= opaque.length + 1;
+			}
+		}
+		return alpn;
+	}
+
+	/** RFC 6962 */
+	static void encode(SignedCertificateTimestamp timestamp, DataBuffer buffer) throws IOException {
+		// Length 2Byte
+		int position = buffer.readable();
+		buffer.writeShort(0);
+		for (int index = 0; index < timestamp.size(); index++) {
+			buffer.writeShort(timestamp.get(index).length);
+			buffer.write(timestamp.get(index));
 		}
 		// SET Length
 		int length = buffer.readable() - position - 2;
@@ -398,106 +634,118 @@ class ExtensionCoder {
 	}
 
 	/** RFC 6962 */
-	private static void encode(SignedCertificateTimestamp extension, DataBuffer buffer) throws IOException {
-		if (extension.size() > 0) {
-			// Length 2Byte
-			int position = buffer.readable();
-			buffer.writeShort(0);
-			for (int index = 0; index < extension.size(); index++) {
-				buffer.writeShort(extension.get(index).length);
-				buffer.write(extension.get(index));
+	static SignedCertificateTimestamp decodeSignedCertificateTimestamp(DataBuffer buffer, int length) throws IOException {
+		final SignedCertificateTimestamp timestamp = new SignedCertificateTimestamp();
+		if (length > 0) {
+			// SerializedSCT sct_list <1..2^16-1>;
+			length = buffer.readUnsignedShort();
+			byte[] opaque;
+			while (length > 0) {
+				// opaque SerializedSCT<1..2^16-1>;
+				buffer.readFully(opaque = new byte[buffer.readUnsignedShort()]);
+				timestamp.add(opaque);
+				length -= opaque.length + 2;
 			}
-			// SET Length
-			int length = buffer.readable() - position - 2;
-			buffer.set(position++, (byte) (length >>> 8));
-			buffer.set(position, (byte) length);
+		}
+		return timestamp;
+	}
+
+	/** RFC 7250 */
+	static void encode(CertificateTypes types, DataBuffer buffer) throws IOException {
+		// server_certificate_types<1..2^8-1>;
+		// client_certificate_types<1..2^8-1>;
+		buffer.writeByte(types.size());
+		for (int index = 0; index < types.size(); index++) {
+			buffer.writeByte(types.get(index));
 		}
 	}
 
 	/** RFC 7250 */
-	private static void encode(ClientCertificateType extension, DataBuffer buffer) throws IOException {
-		for (int index = 0; index < extension.size(); index++) {
-			buffer.writeByte(extension.get(index));
+	static CertificateTypes decode(CertificateTypes types, DataBuffer buffer, int length) throws IOException {
+		if (length > 0) {
+			// server_certificate_types<1..2^8-1>;
+			// client_certificate_types<1..2^8-1>;
+			length = buffer.readUnsignedByte();
+			while (length-- > 0) {
+				types.add(buffer.readByte());
+			}
 		}
-		// if (client) {
-		// buffer.writeShort(extension.size());
-		// for (int index = 0; index < extension.size(); index++) {
-		// buffer.writeByte(extension.get(index));
-		// }
-		// } else {
-		// buffer.writeByte(extension.get(0));
-		// }
+		return types;
 	}
 
 	/** RFC 7250 */
-	private static void encode(ServerCertificateType extension, DataBuffer buffer) throws IOException {
-		for (int index = 0; index < extension.size(); index++) {
-			buffer.writeByte(extension.get(index));
-		}
-		// if (client) {
-		// buffer.writeShort(extension.size());
-		// for (int index = 0; index < extension.size(); index++) {
-		// buffer.writeByte(extension.get(index));
-		// }
-		// } else {
-		// buffer.writeByte(extension.get(0));
-		// }
+	static void encode(CertificateType type, DataBuffer buffer) throws IOException {
+		buffer.writeByte(type.get());
 	}
 
-	/** RFC 7627 */
-	private static void encode(ExtendedMasterSecret extension, DataBuffer buffer) throws IOException {
-		// EMPTY
+	/** RFC 7250 */
+	static CertificateType decode(CertificateType type, DataBuffer buffer, int length) throws IOException {
+		if (length > 0) {
+			type.set(buffer.readByte());
+		}
+		return type;
 	}
 
 	/** RFC 8879 */
-	private static void encode(CompressCertificate extension, DataBuffer buffer) throws IOException {
+	static void encode(CompressCertificate extension, DataBuffer buffer) throws IOException {
+		// algorithms<2..2^8-2>;
 		buffer.writeByte(extension.size() * 2);
 		for (int index = 0; index < extension.size(); index++) {
 			buffer.writeShort(extension.get(index));
 		}
 	}
 
+	/** RFC 8879 */
+	static CompressCertificate decodeCompressCertificate(DataBuffer buffer, int length) throws IOException {
+		final CompressCertificate algorithms = new CompressCertificate();
+		if (length > 0) {
+			// CertificateCompressionAlgorithm algorithms<2..2^8-2>;
+			length = buffer.readByte() / 2;
+			while (length-- > 0) {
+				algorithms.add(buffer.readShort());
+			}
+		}
+		return algorithms;
+	}
+
 	/** RFC 5077 */
-	private static void encode(SessionTicket extension, DataBuffer buffer) throws IOException {
+	static void encode(SessionTicket extension, DataBuffer buffer) throws IOException {
 		buffer.writeShort(extension.getTicket().length);
 		buffer.write(extension.getTicket());
 	}
 
-	/** RFC 8446 */
-	private static void encode(KeyShareClientHello extension, DataBuffer buffer) throws IOException {
-		// 计算长度
-		int length = 0;
-		KeyShareEntry item;
-		for (int index = 0; index < extension.size(); index++) {
-			item = extension.get(index);
-			length += item.getKeyExchange().length;
-			length += 4;
+	/** RFC 5077 */
+	static SessionTicket decodeSessionTicket(DataBuffer buffer, int length) throws IOException {
+		final SessionTicket ticket = new SessionTicket();
+		if (length > 0) {
+			ticket.setTicket(new byte[length]);
+			buffer.readFully(ticket.getTicket());
 		}
-		// Length 2Byte
-		buffer.writeShort(length);
-		// client_shares
+		return ticket;
+	}
+
+	/** RFC 8446 */
+	static void encode(KeyShareClientHello extension, DataBuffer buffer) throws IOException {
+		// KeyShareEntry client_shares<0..2^16-1>;
+		int position = buffer.readable();
+		buffer.writeShort(0);
+
+		KeyShareEntry item;
 		for (int index = 0; index < extension.size(); index++) {
 			item = extension.get(index);
 			buffer.writeShort(item.getGroup());
 			buffer.writeShort(item.getKeyExchange().length);
 			buffer.write(item.getKeyExchange());
 		}
+
+		// SET Length
+		int length = buffer.readable() - position - 2;
+		buffer.set(position++, (byte) (length >>> 8));
+		buffer.set(position, (byte) length);
 	}
 
 	/** RFC 8446 */
-	private static void encode(KeyShareServerHello extension, DataBuffer buffer) throws IOException {
-		buffer.writeShort(extension.getServerShare().getGroup());
-		buffer.writeShort(extension.getServerShare().getKeyExchange().length);
-		buffer.write(extension.getServerShare().getKeyExchange());
-	}
-
-	/** RFC 8446 */
-	private static void encode(KeyShareHelloRetryRequest extension, DataBuffer buffer) throws IOException {
-		buffer.writeShort(extension.getSelectedGroup());
-	}
-
-	/** RFC 8446 */
-	private static KeyShare decodeKeyShareClientHello(DataBuffer buffer, int length) throws IOException {
+	static KeyShare decodeKeyShareClientHello(DataBuffer buffer, int length) throws IOException {
 		final KeyShareClientHello share = new KeyShareClientHello();
 		if (length > 0) {
 			// client_shares<0..2^16-1>;
@@ -511,6 +759,7 @@ class ExtensionCoder {
 				// opaque key_exchange<1..2^16-1>;
 				entry.setKeyExchange(new byte[buffer.readShort()]);
 				buffer.readFully(entry.getKeyExchange());
+
 				length -= entry.getKeyExchange().length + 4;
 				share.add(entry);
 			}
@@ -519,7 +768,14 @@ class ExtensionCoder {
 	}
 
 	/** RFC 8446 */
-	private static KeyShare decodeKeyShareServerHello(DataBuffer buffer, int length) throws IOException {
+	static void encode(KeyShareServerHello extension, DataBuffer buffer) throws IOException {
+		buffer.writeShort(extension.getServerShare().getGroup());
+		buffer.writeShort(extension.getServerShare().getKeyExchange().length);
+		buffer.write(extension.getServerShare().getKeyExchange());
+	}
+
+	/** RFC 8446 */
+	static KeyShare decodeKeyShareServerHello(DataBuffer buffer, int length) throws IOException {
 		final KeyShareServerHello share = new KeyShareServerHello();
 		if (length > 0) {
 			final KeyShareEntry entry = new KeyShareEntry();
@@ -532,7 +788,12 @@ class ExtensionCoder {
 	}
 
 	/** RFC 8446 */
-	private static KeyShare decodeKeyShareHelloRetryRequest(DataBuffer buffer, int length) throws IOException {
+	static void encode(KeyShareHelloRetryRequest extension, DataBuffer buffer) throws IOException {
+		buffer.writeShort(extension.getSelectedGroup());
+	}
+
+	/** RFC 8446 */
+	static KeyShare decodeKeyShareHelloRetryRequest(DataBuffer buffer, int length) throws IOException {
 		final KeyShareHelloRetryRequest selected = new KeyShareHelloRetryRequest();
 		if (length > 0) {
 			selected.setSelectedGroup(buffer.readShort());
@@ -540,33 +801,26 @@ class ExtensionCoder {
 		return selected;
 	}
 
-	/** RFC 5746 */
-	private static void encode(RenegotiationInfo extension, DataBuffer buffer) throws IOException {
-		buffer.writeByte(extension.getValue().length);
-		buffer.write(extension.getValue());
-	}
-
-	/** RFC 8446 client_hello */
-	private static void encode(OfferedPsks extension, DataBuffer buffer) throws IOException {
+	/** RFC 8446 client_hello pre_shared_key */
+	static void encode(PreSharedKeys extension, DataBuffer buffer) throws IOException {
 		// PskIdentity identities<7..2^16-1>;
-		int length = 0;
+		int position = buffer.readable();
+		buffer.writeShort(0);
 		PskIdentity item;
-		for (int index = 0; index < extension.size(); index++) {
-			item = extension.get(index);
-			length += item.getIdentity().length;
-			length += 6;
-		}
-		// list Length 2Byte
-		buffer.writeShort(length);
 		for (int index = 0; index < extension.size(); index++) {
 			item = extension.get(index);
 			buffer.writeShort(item.getIdentity().length);
 			buffer.write(item.getIdentity());
 			buffer.writeInt(item.getTicketAge());
 		}
+		// SET Length
+		int length = buffer.readable() - position - 2;
+		buffer.set(position++, (byte) (length >>> 8));
+		buffer.set(position, (byte) length);
 
 		// PskBinderEntry binders<33..2^16-1>;
-		// list Length 2Byte
+		// 此时还未设置BinderKey哈希值以零代替
+		// 输出完整的binders列表确保握手消息长度正确
 		buffer.writeShort(extension.bindersLength());
 		for (int index = 0; index < extension.size(); index++) {
 			buffer.writeByte(extension.getHashLength());
@@ -577,7 +831,8 @@ class ExtensionCoder {
 	}
 
 	/** RFC 8446 client_hello PskBinderEntry */
-	public static void encodeBinders(OfferedPsks extension, DataBuffer buffer) throws IOException {
+	static void encodeBinders(PreSharedKeys extension, DataBuffer buffer) throws IOException {
+		// PskBinderEntry binders<33..2^16-1>;
 		PskIdentity binder;
 		buffer.writeShort(extension.bindersLength());
 		for (int index = 0; index < extension.size(); index++) {
@@ -587,14 +842,9 @@ class ExtensionCoder {
 		}
 	}
 
-	/** RFC 8446 server_hello */
-	private static void encode(PreSharedKeySelected extension, DataBuffer buffer) throws IOException {
-		buffer.writeShort(extension.getSelected());
-	}
-
 	/** RFC 8446 client_hello */
-	private static PreSharedKey decodeOfferedPsks(DataBuffer buffer, int length) throws IOException {
-		final OfferedPsks psks = new OfferedPsks();
+	static PreSharedKey decodeOfferedPsks(DataBuffer buffer, int length) throws IOException {
+		final PreSharedKeys psks = new PreSharedKeys();
 		if (length > 0) {
 			// PskIdentity identities<7..2^16-1>;
 			length = buffer.readUnsignedShort();
@@ -623,7 +873,12 @@ class ExtensionCoder {
 	}
 
 	/** RFC 8446 server_hello */
-	private static PreSharedKey decodePreSharedKeySelected(DataBuffer buffer, int length) throws IOException {
+	static void encode(PreSharedKeySelected extension, DataBuffer buffer) throws IOException {
+		buffer.writeShort(extension.getSelected());
+	}
+
+	/** RFC 8446 server_hello */
+	static PreSharedKey decodePreSharedKeySelected(DataBuffer buffer, int length) throws IOException {
 		final PreSharedKeySelected selected = new PreSharedKeySelected();
 		if (length > 0) {
 			// uint16 selected_identity_index;
@@ -633,7 +888,7 @@ class ExtensionCoder {
 	}
 
 	/** RFC 8446 */
-	private static void encode(PskKeyExchangeModes extension, DataBuffer buffer) throws IOException {
+	static void encode(PskKeyExchangeModes extension, DataBuffer buffer) throws IOException {
 		buffer.writeByte(extension.size());
 		for (int index = 0; index < extension.size(); index++) {
 			buffer.writeByte(extension.get(index));
@@ -641,50 +896,138 @@ class ExtensionCoder {
 	}
 
 	/** RFC 8446 */
-	private static void encode(EarlyDataIndication extension, DataBuffer buffer) throws IOException {
-		if (extension.getMaxSize() > 0) {
-			buffer.writeInt(extension.getMaxSize());
+	static PskKeyExchangeModes decodePskKeyExchangeModes(DataBuffer buffer, int length) throws IOException {
+		final PskKeyExchangeModes extension = new PskKeyExchangeModes();
+		if (length > 0) {
+			length = buffer.readByte();
+			while (length-- > 0) {
+				extension.add(buffer.readByte());
+			}
+		}
+		return extension;
+	}
+
+	/** RFC 8446 */
+	static void encode(SupportedVersions versions, DataBuffer buffer) throws IOException {
+		buffer.writeByte(versions.size() * 2);
+		for (int index = 0; index < versions.size(); index++) {
+			buffer.writeShort(versions.get(index));
+		}
+	}
+
+	/** RFC 8446 */
+	static SupportedVersions decodeSupportedVersions(DataBuffer buffer, int length) throws IOException {
+		final SupportedVersions versions = new SupportedVersions();
+		if (length > 0) {
+			length = buffer.readUnsignedByte() / 2;
+			while (length-- > 0) {
+				versions.add(buffer.readShort());
+			}
+		}
+		return versions;
+	}
+
+	/** RFC 8446 */
+	static void encode(SelectedVersion selected, DataBuffer buffer) throws IOException {
+		buffer.writeShort(selected.get());
+	}
+
+	/** RFC 8446 */
+	static SelectedVersion decodeSelectedVersion(DataBuffer buffer, int length) throws IOException {
+		final SelectedVersion selected = new SelectedVersion();
+		if (length > 0) {
+			selected.set(buffer.readShort());
+		}
+		return selected;
+	}
+
+	/** RFC 8446 */
+	static void encode(EarlyDataIndication earlyData, DataBuffer buffer) throws IOException {
+		if (earlyData.getMaxSize() > 0) {
+			buffer.writeInt(earlyData.getMaxSize());
 		} else {
 			// EMPTY
 		}
 	}
 
 	/** RFC 8446 */
-	private static void encode(Cookie extension, DataBuffer buffer) throws IOException {
-		buffer.writeShort(extension.getCookie().length);
-		buffer.write(extension.getCookie());
+	static EarlyDataIndication decodeEarlyDataIndication(DataBuffer buffer, int length) throws IOException {
+		if (length > 0) {
+			final EarlyDataIndication max = new EarlyDataIndication();
+			max.setMaxSize(buffer.readInt());
+			return max;
+		} else {
+			return EarlyDataIndication.EMPTY;
+		}
 	}
 
 	/** RFC 8446 */
-	private static void encode(SupportedVersions extension, DataBuffer buffer, boolean selected) throws IOException {
-		if (selected) {
-			buffer.writeShort(extension.get(0));
-		} else {
-			buffer.writeByte(extension.size() * 2);
-			for (int index = 0; index < extension.size(); index++) {
-				buffer.writeShort(extension.get(index));
+	static void encode(SignatureAlgorithmsCert algorithms, DataBuffer buffer) throws IOException {
+		// supported_signature_algorithms<2..2^16-2>;
+		buffer.writeShort(algorithms.size() * 2);
+		for (int index = 0; index < algorithms.size(); index++) {
+			buffer.writeShort(algorithms.get(index));
+		}
+	}
+
+	/** RFC 8446 */
+	static SignatureAlgorithmsCert decodeSignatureAlgorithmsCert(DataBuffer buffer, int length) throws IOException {
+		final SignatureAlgorithmsCert algorithms = new SignatureAlgorithmsCert();
+		if (length > 0) {
+			// supported_signature_algorithms<2..2^16-2>;
+			length = buffer.readUnsignedShort() / 2;
+			while (length-- > 1) {
+				algorithms.add(buffer.readShort());
 			}
 		}
+		return algorithms;
 	}
 
 	/** RFC 8446 */
-	private static void encode(CertificateAuthorities extension, DataBuffer buffer) throws IOException {
-		for (int index = 0; index < extension.size(); index++) {
-			buffer.writeShort(extension.get(index).length);
-			buffer.write(extension.get(index));
+	static void encode(CertificateAuthorities cas, DataBuffer buffer) throws IOException {
+		// DistinguishedName authorities<3..2^16-1>;
+		int position = buffer.readable();
+		buffer.writeShort(0);
+
+		for (int c = 0; c < cas.size(); c++) {
+			buffer.writeShort(cas.get(c).length);
+			buffer.write(cas.get(c));
 		}
+
+		// SET Length
+		int length = buffer.readable() - position - 2;
+		buffer.set(position++, (byte) (length >>> 8));
+		buffer.set(position, (byte) length);
 	}
 
 	/** RFC 8446 */
-	private static void encode(OIDFilters extension, DataBuffer buffer) throws IOException {
+	static CertificateAuthorities decodeCertificateAuthorities(DataBuffer buffer, int length) throws IOException {
+		final CertificateAuthorities cas = new CertificateAuthorities();
+		if (length > 0) {
+			// DistinguishedName authorities<3..2^16-1>;
+			length = buffer.readUnsignedShort();
+
+			byte[] dname;
+			while (length > 0) {
+				// opaque DistinguishedName<1..2^16-1>;
+				buffer.readFully(dname = new byte[buffer.readUnsignedShort()]);
+				length -= dname.length + 2;
+				cas.add(dname);
+			}
+		}
+		return cas;
+	}
+
+	/** RFC 8446 */
+	static void encode(OIDFilters filters, DataBuffer buffer) throws IOException {
 		// OIDFilter filters<0..2^16-1>;
 		int position = buffer.readable();
 		buffer.writeShort(0);
 
 		int p, length;
 		OIDFilter filter;
-		for (int i = 0; i < extension.size(); i++) {
-			filter = extension.get(i);
+		for (int i = 0; i < filters.size(); i++) {
+			filter = filters.get(i);
 
 			// opaque certificate_extension_oid<1..2^8-1>;
 			buffer.writeByte(filter.getOID().length);
@@ -710,7 +1053,7 @@ class ExtensionCoder {
 	}
 
 	/** RFC 8446 */
-	private static OIDFilters decodeOIDFilters(DataBuffer buffer, int length) throws IOException {
+	static OIDFilters decodeOIDFilters(DataBuffer buffer, int length) throws IOException {
 		final OIDFilters filters = new OIDFilters();
 		if (length > 0) {
 			OIDFilter filter;
@@ -740,224 +1083,29 @@ class ExtensionCoder {
 	}
 
 	/** RFC 8446 */
-	private static void encode(PostHandshakeAuth extension, DataBuffer buffer) throws IOException {
-		// EMPTY
+	static void encode(Cookie cookie, DataBuffer buffer) throws IOException {
+		buffer.writeShort(cookie.getCookie().length);
+		buffer.write(cookie.getCookie());
 	}
 
 	/** RFC 8446 */
-	private static void encode(SignatureAlgorithmsCert extension, DataBuffer buffer) throws IOException {
-		for (int index = 0; index < extension.size(); index++) {
-			buffer.writeShort(extension.get(index));
-		}
-	}
-
-	/** RFC ??? */
-	private static void encode(EncryptedClientHello extension, DataBuffer buffer) throws IOException {
-		// TODO
-	}
-
-	/** RFC 6066 */
-	private static MaxFragmentLength decodeMaxFragmentLength(DataBuffer buffer, int length) throws IOException {
+	static Cookie decodeCookie(DataBuffer buffer, int length) throws IOException {
+		final Cookie cookie = new Cookie();
 		if (length > 0) {
-			return new MaxFragmentLength(buffer.readByte());
-		} else {
-			return new MaxFragmentLength((byte) 0);
+			cookie.setCookie(new byte[buffer.readUnsignedShort()]);
+			buffer.readFully(cookie.getCookie());
 		}
-	}
-
-	/** RFC 6066 */
-	private static ClientCertificateURL decodeClientCertificateURL(DataBuffer buffer, int length) throws IOException {
-		return ClientCertificateURL.INSTANCE;
-	}
-
-	/** RFC 6066 */
-	private static TrustedAuthorities decodeTrustedCAKeys(DataBuffer buffer, int length) throws IOException {
-		// TODO
-		final TrustedAuthorities tas = new TrustedAuthorities();
-		if (length > 0) {
-			byte type;
-			byte[] data;
-			while (buffer.readable() > 3) {
-				type = buffer.readByte();
-				buffer.readFully(data = new byte[buffer.readUnsignedShort()]);
-				tas.add(new TrustedAuthority(type, data));
-			}
-
-		}
-		return tas;
-	}
-
-	/** RFC 6066 */
-	private static TruncatedHMAC decodeTruncatedHMAC(DataBuffer buffer, int length) throws IOException {
-		return TruncatedHMAC.INSTANCE;
-	}
-
-	/** RFC 6066 */
-	private static StatusRequest decodeStatusRequest(DataBuffer buffer, int length) throws IOException {
-		final StatusRequest extension = new StatusRequest();
-		if (buffer.readByte() == CertificateStatusRequest.OCSP) {
-			final OCSPStatusRequest request = new OCSPStatusRequest();
-			byte[] opaque;
-			buffer.readFully(opaque = new byte[buffer.readShort()]);
-			request.setResponderID(opaque);
-			buffer.readFully(opaque = new byte[buffer.readShort()]);
-			request.setResponderID(opaque);
-			extension.setRequest(request);
-		} else {
-			buffer.skipBytes(length - 1);
-		}
-		return extension;
-	}
-
-	/** RFC 7919 */
-	private static SupportedGroups decodeSupportedGroups(DataBuffer buffer, int length) throws IOException {
-		final SupportedGroups groups = new SupportedGroups();
-		if (length > 0) {
-			length = buffer.readShort() / 2;
-			while (length-- > 0) {
-				groups.add(buffer.readShort());
-			}
-		}
-		return groups;
-	}
-
-	/** RFC 8442 */
-	private static ECPointFormats decodeECPointFormats(DataBuffer buffer, int length) throws IOException {
-		final ECPointFormats formats = new ECPointFormats();
-		if (length > 0) {
-			length = buffer.readByte();
-			while (length-- > 0) {
-				formats.add(buffer.readByte());
-			}
-		}
-		return formats;
-	}
-
-	/** RFC 8446 */
-	private static SignatureAlgorithms decodeSignatureAlgorithms(DataBuffer buffer, int length) throws IOException {
-		final SignatureAlgorithms algorithms = new SignatureAlgorithms();
-		if (length > 0) {
-			length = buffer.readShort() / 2;
-			while (length-- > 0) {
-				algorithms.add(buffer.readShort());
-			}
-		}
-		return algorithms;
-	}
-
-	/** RFC 5764 */
-	private static UseSRTP decodeUseSRTP(DataBuffer buffer, int length) throws IOException {
-		final UseSRTP srtp = new UseSRTP();
-		if (length > 0) {
-			// SRTPProtectionProfiles SRTPProtectionProfiles;
-			length = buffer.readUnsignedShort() / 2;
-			while (length-- > 0) {
-				srtp.add(buffer.readShort());
-			}
-			// opaque srtp_mki<0..255>;
-			srtp.setMKI(new byte[buffer.readUnsignedByte()]);
-			buffer.readFully(srtp.getMKI());
-		}
-		return srtp;
-	}
-
-	/** RFC 6520 */
-	private static Heartbeat decodeHeartbeat(DataBuffer buffer, int length) throws IOException {
-		if (length > 0) {
-			return new Heartbeat(buffer.readByte());
-		} else {
-			return new Heartbeat();
-		}
-	}
-
-	/** RFC 7301 */
-	private static ApplicationLayerProtocolNegotiation decodeApplicationLayerProtocolNegotiation(DataBuffer buffer, int length) throws IOException {
-		final ApplicationLayerProtocolNegotiation alpn = new ApplicationLayerProtocolNegotiation();
-		if (length > 0) {
-			length = buffer.readShort();
-			byte[] opaque;
-			while (length > 0) {
-				buffer.readFully(opaque = new byte[buffer.readByte()]);
-				alpn.add(opaque);
-				length -= opaque.length + 1;
-			}
-		}
-		return alpn;
-	}
-
-	/** RFC 6962 */
-	private static SignedCertificateTimestamp decodeSignedCertificateTimestamp(DataBuffer buffer, int length) throws IOException {
-		final SignedCertificateTimestamp timestamp = new SignedCertificateTimestamp();
-		if (length > 0) {
-			// SerializedSCT sct_list <1..2^16-1>;
-			length = buffer.readShort();
-			byte[] opaque;
-			while (length > 0) {
-				// opaque SerializedSCT<1..2^16-1>;
-				buffer.readFully(opaque = new byte[buffer.readUnsignedShort()]);
-				timestamp.add(opaque);
-				length -= opaque.length + 2;
-			}
-		}
-		return timestamp;
-	}
-
-	/** RFC 7250 */
-	private static ClientCertificateType decodeClientCertificateType(DataBuffer buffer, int length) throws IOException {
-		// TODO
-		final ClientCertificateType types = new ClientCertificateType();
-		if (length > 0) {
-
-			// CertificateType client_certificate_types<1..2^8-1>;
-			length = buffer.readUnsignedByte();
-			while (length-- > 0) {
-				types.add(buffer.readByte());
-			}
-		}
-		return types;
-	}
-
-	/** RFC 7250 */
-	private static ServerCertificateType decodeServerCertificateType(DataBuffer buffer, int length) throws IOException {
-		// TODO
-		final ServerCertificateType type = new ServerCertificateType();
-		if (length > 0) {
-			// CertificateType server_certificate_type;
-			type.add(buffer.readByte());
-		}
-		return type;
-	}
-
-	/** RFC 7627 */
-	private static ExtendedMasterSecret decodeExtendedMasterSecret(DataBuffer buffer, int length) throws IOException {
-		return ExtendedMasterSecret.INSTANCE;
-	}
-
-	/** RFC 8879 */
-	private static CompressCertificate decodeCompressCertificate(DataBuffer buffer, int length) throws IOException {
-		final CompressCertificate algorithms = new CompressCertificate();
-		if (length > 0) {
-			// CertificateCompressionAlgorithm algorithms<2..2^8-2>;
-			length = buffer.readByte() / 2;
-			while (length-- > 0) {
-				algorithms.add(buffer.readShort());
-			}
-		}
-		return algorithms;
-	}
-
-	/** RFC 5077 */
-	private static SessionTicket decodeSessionTicket(DataBuffer buffer, int length) throws IOException {
-		final SessionTicket ticket = new SessionTicket();
-		if (length > 0) {
-			ticket.setTicket(new byte[length]);
-			buffer.readFully(ticket.getTicket());
-		}
-		return ticket;
+		return cookie;
 	}
 
 	/** RFC 5746 */
-	private static RenegotiationInfo decodeRenegotiationInfo(DataBuffer buffer, int length) throws IOException {
+	static void encode(RenegotiationInfo extension, DataBuffer buffer) throws IOException {
+		buffer.writeByte(extension.getValue().length);
+		buffer.write(extension.getValue());
+	}
+
+	/** RFC 5746 */
+	static RenegotiationInfo decodeRenegotiationInfo(DataBuffer buffer, int length) throws IOException {
 		final RenegotiationInfo info = new RenegotiationInfo();
 		if (length > 0) {
 			// opaque renegotiated_connection<0..255>;
@@ -967,7 +1115,7 @@ class ExtensionCoder {
 		return info;
 	}
 
-	private static ApplicationSettings decodeApplicationSettings(DataBuffer buffer, int length) throws IOException {
+	static ApplicationSettings decodeApplicationSettings(DataBuffer buffer, int length) throws IOException {
 		final ApplicationSettings settings = new ApplicationSettings();
 		if (length > 0) {
 			// ProtocolName supported_protocols<2..2^16-1>;
@@ -982,99 +1130,14 @@ class ExtensionCoder {
 		return settings;
 	}
 
-	private static EncryptedClientHello decodeEncryptedClientHello(DataBuffer buffer, int length) throws IOException {
+	/** RFC ??? */
+	static void encode(EncryptedClientHello extension, DataBuffer buffer) throws IOException {
+		// TODO
+	}
+
+	static EncryptedClientHello decodeEncryptedClientHello(DataBuffer buffer, int length) throws IOException {
 		final EncryptedClientHello extension = new EncryptedClientHello();
 		// TODO
 		return extension;
-	}
-
-	/** RFC 8446 */
-	private static PskKeyExchangeModes decodePskKeyExchangeModes(DataBuffer buffer, int length) throws IOException {
-		final PskKeyExchangeModes extension = new PskKeyExchangeModes();
-		if (length > 0) {
-			length = buffer.readByte();
-			while (length-- > 0) {
-				extension.add(buffer.readByte());
-			}
-		}
-		return extension;
-	}
-
-	/** RFC 8446 */
-	private static EarlyDataIndication decodeEarlyDataIndication(DataBuffer buffer, int length) throws IOException {
-		if (length > 0) {
-			final EarlyDataIndication max = new EarlyDataIndication();
-			max.setMaxSize(buffer.readInt());
-			return max;
-		} else {
-			return EarlyDataIndication.EMPTY;
-		}
-	}
-
-	/** RFC 8446 */
-	private static Cookie decodeCookie(DataBuffer buffer, int length) throws IOException {
-		final Cookie cookie = new Cookie();
-		if (length > 0) {
-			cookie.setCookie(new byte[buffer.readUnsignedShort()]);
-			buffer.readFully(cookie.getCookie());
-		}
-		return cookie;
-	}
-
-	/** RFC 8446 */
-	private static SupportedVersions decodeSelectedVersion(DataBuffer buffer, int length) throws IOException {
-		final SupportedVersions selected = new SupportedVersions();
-		if (length > 0) {
-			selected.add(buffer.readShort());
-		}
-		return selected;
-	}
-
-	/** RFC 8446 */
-	private static SupportedVersions decodeSupportedVersions(DataBuffer buffer, int length) throws IOException {
-		final SupportedVersions versions = new SupportedVersions();
-		if (length > 0) {
-			length = buffer.readUnsignedByte() / 2;
-			while (length-- > 0) {
-				versions.add(buffer.readShort());
-			}
-		}
-		return versions;
-	}
-
-	/** RFC 8446 */
-	private static CertificateAuthorities decodeCertificateAuthorities(DataBuffer buffer, int length) throws IOException {
-		final CertificateAuthorities cas = new CertificateAuthorities();
-		if (length > 0) {
-			// DistinguishedName authorities<3..2^16-1>;
-			length = buffer.readUnsignedShort();
-
-			byte[] dname;
-			while (length > 0) {
-				// opaque DistinguishedName<1..2^16-1>;
-				buffer.readFully(dname = new byte[buffer.readUnsignedShort()]);
-				length -= dname.length + 2;
-				cas.add(dname);
-			}
-		}
-		return cas;
-	}
-
-	/** RFC 8446 */
-	private static PostHandshakeAuth decodePostHandshakeAuth(DataBuffer buffer, int length) throws IOException {
-		return PostHandshakeAuth.INSTANCE;
-	}
-
-	/** RFC 8446 */
-	private static SignatureAlgorithmsCert decodeSignatureAlgorithmsCert(DataBuffer buffer, int length) throws IOException {
-		final SignatureAlgorithmsCert algorithms = new SignatureAlgorithmsCert();
-		if (length > 0) {
-			// supported_signature_algorithms<2..2^16-2>;
-			length = buffer.readUnsignedShort() / 2;
-			while (length-- > 1) {
-				algorithms.add(buffer.readShort());
-			}
-		}
-		return algorithms;
 	}
 }

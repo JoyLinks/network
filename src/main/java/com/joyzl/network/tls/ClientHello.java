@@ -158,4 +158,41 @@ class ClientHello extends HandshakeExtensions {
 			compression_methods = value;
 		}
 	}
+
+	@Override
+	public String toString() {
+		final StringBuilder b = new StringBuilder();
+		b.append(name());
+		b.append(':');
+		b.append("version=");
+		b.append(version(version));
+		b.append(",random=");
+		b.append(random.length);
+		b.append("byte");
+		b.append(",session_id=");
+		b.append(session_id.length);
+		b.append("byte");
+		b.append(",cipher_suites=");
+		for (int index = 0; index < cipher_suites.length; index++) {
+			if (index > 0) {
+				b.append(' ');
+			}
+			b.append(CipherSuite.named(cipher_suites[index]));
+		}
+		b.append(",compression_methods=");
+		for (int index = 0; index < compression_methods.length; index++) {
+			if (index > 0) {
+				b.append(' ');
+			}
+			b.append(compression_methods[index]);
+		}
+		if (hasExtensions()) {
+			for (Extension e : getExtensions()) {
+				b.append('\n');
+				b.append('\t');
+				b.append(e.toString());
+			}
+		}
+		return b.toString();
+	}
 }

@@ -18,4 +18,13 @@ class KeyShareServerHello extends KeyShare {
 	public void setServerShare(KeyShareEntry value) {
 		server_share = value;
 	}
+
+	@Override
+	public String toString() {
+		if (getServerShare() != null) {
+			return name() + ":" + getServerShare();
+		} else {
+			return name() + ":EMPTY";
+		}
+	}
 }

@@ -20,15 +20,14 @@ class NewSessionTicket extends HandshakeExtensions {
 	/** 2^32 */
 	final static long MOD = 4294967296L;
 	/** MAX 7Day */
-	public final static int LIFETIME_MAX = 604800;
+	final static int LIFETIME_MAX = 604800;
 
-	/** 票据构建的时间戳 */
-	private final long timestamp;
+	////////////////////////////////////////////////////////////////////////////////
 
 	private int lifetime;
 	private int age_add;
-	private byte[] nonce;
-	private byte[] ticket;
+	private byte[] nonce = TLS.EMPTY_BYTES;
+	private byte[] ticket = TLS.EMPTY_BYTES;
 
 	public NewSessionTicket() {
 		timestamp = System.currentTimeMillis();
@@ -71,8 +70,41 @@ class NewSessionTicket extends HandshakeExtensions {
 		lifetime = value;
 	}
 
+	////////////////////////////////////////////////////////////////////////////////
+
+	/** 票据构建的时间戳 */
+	private final long timestamp;
+	/** 票据对应恢复密钥(PSK) */
+	private byte[] resumption = TLS.EMPTY_BYTES;
+	/** NamedGroup,CipherSuite */
+	private short group, suite;
+
 	public long timestamp() {
 		return timestamp;
+	}
+
+	public byte[] getResumption() {
+		return resumption;
+	}
+
+	public void setResumption(byte[] value) {
+		resumption = value;
+	}
+
+	public short getSuite() {
+		return suite;
+	}
+
+	public void setSuite(short value) {
+		suite = value;
+	}
+
+	public short getGroup() {
+		return group;
+	}
+
+	public void setGroup(short value) {
+		group = value;
 	}
 
 	/**
@@ -114,7 +146,8 @@ class NewSessionTicket extends HandshakeExtensions {
 		b.append(",nonce=");
 		b.append(Utility.hex(nonce));
 		b.append(",ticket=");
-		b.append(Utility.hex(ticket));
+		b.append(ticket.length);
+		b.append("Byte");
 		return b.toString();
 	}
 }

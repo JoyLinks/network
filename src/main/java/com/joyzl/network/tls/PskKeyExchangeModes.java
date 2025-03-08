@@ -80,4 +80,28 @@ class PskKeyExchangeModes extends Extension {
 		}
 		return false;
 	}
+
+	@Override
+	public String toString() {
+		if (size() > 0) {
+			final StringBuilder b = new StringBuilder();
+			b.append(name());
+			b.append(':');
+			for (int i = 0; i < size(); i++) {
+				if (i > 0) {
+					b.append(',');
+				}
+				if (get(i) == PSK_KE) {
+					b.append("PSK_KE");
+				} else if (get(i) == PSK_DHE_KE) {
+					b.append("PSK_DHE_KE");
+				} else {
+					b.append("UNKNOWN");
+				}
+			}
+			return b.toString();
+		} else {
+			return name() + ":EMPTY";
+		}
+	}
 }

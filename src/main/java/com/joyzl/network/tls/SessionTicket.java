@@ -37,4 +37,9 @@ class SessionTicket extends Extension {
 			ticket = value;
 		}
 	}
+
+	@Override
+	public String toString() {
+		return name() + ":" + ticket.length;
+	}
 }

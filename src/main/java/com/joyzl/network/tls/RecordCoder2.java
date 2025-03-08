@@ -12,6 +12,61 @@ import com.joyzl.network.buffer.DataBuffer;
 class RecordCoder2 extends TLS {
 
 	/**
+	 * 解码记录层数据
+	 */
+	static int decode(CipherSuiter cipher, DataBuffer buffer, DataBuffer data) throws Exception {
+		buffer.mark();
+		// ContentType 1Byte
+		int type = buffer.readByte();
+		// ProtocolVersion 2Byte
+		short version = buffer.readShort();
+		// length 2Byte(uint16)
+		int length = buffer.readUnsignedShort();
+
+		if (type == Record.APPLICATION_DATA) {
+			// CIPHERTEXT
+			if (length > Record.CIPHERTEXT_MAX) {
+				buffer.clear();
+				throw new TLSException(Alert.RECORD_OVERFLOW);
+			}
+			// 解密
+			try {
+				if (buffer.readable() == length) {
+					cipher.decryptAdditional(length);
+					cipher.decryptFinal(buffer, data);
+				} else if (buffer.readable() > length) {
+					cipher.decryptAdditional(length);
+					cipher.decryptFinal(buffer, data, length);
+				} else {
+					buffer.reset();
+					return -1;
+				}
+			} catch (Exception e) {
+				throw new TLSException(Alert.BAD_RECORD_MAC);
+			}
+			// 删除 zeros 查找 ContentType
+			type = data.backByte();
+			while (type == 0) {
+				type = data.backByte();
+			}
+			return type;
+		} else {
+			// PLAINTEXT
+			if (length > Record.PLAINTEXT_MAX) {
+				buffer.clear();
+				throw new TLSException(Alert.RECORD_OVERFLOW);
+			}
+			if (buffer.readable() >= length) {
+				buffer.transfer(data, length);
+				return type;
+			} else {
+				buffer.reset();
+				return -1;
+			}
+		}
+	}
+
+	/**
 	 * 编码明文记录，如有必要执行分块
 	 */
 	static void encodePlaintext(Record record, DataBuffer data, DataBuffer buffer) throws IOException {
@@ -98,6 +153,14 @@ class RecordCoder2 extends TLS {
 		buffer.writeByte(ChangeCipherSpec.ONE);
 	}
 
+	static Record decodeChangeCipherSpec(DataBuffer buffer) {
+		if (buffer.readByte() == ChangeCipherSpec.ONE) {
+			return ChangeCipherSpec.INSTANCE;
+		} else {
+			return new Alert(Alert.UNEXPECTED_MESSAGE);
+		}
+	}
+
 	static void encode(HeartbeatMessage message, DataBuffer buffer) throws IOException {
 		// HeartbeatMessageType 1Byte
 		buffer.writeByte(message.getMessageType());
@@ -115,11 +178,33 @@ class RecordCoder2 extends TLS {
 		}
 	}
 
+	static HeartbeatMessage decodeHeartbeat(DataBuffer buffer) throws IOException {
+		final HeartbeatMessage message = new HeartbeatMessage();
+		// HeartbeatMessageType 1Byte
+		message.setMessageType(buffer.readByte());
+		// payload_length 2Byte(uint16)
+		message.setPayload(new byte[buffer.readUnsignedShort()]);
+		// opaque payload nByte
+		buffer.readFully(message.getPayload());
+		// ignored opaque padding
+		buffer.skipBytes(buffer.readable());
+		return message;
+	}
+
 	static void encode(Alert message, DataBuffer buffer) {
 		// AlertLevel 1Byte
 		buffer.writeByte(message.getLevel());
 		// AlertDescription 1Byte
 		buffer.writeByte(message.getDescription());
+	}
+
+	static Alert decodeAlert(DataBuffer buffer) throws IOException {
+		final Alert alert = new Alert();
+		// AlertLevel 1Byte
+		alert.setLevel(buffer.readByte());
+		// AlertDescription 1Byte
+		alert.setDescription(buffer.readByte());
+		return alert;
 	}
 
 	/** PADDING(*) */
@@ -137,90 +222,5 @@ class RecordCoder2 extends TLS {
 		while (p-- > 0) {
 			data.writeByte(0);
 		}
-	}
-
-	/**
-	 * 解码记录层数据
-	 */
-	static int decode(CipherSuiter cipher, DataBuffer buffer, DataBuffer data) throws Exception {
-		buffer.mark();
-		// ContentType 1Byte
-		int type = buffer.readByte();
-		// ProtocolVersion 2Byte
-		short version = buffer.readShort();
-		// length 2Byte(uint16)
-		int length = buffer.readUnsignedShort();
-
-		if (type == Record.APPLICATION_DATA) {
-			// CIPHERTEXT
-			if (length > Record.CIPHERTEXT_MAX) {
-				buffer.clear();
-				throw new TLSException(Alert.RECORD_OVERFLOW);
-			}
-			// 解密
-			try {
-				if (buffer.readable() == length) {
-					cipher.decryptAdditional(length);
-					cipher.decryptFinal(buffer, data);
-				} else if (buffer.readable() > length) {
-					cipher.decryptAdditional(length);
-					cipher.decryptFinal(buffer, data, length);
-				} else {
-					buffer.reset();
-					return -1;
-				}
-			} catch (Exception e) {
-				throw new TLSException(Alert.BAD_RECORD_MAC);
-			}
-			// 删除 zeros 查找 ContentType
-			type = data.backByte();
-			while (type == 0) {
-				type = data.backByte();
-			}
-			return type;
-		} else {
-			// PLAINTEXT
-			if (length > Record.PLAINTEXT_MAX) {
-				buffer.clear();
-				throw new TLSException(Alert.RECORD_OVERFLOW);
-			}
-			if (buffer.readable() >= length) {
-				buffer.transfer(data, length);
-				return type;
-			} else {
-				buffer.reset();
-				return -1;
-			}
-		}
-	}
-
-	static Record decodeChangeCipherSpec(DataBuffer buffer) {
-		if (buffer.readByte() == ChangeCipherSpec.ONE) {
-			return ChangeCipherSpec.INSTANCE;
-		} else {
-			return new Alert(Alert.UNEXPECTED_MESSAGE);
-		}
-	}
-
-	static HeartbeatMessage decodeHeartbeat(DataBuffer buffer) throws IOException {
-		final HeartbeatMessage message = new HeartbeatMessage();
-		// HeartbeatMessageType 1Byte
-		message.setMessageType(buffer.readByte());
-		// payload_length 2Byte(uint16)
-		message.setPayload(new byte[buffer.readUnsignedShort()]);
-		// opaque payload nByte
-		buffer.readFully(message.getPayload());
-		// ignored opaque padding
-		buffer.skipBytes(buffer.readable());
-		return message;
-	}
-
-	static Alert decodeAlert(DataBuffer buffer) throws IOException {
-		final Alert alert = new Alert();
-		// AlertLevel 1Byte
-		alert.setLevel(buffer.readByte());
-		// AlertDescription 1Byte
-		alert.setDescription(buffer.readByte());
-		return alert;
 	}
 }

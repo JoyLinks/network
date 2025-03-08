@@ -2,44 +2,84 @@ package com.joyzl.network.tls;
 
 import java.util.Arrays;
 
+/**
+ * <pre>
+ * RFC7250
+ * 
+ * struct {
+ *         select(ClientOrServerExtension) {
+ *             case client:
+ *               CertificateType server_certificate_types<1..2^8-1>;
+ *             case server:
+ *               CertificateType server_certificate_type;
+ *         }
+ * } ServerCertTypeExtension;
+ * 
+ * struct {
+ *         select(ClientOrServerExtension) {
+ *             case client:
+ *               CertificateType client_certificate_types<1..2^8-1>;
+ *             case server:
+ *               CertificateType client_certificate_type;
+ *         }
+ * } ClientCertTypeExtension;
+ * </pre>
+ * 
+ * @author ZhangXi 2025年3月6日
+ */
 abstract class CertificateTypes extends Extension {
 
-	// CertificateType MAX(255)
+	private byte[] types = TLS.EMPTY_BYTES;
 
-	public final static byte X509 = 0;
-	public final static byte RAW_PUBLIC_KEY = 2;
+	public CertificateTypes() {
+	}
 
-	////////////////////////////////////////////////////////////////////////////////
-
-	private final static byte[] EMPTY = new byte[0];
-	private byte[] items = EMPTY;
+	public CertificateTypes(byte... types) {
+		this.types = types;
+	}
 
 	public byte[] get() {
-		return items;
+		return types;
 	}
 
 	public byte get(int index) {
-		return items[index];
+		return types[index];
 	}
 
 	public void set(byte... value) {
 		if (value == null) {
-			items = EMPTY;
+			types = TLS.EMPTY_BYTES;
 		} else {
-			items = value;
+			types = value;
 		}
 	}
 
 	public void add(byte value) {
-		if (items == EMPTY) {
-			items = new byte[] { value };
+		if (types == TLS.EMPTY_BYTES) {
+			types = new byte[] { value };
 		} else {
-			items = Arrays.copyOf(items, items.length + 1);
-			items[items.length - 1] = value;
+			types = Arrays.copyOf(types, types.length + 1);
+			types[types.length - 1] = value;
 		}
 	}
 
 	public int size() {
-		return items.length;
+		return types.length;
+	}
+
+	static class ServerCertificateTypes extends CertificateTypes {
+
+		@Override
+		public short type() {
+			return SERVER_CERTIFICATE_TYPE;
+		}
+	}
+
+	static class ClientCertificateTypes extends CertificateTypes {
+
+		@Override
+		public short type() {
+			return CLIENT_CERTIFICATE_TYPE;
+		}
 	}
 }

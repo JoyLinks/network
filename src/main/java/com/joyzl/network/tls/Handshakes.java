@@ -30,7 +30,27 @@ class Handshakes extends Record {
 		return handshakes[index];
 	}
 
+	public Handshake last() {
+		return handshakes[size - 1];
+	}
+
 	public int size() {
 		return size;
+	}
+
+	@Override
+	public String toString() {
+		if (size() > 0) {
+			final StringBuilder b = new StringBuilder();
+			for (int i = 0; i < size(); i++) {
+				if (b.length() > 0) {
+					b.append('\n');
+				}
+				b.append(get(i));
+			}
+			return b.toString();
+		} else {
+			return "handshakes:EMPTY";
+		}
 	}
 }

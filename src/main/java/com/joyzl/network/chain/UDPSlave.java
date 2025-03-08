@@ -88,5 +88,10 @@ public class UDPSlave extends Slave {
 		} catch (Exception e) {
 			handler().error(this, e);
 		}
+		try {
+			clearContext();
+		} catch (IOException e) {
+			handler().error(this, e);
+		}
 	}
 }

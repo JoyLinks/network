@@ -13,6 +13,8 @@ import java.util.Arrays;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+import com.joyzl.network.tls.Certificate.CertificateEntry;
+
 /**
  * 签名算法，执行签名与验证
  * 
@@ -27,6 +29,8 @@ class Signaturer implements SignatureScheme {
 	private short scheme;
 	private Signature signature;
 	private KeyFactory factory;
+	private PrivateKey privateKey;
+	private PublicKey publicKey;
 
 	public void scheme(short value) throws Exception {
 		scheme = value;
@@ -192,6 +196,34 @@ class Signaturer implements SignatureScheme {
 		}
 	}
 
+	/**
+	 * 获取用于签名的私钥
+	 */
+	public PrivateKey getPrivateKey() {
+		return privateKey;
+	}
+
+	/**
+	 * 设置用于签名的私钥
+	 */
+	public void setPrivateKey(PrivateKey value) {
+		privateKey = value;
+	}
+
+	/**
+	 * 获取用于验证的公钥
+	 */
+	public PublicKey getPublicKey() {
+		return publicKey;
+	}
+
+	/**
+	 * 设置用于验证的公钥
+	 */
+	public void setPublicKey(PublicKey publicKey) {
+		this.publicKey = publicKey;
+	}
+
 	/** 上下文字符串 */
 	final static byte[] CONTEXT_SERVER = "TLS 1.3, server CertificateVerify".getBytes(StandardCharsets.US_ASCII);
 	/** 上下文字符串 */
@@ -200,6 +232,15 @@ class Signaturer implements SignatureScheme {
 	final static byte PREFIX = 0x20;
 	/** 分隔 */
 	final static byte SEPARATE = 0x00;
+
+	/**
+	 * 生成服务端签名
+	 * 
+	 * @param hash 消息哈希
+	 */
+	public byte[] singServer(byte[] hash) throws Exception {
+		return singServer(privateKey, hash);
+	}
 
 	/**
 	 * 生成服务端签名
@@ -234,6 +275,15 @@ class Signaturer implements SignatureScheme {
 		signature.update(SEPARATE);
 		signature.update(hash);
 		return signature.verify(sign);
+	}
+
+	/**
+	 * 生成客户端签名
+	 * 
+	 * @param hash 消息哈希
+	 */
+	public byte[] singClient(byte[] hash) throws Exception {
+		return singClient(privateKey, hash);
 	}
 
 	/**
@@ -290,7 +340,7 @@ class Signaturer implements SignatureScheme {
 		Certificate certificate;
 		for (int index = 0; index < entries.length; index++) {
 			entry = entries[index];
-			if (entry.type() == CertificateEntry.X509) {
+			if (entry.type() == com.joyzl.network.tls.Certificate.X509) {
 				certificate = certificateFactory.generateCertificate(new ByteArrayInputStream(entry.getData()));
 				if (certificates == null) {
 					certificates = new Certificate[] { certificate };
@@ -300,7 +350,7 @@ class Signaturer implements SignatureScheme {
 				}
 				// System.out.println("--------");
 				// System.out.println(certificate);
-			} else if (entry.type() == CertificateEntry.RAW_PUBLIC_KEY) {
+			} else if (entry.type() == com.joyzl.network.tls.Certificate.RAW_PUBLIC_KEY) {
 				// final X509EncodedKeySpec keySpec = new
 				// X509EncodedKeySpec(entry.getData());
 			}

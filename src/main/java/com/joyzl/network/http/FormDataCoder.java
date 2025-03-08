@@ -152,7 +152,7 @@ public class FormDataCoder extends HTTPCoder {
 		// 转义+为空格，转义%XX为字符
 		// 可能没有 [ENTER|LINE] 结束标志
 		// https://htmlspecs.com/url/
-		final StringBuilder builder = Utility.getStringBuilder();
+		final StringBuilder builder = getStringBuilder();
 		int c = 0;
 		String name = null;
 		while (buffer.readable() > 1) {
@@ -478,7 +478,7 @@ public class FormDataCoder extends HTTPCoder {
 	 * 读取ASCII内容文本
 	 */
 	static String readASCII(DataBuffer buffer, String boundary) throws IOException {
-		final StringBuilder builder = Utility.getStringBuilder();
+		final StringBuilder builder = getStringBuilder();
 		byte value;
 		while (buffer.readable() > boundary.length() + 4) {
 			value = buffer.readByte();

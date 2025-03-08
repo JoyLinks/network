@@ -17,7 +17,7 @@ package com.joyzl.network.tls;
 class CertificateVerify extends Handshake implements SignatureScheme {
 
 	private short algorithm;
-	private byte[] signature;
+	private byte[] signature = TLS.EMPTY_BYTES;
 
 	@Override
 	public byte msgType() {
@@ -29,7 +29,11 @@ class CertificateVerify extends Handshake implements SignatureScheme {
 	}
 
 	public void setSignature(byte[] value) {
-		signature = value;
+		if (value == null) {
+			signature = TLS.EMPTY_BYTES;
+		} else {
+			signature = value;
+		}
 	}
 
 	public short getAlgorithm() {
@@ -42,6 +46,6 @@ class CertificateVerify extends Handshake implements SignatureScheme {
 
 	@Override
 	public String toString() {
-		return name() + ':' + SignatureScheme.named(algorithm);
+		return name() + ':' + SignatureScheme.named(algorithm) + ",signature=" + signature.length + "byte";
 	}
 }

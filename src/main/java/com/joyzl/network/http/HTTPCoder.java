@@ -11,8 +11,8 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Map.Entry;
+import java.util.function.Supplier;
 
-import com.joyzl.network.Utility;
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.buffer.DataBufferUnit;
 import com.joyzl.network.http.MultipartRange.MultipartRanges;
@@ -103,6 +103,25 @@ public class HTTPCoder extends HTTP {
 	 */
 
 	/**
+	 * 由于HTTP大量依赖字符编码因此采用线程缓存的StringBuilder辅助
+	 */
+	private static final ThreadLocal<StringBuilder> THREAD_LOCAL_STRING_BUILDER = ThreadLocal.withInitial(new Supplier<>() {
+		@Override
+		public StringBuilder get() {
+			return new StringBuilder(512);
+		}
+	});
+
+	/**
+	 * 获取线程缓存字符串构建类实例
+	 */
+	static StringBuilder getStringBuilder() {
+		final StringBuilder b = THREAD_LOCAL_STRING_BUILDER.get();
+		b.setLength(0);
+		return b;
+	}
+
+	/**
 	 * 读取请求首行，采用 ifString 模式减少 new String()
 	 * <p>
 	 * 采用 ifString 模式应事先常量化字符串，并组成顺序排序数组，递进判断匹配常量字符串；如果匹配失败则 new String() 。
@@ -114,7 +133,7 @@ public class HTTPCoder extends HTTP {
 	 * @throws IOException
 	 */
 	public static boolean readCommand(DataBuffer buffer, Request request) throws IOException {
-		final StringBuilder builder = Utility.getStringBuilder();
+		final StringBuilder builder = getStringBuilder();
 		int a = 0, b = 0, c;
 		buffer.mark();
 
@@ -221,7 +240,7 @@ public class HTTPCoder extends HTTP {
 	 * @throws IOException
 	 */
 	public static boolean readCommand(DataBuffer buffer, Response response) throws IOException {
-		final StringBuilder builder = Utility.getStringBuilder();
+		final StringBuilder builder = getStringBuilder();
 		int c;
 		buffer.mark();
 
@@ -287,7 +306,7 @@ public class HTTPCoder extends HTTP {
 	 * @throws IOException
 	 */
 	public static boolean readHeaders(DataBuffer buffer, HTTPMessage message) throws IOException {
-		final StringBuilder builder = Utility.getStringBuilder();
+		final StringBuilder builder = getStringBuilder();
 		int c;
 		buffer.mark();
 
@@ -934,7 +953,7 @@ public class HTTPCoder extends HTTP {
 	 * TEST
 	 */
 	public static String toString(DataBuffer buffer) {
-		final StringBuilder builder = Utility.getStringBuilder();
+		final StringBuilder builder = getStringBuilder();
 		buffer.mark();
 		int c;
 		while (buffer.readable() > 0) {

@@ -18,4 +18,9 @@ class KeyShareHelloRetryRequest extends KeyShare {
 	public void setSelectedGroup(short value) {
 		selected_group = value;
 	}
+
+	@Override
+	public String toString() {
+		return name() + ":RETRY " + NamedGroup.named(getSelectedGroup());
+	}
 }

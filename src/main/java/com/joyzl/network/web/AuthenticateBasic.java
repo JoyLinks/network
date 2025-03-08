@@ -115,7 +115,7 @@ public class AuthenticateBasic extends Authenticate {
 
 		int colon = 0, c;
 		boolean ignore = false;
-		final StringBuilder builder = Utility.getStringBuilder();
+		final StringBuilder builder = new StringBuilder();
 		try (final FileInputStream input = new FileInputStream(file);
 			final InputStreamReader reader = new InputStreamReader(input, StandardCharsets.UTF_8);) {
 			while ((c = reader.read()) >= 0) {

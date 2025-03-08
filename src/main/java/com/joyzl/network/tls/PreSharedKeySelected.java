@@ -18,4 +18,9 @@ class PreSharedKeySelected extends PreSharedKey {
 	public void setSelected(int value) {
 		selected = value;
 	}
+
+	@Override
+	public String toString() {
+		return name() + ":" + selected;
+	}
 }

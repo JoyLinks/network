@@ -20,7 +20,7 @@ import java.util.Arrays;
  */
 class CertificateAuthorities extends Extension {
 
-	private byte[][] authorities;
+	private byte[][] authorities = TLS.EMPTY_STRINGS;
 
 	@Override
 	public short type() {

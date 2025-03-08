@@ -26,9 +26,9 @@ class ServerHello extends HandshakeExtensions {
 	final static byte[] V11_LAST8 = new byte[] { 0x44, 0x4F, 0x57, 0x4E, 0x47, 0x52, 0x44, 0x00 };
 
 	private short version = TLS.V12;
-	private byte[] random;
-	private byte[] session_id;
-	private short cipher_suite;
+	private byte[] random = TLS.EMPTY_BYTES;
+	private byte[] session_id = TLS.EMPTY_BYTES;
+	private short cipher_suite = 0;
 	private byte compression_method = 0;
 
 	@Override
@@ -54,7 +54,11 @@ class ServerHello extends HandshakeExtensions {
 	}
 
 	public void setRandom(byte[] value) {
-		random = value;
+		if (value == null) {
+			random = TLS.EMPTY_BYTES;
+		} else {
+			random = value;
+		}
 	}
 
 	public void makeRandom(short version) {
@@ -68,6 +72,10 @@ class ServerHello extends HandshakeExtensions {
 				random[i + 24] = V11_LAST8[i];
 			}
 		}
+	}
+
+	public void makeHelloRetryRequest() {
+		random = HELLO_RETRY_REQUEST_RANDOM;
 	}
 
 	public byte[] getSessionId() {
@@ -92,5 +100,44 @@ class ServerHello extends HandshakeExtensions {
 
 	public void setCompressionMethod(byte value) {
 		compression_method = value;
+	}
+
+	@Override
+	public String toString() {
+		final StringBuilder b = new StringBuilder();
+		b.append(name());
+		b.append(':');
+		b.append("version=");
+		b.append(version(version));
+		b.append(",random=");
+		if (random.length == 32) {
+			if (Arrays.equals(random, HELLO_RETRY_REQUEST_RANDOM)) {
+				b.append("HelloRetryRequest");
+			} else if (Arrays.equals(random, random.length - V12_LAST8.length, random.length, V12_LAST8, 0, V12_LAST8.length)) {
+				b.append("DOWNGRD");
+			} else if (Arrays.equals(random, random.length - V11_LAST8.length, random.length, V11_LAST8, 0, V11_LAST8.length)) {
+				b.append("DOWNGRD");
+			} else {
+				b.append("32byte");
+			}
+		} else {
+			b.append(random.length);
+			b.append("byte");
+		}
+		b.append(",session_id=");
+		b.append(session_id.length);
+		b.append("byte");
+		b.append(",cipher_suites=");
+		b.append(CipherSuite.named(cipher_suite));
+		b.append(",compression_methods=");
+		b.append(compression_method);
+		if (hasExtensions()) {
+			for (Extension e : getExtensions()) {
+				b.append('\n');
+				b.append('\t');
+				b.append(e.toString());
+			}
+		}
+		return b.toString();
 	}
 }

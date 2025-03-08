@@ -3,6 +3,8 @@ package com.joyzl.network.tls;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.joyzl.network.tls.PreSharedKey.PskIdentity;
+
 /**
  * 服务端发出的恢复会话票据缓存
  * 

@@ -472,5 +472,10 @@ public class TCPLink extends Client {
 	@Override
 	public void close() {
 		reset();
+		try {
+			clearContext();
+		} catch (IOException e) {
+			handler().error(this, e);
+		}
 	}
 }

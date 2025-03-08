@@ -241,7 +241,7 @@ public class AuthenticateDigest extends Authenticate {
 	void authenticationInfo(Request request, Response response, String rspauth, String cnonce, String nc) {
 		final String nano = Long.toUnsignedString(System.nanoTime(), Character.MAX_RADIX);
 		final String time = Long.toUnsignedString(System.currentTimeMillis(), Character.MAX_RADIX);
-		final StringBuilder builder = Utility.getStringBuilder();
+		final StringBuilder builder = new StringBuilder();
 
 		builder.append(TYPE);
 		// realm
@@ -278,7 +278,7 @@ public class AuthenticateDigest extends Authenticate {
 
 		final String nano = Long.toUnsignedString(System.nanoTime(), Character.MAX_RADIX);
 		final String time = Long.toUnsignedString(System.currentTimeMillis(), Character.MAX_RADIX);
-		final StringBuilder builder = Utility.getStringBuilder();
+		final StringBuilder builder = new StringBuilder();
 
 		builder.append(TYPE);
 		// realm
@@ -341,7 +341,7 @@ public class AuthenticateDigest extends Authenticate {
 
 		int c, c1 = 0, c2 = 0;
 		boolean ignore = false;
-		final StringBuilder builder = Utility.getStringBuilder();
+		final StringBuilder builder = new StringBuilder();
 		try (final FileInputStream input = new FileInputStream(file);
 			final InputStreamReader reader = new InputStreamReader(input, StandardCharsets.UTF_8);) {
 			while ((c = reader.read()) >= 0) {

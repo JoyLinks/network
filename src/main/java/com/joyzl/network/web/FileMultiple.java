@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
-import com.joyzl.network.Utility;
 import com.joyzl.network.http.AcceptEncoding;
 import com.joyzl.network.http.Range.ByteRange;
 
@@ -30,7 +29,7 @@ public final class FileMultiple extends WEBResource {
 
 		final String name = path.getName();
 		if (name != null && name.length() > 0) {
-			final StringBuilder builder = Utility.getStringBuilder();
+			final StringBuilder builder = new StringBuilder();
 			final String[] files = path.getParentFile().list();
 			String type;
 			if (files != null && files.length > 0) {

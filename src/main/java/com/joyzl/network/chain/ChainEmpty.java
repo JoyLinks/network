@@ -5,6 +5,7 @@
  */
 package com.joyzl.network.chain;
 
+import java.io.IOException;
 import java.net.SocketAddress;
 
 /**
@@ -69,6 +70,11 @@ public class ChainEmpty extends ChainChannel {
 		try {
 			handler().disconnected(this);
 		} catch (Exception e) {
+			handler().error(this, e);
+		}
+		try {
+			clearContext();
+		} catch (IOException e) {
 			handler().error(this, e);
 		}
 	}

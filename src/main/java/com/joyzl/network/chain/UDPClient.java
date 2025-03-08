@@ -227,6 +227,11 @@ public class UDPClient extends Client {
 			} catch (Exception e) {
 				handler().error(this, e);
 			}
+			try {
+				clearContext();
+			} catch (IOException e) {
+				handler().error(this, e);
+			}
 		}
 	}
 }

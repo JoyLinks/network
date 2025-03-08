@@ -14,4 +14,9 @@ class ChangeCipherSpec extends Record {
 	public byte contentType() {
 		return CHANGE_CIPHER_SPEC;
 	}
+
+	@Override
+	public String toString() {
+		return super.toString() + ":1";
+	}
 }

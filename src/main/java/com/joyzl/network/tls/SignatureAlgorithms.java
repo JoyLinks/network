@@ -62,6 +62,24 @@ class SignatureAlgorithms extends Extension implements SignatureScheme {
 		return algorithms.length;
 	}
 
+	@Override
+	public String toString() {
+		if (size() > 0) {
+			final StringBuilder b = new StringBuilder();
+			b.append(name());
+			b.append(':');
+			for (int i = 0; i < size(); i++) {
+				if (i > 0) {
+					b.append(',');
+				}
+				b.append(SignatureScheme.named(get(i)));
+			}
+			return b.toString();
+		} else {
+			return name() + ":EMPTY";
+		}
+	}
+
 	/**
 	 * 匹配签名算法
 	 */

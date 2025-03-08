@@ -42,4 +42,22 @@ class KeyShareClientHello extends KeyShare {
 	public int size() {
 		return items.length;
 	}
+
+	@Override
+	public String toString() {
+		if (size() > 0) {
+			final StringBuilder b = new StringBuilder();
+			b.append(name());
+			b.append(':');
+			for (int i = 0; i < size(); i++) {
+				if (i > 0) {
+					b.append(',');
+				}
+				b.append(get(i));
+			}
+			return b.toString();
+		} else {
+			return name() + ":EMPTY";
+		}
+	}
 }

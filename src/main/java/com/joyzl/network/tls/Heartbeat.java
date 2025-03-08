@@ -50,4 +50,15 @@ class Heartbeat extends Extension {
 	public void setMode(byte value) {
 		mode = value;
 	}
+
+	@Override
+	public String toString() {
+		if (getMode() == PEER_ALLOWED_TO_SEND) {
+			return name() + ":PEER_ALLOWED_TO_SEND";
+		}
+		if (getMode() == PEER_NOT_ALLOWED_TO_SEND) {
+			return name() + ":PEER_NOT_ALLOWED_TO_SEND";
+		}
+		return name() + ":EMPTY";
+	}
 }

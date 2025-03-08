@@ -6,7 +6,7 @@ import java.util.Arrays;
 /**
  * <pre>
  * opaque SerializedSCT<1..2^16-1>;
-
+ * 
  * struct {
  *     SerializedSCT sct_list <1..2^16-1>;
  * } SignedCertificateTimestampList;

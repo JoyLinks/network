@@ -2,8 +2,6 @@ package com.joyzl.network.tls;
 
 import java.util.Arrays;
 
-import com.joyzl.network.Utility;
-
 /**
  * SNI(Server Name Identification)
  * 
@@ -78,7 +76,7 @@ class ServerNames extends Extension {
 
 	@Override
 	public String toString() {
-		final StringBuilder builder = Utility.getStringBuilder();
+		final StringBuilder builder = new StringBuilder();
 		builder.append("server_name:");
 		if (items != null && items.length > 0) {
 			for (int index = 0; index < items.length; index++) {

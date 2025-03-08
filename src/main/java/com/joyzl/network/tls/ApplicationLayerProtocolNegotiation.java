@@ -27,6 +27,9 @@ public class ApplicationLayerProtocolNegotiation extends Extension {
 	/** h2 */
 	public final static byte[] H2 = new byte[] { 0x68, 0x32 };
 
+	/** ALL */
+	public final static byte[][] ALL = new byte[][] { H2, HTTP_1_1 };
+
 	////////////////////////////////////////////////////////////////////////////////
 
 	private byte[][] items = TLS.EMPTY_STRINGS;
@@ -98,18 +101,22 @@ public class ApplicationLayerProtocolNegotiation extends Extension {
 
 	@Override
 	public String toString() {
-		final StringBuilder sb = new StringBuilder();
-		sb.append(name());
 		if (size() > 0) {
-			sb.append(':');
-			for (int index = 0; index < size(); index++) {
-				if (index > 0) {
-					sb.append(',');
+			final StringBuilder b = new StringBuilder();
+			b.append(name());
+			if (size() > 0) {
+				b.append(':');
+				for (int index = 0; index < size(); index++) {
+					if (index > 0) {
+						b.append(',');
+					}
+					b.append(getString(index));
 				}
-				sb.append(getString(index));
 			}
+			return b.toString();
+		} else {
+			return name() + ":EMPTY";
 		}
-		return sb.toString();
 	}
 
 	/**

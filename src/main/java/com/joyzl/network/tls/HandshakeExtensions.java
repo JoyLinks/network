@@ -18,6 +18,22 @@ abstract class HandshakeExtensions extends Handshake implements Extensions {
 	}
 
 	@Override
+	public String toString() {
+		if (hasExtensions()) {
+			final StringBuilder b = new StringBuilder();
+			b.append(name());
+			for (Extension e : getExtensions()) {
+				b.append('\n');
+				b.append('\t');
+				b.append(e.toString());
+			}
+			return b.toString();
+		} else {
+			return name();
+		}
+	}
+
+	@Override
 	public boolean hasExtensions() {
 		return !extensions.isEmpty();
 	}

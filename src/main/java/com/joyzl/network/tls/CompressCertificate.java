@@ -75,4 +75,30 @@ class CompressCertificate extends Extension {
 	public int size() {
 		return items.length;
 	}
+
+	@Override
+	public String toString() {
+		if (size() > 0) {
+			final StringBuilder b = new StringBuilder();
+			b.append(name());
+			b.append(':');
+			for (int i = 0; i < size(); i++) {
+				if (i > 0) {
+					b.append(',');
+				}
+				if (get(i) == ZLIB) {
+					b.append("ZLIB");
+				} else if (get(i) == BROTLI) {
+					b.append("BROTLI");
+				} else if (get(i) == ZSTD) {
+					b.append("ZSTD");
+				} else {
+					b.append("UNKNOWN");
+				}
+			}
+			return b.toString();
+		} else {
+			return name() + ":EMPTY";
+		}
+	}
 }

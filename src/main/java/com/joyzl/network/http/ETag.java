@@ -69,6 +69,6 @@ public final class ETag {
 		} catch (NoSuchAlgorithmException e) {
 			throw new RuntimeException(e);
 		}
-		return Utility.hex(md.digest(), "\"", "\"");
+		return Utility.hex("\"", md.digest(), "\"");
 	}
 }

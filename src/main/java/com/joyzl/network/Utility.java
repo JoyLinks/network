@@ -13,23 +13,16 @@ package com.joyzl.network;
  */
 public class Utility {
 
-	private static final ThreadLocal<StringBuilder> THREAD_STRING_BUILDER = new ThreadLocal<StringBuilder>() {
-		@Override
-		protected StringBuilder initialValue() {
-			return new StringBuilder(512);
-		}
-	};
-
-	public static StringBuilder getStringBuilder() {
-		final StringBuilder b = THREAD_STRING_BUILDER.get();
-		b.setLength(0);
-		return b;
-	}
-
+	/**
+	 * value == null || value.length == 0
+	 */
 	public static boolean isEmpty(CharSequence value) {
 		return value == null || value.length() == 0;
 	}
 
+	/**
+	 * value != null && value.length > 0
+	 */
 	public static boolean noEmpty(CharSequence value) {
 		return value != null && value.length() > 0;
 	}
@@ -153,26 +146,47 @@ public class Utility {
 		return true;
 	}
 
+	/**
+	 * [0x0A,0x1A] -> "0a1a"
+	 */
 	public static String hex(byte[] data) {
-		return hex(data, "", "");
+		final StringBuilder b = new StringBuilder(data.length * 2);
+		hex(data, b);
+		return b.toString();
 	}
 
-	public static String hex(byte[] data, CharSequence prefix, CharSequence suffix) {
-		final StringBuilder builder = Utility.getStringBuilder();
-		builder.append(prefix);
+	/**
+	 * [0x0A,0x1A] -> prefix + "0a1a" + suffix
+	 */
+	public static String hex(CharSequence prefix, byte[] data, CharSequence suffix) {
+		final StringBuilder b = new StringBuilder(prefix.length() + data.length * 2 + suffix.length());
+		b.append(prefix);
+		hex(data, b);
+		b.append(suffix);
+		return b.toString();
+	}
+
+	/**
+	 * [0x0A,0x1A] -> "0a1a"
+	 */
+	public static void hex(byte[] data, StringBuilder builder) {
 		for (int value, i = 0; i < data.length; i++) {
 			value = data[i] & 0xFF;
 			builder.append(Character.forDigit(value / 16, 16));
 			builder.append(Character.forDigit(value % 16, 16));
 		}
-		builder.append(suffix);
-		return builder.toString();
 	}
 
+	/**
+	 * "0a1a" -> [0x0A,0x1A]
+	 */
 	public static byte[] hex(String data) {
 		return hex(data, 0, data.length());
 	}
 
+	/**
+	 * "0a1a" -> [0x0A,0x1A]
+	 */
 	public static byte[] hex(String data, int offset, int length) {
 		final byte[] temp = new byte[(length - offset) / 2];
 		int value;

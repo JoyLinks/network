@@ -391,6 +391,11 @@ public class TCPSlave extends Slave {
 						sendMessage = null;
 					}
 				}
+				try {
+					clearContext();
+				} catch (IOException e) {
+					handler().error(this, e);
+				}
 			}
 		}
 	}

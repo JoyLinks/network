@@ -7,7 +7,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 会话
+ * 会话对象在多个链路间共享
  * 
  * <pre>
  * public final static Session&lt;User&gt; USER = new SessionRefreshable&lt;&gt;();

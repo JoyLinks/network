@@ -2,8 +2,6 @@ package com.joyzl.network.tls;
 
 import java.util.Arrays;
 
-import com.joyzl.network.Utility;
-
 /**
  *
  * <pre>
@@ -67,32 +65,20 @@ class SupportedVersions extends Extension {
 
 	@Override
 	public String toString() {
-		final StringBuilder builder = Utility.getStringBuilder();
-		builder.append("supported_versions:");
-		if (versions != null && versions.length > 0) {
-			for (int index = 0; index < versions.length; index++) {
-				if (index > 0) {
-					builder.append(',');
+		if (size() > 0) {
+			final StringBuilder b = new StringBuilder();
+			b.append(name());
+			b.append(':');
+			for (int i = 0; i < size(); i++) {
+				if (i > 0) {
+					b.append(',');
 				}
-				builder.append(Short.toString(versions[index]));
+				b.append(version(get(i)));
 			}
+			return b.toString();
+		} else {
+			return name() + ":EMPTY";
 		}
-		return builder.toString();
-	}
-
-	/**
-	 * 选择版本，匹配成功之后内部数组将缩减为仅包含选择项
-	 */
-	public short select(short[] others) {
-		for (int i = 0; i < versions.length; i++) {
-			for (int s = 0; s < others.length; s++) {
-				if (versions[i] == others[s]) {
-					versions = new short[] { others[s] };
-					return others[s];
-				}
-			}
-		}
-		return 0;
 	}
 
 	/**

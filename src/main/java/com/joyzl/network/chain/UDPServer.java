@@ -178,5 +178,10 @@ public class UDPServer extends Server {
 				handler().error(this, e);
 			}
 		}
+		try {
+			clearContext();
+		} catch (IOException e) {
+			handler().error(this, e);
+		}
 	}
 }

@@ -1,5 +1,6 @@
 package com.joyzl.network.tls;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.security.KeyFactory;
@@ -15,12 +16,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.security.auth.x500.X500Principal;
+
+import com.joyzl.network.tls.Certificate.CertificateEntry;
 
 /**
  * 提供终端可用与会话的证书
@@ -29,23 +31,23 @@ import javax.security.auth.x500.X500Principal;
  */
 public class SessionCertificates {
 
-	/** SNI,CPK */
-	private final static Map<String, CPK> ENTRIES = new HashMap<>();
-	/** CA */
-	private final static Set<X500Principal> CAS = new HashSet<>();
+	/** 本地证书 SNI,CPK */
+	private final static Map<String, CPK> LOCALS = new HashMap<>();
+	/** 信任机构证书 */
+	private final static Map<X500Principal, X509Certificate> CAS = new HashMap<>();
 
 	public static CPK get(String name) {
-		return ENTRIES.get(name);
+		return LOCALS.get(name);
 	}
 
 	public static CPK get(ServerName name) {
-		return ENTRIES.get(name.getNameString());
+		return LOCALS.get(name.getNameString());
 	}
 
 	public static CPK get(ServerName... names) {
 		CPK cpk;
 		for (int i = 0; i < names.length; i++) {
-			cpk = ENTRIES.get(names[i].getNameString());
+			cpk = LOCALS.get(names[i].getNameString());
 			if (cpk != null) {
 				return cpk;
 			}
@@ -53,8 +55,14 @@ public class SessionCertificates {
 		return null;
 	}
 
-	public static Collection<CPK> all() {
-		return Collections.unmodifiableCollection(ENTRIES.values());
+	public static void checkLocals() throws Exception {
+		for (CPK cpk : SessionCertificates.all()) {
+			check(cpk.getCertificates());
+		}
+	}
+
+	static Collection<CPK> all() {
+		return Collections.unmodifiableCollection(LOCALS.values());
 	}
 
 	/**
@@ -62,8 +70,8 @@ public class SessionCertificates {
 	 */
 	static CertificateAuthorities makeCASExtension() {
 		final CertificateAuthorities cas = new CertificateAuthorities();
-		for (X500Principal p : CAS) {
-			cas.add(p.getEncoded());
+		for (X509Certificate c : CAS.values()) {
+			cas.add(c.getIssuerX500Principal().getEncoded());
 		}
 		return cas;
 	}
@@ -80,7 +88,7 @@ public class SessionCertificates {
 	public static String checkString() {
 		final StringBuilder b = new StringBuilder();
 		b.append("CERTIFICATES:");
-		for (Map.Entry<String, CPK> e : ENTRIES.entrySet()) {
+		for (Map.Entry<String, CPK> e : LOCALS.entrySet()) {
 			b.append('\n');
 			b.append('\t');
 			b.append(e.getKey());
@@ -89,10 +97,10 @@ public class SessionCertificates {
 			b.append(e.getValue());
 		}
 		b.append("\nAUTHORITIES:");
-		for (X500Principal p : CAS) {
+		for (X509Certificate p : CAS.values()) {
 			b.append('\n');
 			b.append('\t');
-			b.append(p.getName());
+			b.append(p.getSubjectX500Principal());
 		}
 		return b.toString();
 	}
@@ -188,20 +196,53 @@ public class SessionCertificates {
 	}
 
 	/**
+	 * 加载对端证书并缓存
+	 */
+	static Certificate[] loadCertificate(com.joyzl.network.tls.Certificate c) throws Exception {
+		final CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+		final Certificate[] certificates = new Certificate[c.size()];
+		for (int index = 0; index < c.size(); index++) {
+			if (c.get(index).type() == com.joyzl.network.tls.Certificate.X509) {
+				certificates[index] = certificateFactory.generateCertificate(new ByteArrayInputStream(c.get(index).getData()));
+			}
+		}
+		return certificates;
+		// create(null, certificates);
+	}
+
+	/**
 	 * 创建并缓存证书集，以证书集中的第一项证书中包含的名称为键
 	 */
 	static void create(PrivateKey key, Certificate... certificates) throws Exception {
 		final X509Certificate[] x509s = new X509Certificate[certificates.length];
 		for (int i = 0; i < certificates.length; i++) {
 			x509s[i] = (X509Certificate) certificates[i];
-			CAS.add(x509s[i].getIssuerX500Principal());
+			CAS.put(x509s[i].getSubjectX500Principal(), x509s[i]);
 		}
 		final X509Certificate x509 = (X509Certificate) certificates[0];
 		final CPK cpk = new CPK(x509s, key);
+
+		// 绑定证书名称，服务端和客户端通过名称获取证书
 		final Collection<List<?>> names = x509.getSubjectAlternativeNames();
-		for (List<?> name : names) {
-			// [0 Integer,1 String]
-			ENTRIES.put(name.get(1).toString(), cpk);
+		if (names != null) {
+			// SAN
+			for (List<?> name : names) {
+				// [0 Integer,1 String]
+				LOCALS.put(name.get(1).toString(), cpk);
+			}
+		} else {
+			// CN
+			// CN=Simon, OU=JOYZL, O=JOYZL, L=Chongqing, ST=Chongqing, C=CN
+			String cn = x509.getSubjectX500Principal().getName();
+			int a = cn.indexOf("CN=");
+			int b = cn.indexOf(',');
+			if (a >= 0 && b > a) {
+				cn = cn.substring(a + 3, b);
+				if (cn != null && cn.length() > 0) {
+					LOCALS.put(cn, cpk);
+					return;
+				}
+			}
 		}
 	}
 
@@ -227,7 +268,7 @@ public class SessionCertificates {
 		}
 
 		public boolean check(OIDFilters filters) {
-			final X509Certificate certificate = certificates[0];
+			final X509Certificate certificate = getCertificates()[0];
 			OIDFilter filter;
 			Set<String> oids;
 			byte[] value;
@@ -255,8 +296,8 @@ public class SessionCertificates {
 
 		public boolean check(CertificateAuthorities cas) {
 			X509Certificate certificate;
-			for (int c = 0; c < certificates.length; c++) {
-				certificate = certificates[c];
+			for (int c = 0; c < getCertificates().length; c++) {
+				certificate = getCertificates()[c];
 				for (int a = 0; a < cas.size(); a++) {
 					if (Arrays.equals(cas.get(a), certificate.getIssuerX500Principal().getEncoded())) {
 						return true;
@@ -264,6 +305,10 @@ public class SessionCertificates {
 				}
 			}
 			return false;
+		}
+
+		public X509Certificate[] getCertificates() {
+			return certificates;
 		}
 
 		public CertificateEntry[] getEntries() {
@@ -300,9 +345,39 @@ public class SessionCertificates {
 			if (store.isCertificateEntry(alias)) {
 				cert = store.getCertificate(alias);
 				if (cert instanceof X509Certificate x509) {
-					CAS.add(x509.getIssuerX500Principal());
+					CAS.put(x509.getSubjectX500Principal(), x509);
 				}
 			}
+		}
+	}
+
+	/**
+	 * 检查证书是否有效
+	 */
+	public static void check(X509Certificate... certificates) throws Exception {
+		X509Certificate c, previous = null;
+		for (int i = 0; i < certificates.length; i++) {
+			c = certificates[i];
+			c.checkValidity();
+			if (previous != null) {
+				previous.verify(c.getPublicKey());
+			}
+			previous = c;
+		}
+		if (previous != null) {
+			if (CAS.containsKey(previous.getSubjectX500Principal())) {
+				return;
+			} else {
+				c = CAS.get(previous.getIssuerX500Principal());
+				if (c != null) {
+					previous.verify(c.getPublicKey());
+					return;
+				} else {
+					throw new CertificateException("invalid CA");
+				}
+			}
+		} else {
+			throw new CertificateException("invalid Certificate");
 		}
 	}
 }
