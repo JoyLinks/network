@@ -6,7 +6,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * 密钥提取与展开方法<br>
+ * TLS 1.3 密钥提取与展开方法<br>
  * 
  * RFC 5869 HMAC-based Extract-and-Expand Key Derivation Function (HKDF)<br>
  * RFC 2104 HMAC: Keyed-Hashing for Message Authentication
@@ -62,7 +62,7 @@ class HKDF extends TranscriptHash {
 	}
 
 	/** HKDF-Extract(salt, IKM) -> PRK=HMAC-Hash(salt, IKM) */
-	public byte[] extract(byte[] salt, byte[] IKM) throws Exception {
+	public final byte[] extract(byte[] salt, byte[] IKM) throws Exception {
 		if (salt == null || salt.length == 0) {
 			// HashLen zeros
 			salt = ZEROS;
@@ -81,7 +81,7 @@ class HKDF extends TranscriptHash {
 	}
 
 	/** HKDF-Expand */
-	public byte[] expand(byte[] PRK, byte[] info, int length) throws Exception {
+	public final byte[] expand(byte[] PRK, byte[] info, int length) throws Exception {
 		if (length <= 0) {
 			throw new IllegalArgumentException("length");
 		}
@@ -169,7 +169,7 @@ class HKDF extends TranscriptHash {
 	/**
 	 * Derive-Secret(Secret,Label,Messages)=HKDF-Expand-Label(Secret,Label,Transcript-Hash(Messages),Hash.length)
 	 */
-	public byte[] deriveSecret(byte[] secret, byte[] label, byte[] hash) throws Exception {
+	public final byte[] deriveSecret(byte[] secret, byte[] label, byte[] hash) throws Exception {
 		return expandLabel(secret, label, hash, hashLength());
 	}
 }

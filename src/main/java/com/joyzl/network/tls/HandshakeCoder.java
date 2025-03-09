@@ -5,6 +5,7 @@ import java.io.IOException;
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.tls.Certificate.CertificateEntry;
 import com.joyzl.network.tls.CertificateURL.URLAndHash;
+import com.joyzl.network.tls.ServerKeyExchange.ServerDHParams;
 
 class HandshakeCoder extends TLS {
 
@@ -96,7 +97,7 @@ class HandshakeCoder extends TLS {
 			} else if (type == Handshake.SERVER_HELLO_DONE) {
 				message = ServerHelloDone.INSTANCE;
 			} else if (type == Handshake.SERVER_KEY_EXCHANGE) {
-				message = decodeServerKeyExchange(buffer);
+				message = decodeServerKeyExchange(buffer, length);
 			} else if (type == Handshake.CLIENT_KEY_EXCHANGE) {
 				message = decodeClientKeyExchange(buffer);
 			} else if (type == Handshake.HELLO_REQUEST) {
@@ -388,7 +389,7 @@ class HandshakeCoder extends TLS {
 	}
 
 	private static void encode(KeyUpdate message, DataBuffer buffer) throws IOException {
-		buffer.writeByte(message.getRequest());
+		buffer.writeByte(message.get());
 	}
 
 	private static KeyUpdate decodeKeyUpdate(DataBuffer buffer) throws IOException {
@@ -396,12 +397,47 @@ class HandshakeCoder extends TLS {
 	}
 
 	private static void encode(ServerKeyExchange message, DataBuffer buffer) throws IOException {
-		// TODO
+		if (message.getParams() != null) {
+			// opaque dh_p<1..2^16-1>;
+			buffer.writeShort(message.getParams().getP().length);
+			buffer.write(message.getParams().getP());
+			// opaque dh_g<1..2^16-1>;
+			buffer.writeShort(message.getParams().getG().length);
+			buffer.write(message.getParams().getG());
+			// opaque dh_Ys<1..2^16-1>;
+			buffer.writeShort(message.getParams().getYs().length);
+			buffer.write(message.getParams().getYs());
+
+			// signed_params
+			if (message.getSigned().length > 0) {
+				buffer.writeShort(message.getSigned().length);
+				buffer.write(message.getSigned());
+			}
+		} else {
+			// EMPTY
+		}
 	}
 
-	private static ServerKeyExchange decodeServerKeyExchange(DataBuffer buffer) throws IOException {
+	private static ServerKeyExchange decodeServerKeyExchange(DataBuffer buffer, int length) throws IOException {
 		final ServerKeyExchange message = new ServerKeyExchange();
-		// TODO
+		if (length > 0) {
+			final ServerDHParams params = new ServerDHParams();
+			params.setP(new byte[buffer.readUnsignedShort()]);
+			buffer.readFully(params.getP());
+			params.setG(new byte[buffer.readUnsignedShort()]);
+			buffer.readFully(params.getG());
+			params.setYs(new byte[buffer.readUnsignedShort()]);
+			buffer.readFully(params.getYs());
+
+			length -= params.length() + 6;
+			if (length > 0) {
+				message.setSigned(new byte[buffer.readUnsignedShort()]);
+				buffer.readFully(message.getSigned());
+			}
+			message.setParams(params);
+		} else {
+			// EMPTY
+		}
 		return message;
 	}
 

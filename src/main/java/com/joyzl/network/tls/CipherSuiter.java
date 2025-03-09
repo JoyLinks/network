@@ -41,6 +41,9 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 	// https://www.bouncycastle.org/
 	// https://docs.oracle.com/en/java/javase/17/docs/specs/security/standard-names.html
 
+	/** AES-GCM 加密记录限制 */
+	final static long MAX_SEQUENCE = (long) Math.pow(2, 24.5);
+
 	static {
 		Security.addProvider(new BouncyCastleProvider());
 	}
@@ -620,6 +623,26 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 		decryptSequence++;
 
 		out.append(output.flip());
+	}
+
+	/**
+	 * 指示是否应更新密钥，密钥使用次数到达限制
+	 */
+	public boolean encryptLimit() {
+		if (encryptSequence >= MAX_SEQUENCE) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * 指示是否应更新密钥，密钥使用次数到达限制
+	 */
+	public boolean decryptLimit() {
+		if (decryptSequence >= MAX_SEQUENCE) {
+			return true;
+		}
+		return false;
 	}
 
 	/**

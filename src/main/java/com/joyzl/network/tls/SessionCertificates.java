@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.security.KeyFactory;
 import java.security.KeyStore;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -31,21 +32,32 @@ import com.joyzl.network.tls.Certificate.CertificateEntry;
  */
 public class SessionCertificates {
 
-	/** 本地证书 SNI,CPK */
-	private final static Map<String, CPK> LOCALS = new HashMap<>();
 	/** 信任机构证书 */
 	private final static Map<X500Principal, X509Certificate> CAS = new HashMap<>();
+	/** 本地证书 SNI,CPK */
+	private final static Map<String, LocalCache> LOCALS = new HashMap<>();
+	/** 远端证书 SNI,CPK */
+	private final static Map<String, RemoteCache> REMOTES = new HashMap<>();
 
-	public static CPK get(String name) {
+	/**
+	 * 获取指定名称的本地证书
+	 */
+	public static LocalCache getLocal(String name) {
 		return LOCALS.get(name);
 	}
 
-	public static CPK get(ServerName name) {
+	/**
+	 * 获取指定名称的本地证书
+	 */
+	public static LocalCache getLocal(ServerName name) {
 		return LOCALS.get(name.getNameString());
 	}
 
-	public static CPK get(ServerName... names) {
-		CPK cpk;
+	/**
+	 * 获取指定名称的本地证书
+	 */
+	public static LocalCache getLocal(ServerName... names) {
+		LocalCache cpk;
 		for (int i = 0; i < names.length; i++) {
 			cpk = LOCALS.get(names[i].getNameString());
 			if (cpk != null) {
@@ -55,14 +67,19 @@ public class SessionCertificates {
 		return null;
 	}
 
-	public static void checkLocals() throws Exception {
-		for (CPK cpk : SessionCertificates.all()) {
-			check(cpk.getCertificates());
-		}
+	/**
+	 * 获取指定名称的远端证书
+	 */
+	public static RemoteCache getRemote(String name) {
+		return REMOTES.get(name);
 	}
 
-	static Collection<CPK> all() {
+	public static Collection<LocalCache> allLocals() {
 		return Collections.unmodifiableCollection(LOCALS.values());
+	}
+
+	public static Collection<RemoteCache> allRemotes() {
+		return Collections.unmodifiableCollection(REMOTES.values());
 	}
 
 	/**
@@ -88,7 +105,7 @@ public class SessionCertificates {
 	public static String checkString() {
 		final StringBuilder b = new StringBuilder();
 		b.append("CERTIFICATES:");
-		for (Map.Entry<String, CPK> e : LOCALS.entrySet()) {
+		for (Map.Entry<String, LocalCache> e : LOCALS.entrySet()) {
 			b.append('\n');
 			b.append('\t');
 			b.append(e.getKey());
@@ -126,6 +143,28 @@ public class SessionCertificates {
 	// P12: 同PFX
 
 	/**
+	 * 加载指定信任证书签发机构的证书，默认位于JAVA-HOME/lib/security/cacerts，默认密码 changeit
+	 */
+	public static void load(File cacerts, String password) throws Exception {
+		final KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
+		try (FileInputStream input = new FileInputStream(cacerts)) {
+			store.load(input, password.toCharArray());
+		}
+
+		Certificate cert;
+		final Enumeration<String> aliases = store.aliases();
+		while (aliases.hasMoreElements()) {
+			String alias = aliases.nextElement();
+			if (store.isCertificateEntry(alias)) {
+				cert = store.getCertificate(alias);
+				if (cert instanceof X509Certificate x509) {
+					CAS.put(x509.getSubjectX500Principal(), x509);
+				}
+			}
+		}
+	}
+
+	/**
 	 * 加载包含证书链和私钥的证书文件，通常需要密码用于读取并解锁文件内容; <br>
 	 * 扩展名可能为 .pfx .p12 .jks
 	 */
@@ -143,11 +182,11 @@ public class SessionCertificates {
 				if (key != null) {
 					final Certificate[] certificates = store.getCertificateChain(alias);
 					if (certificates != null) {
-						create(key, certificates);
+						createLocalCache(key, certificates);
 					} else {
 						final Certificate certificate = store.getCertificate(alias);
 						if (certificate != null) {
-							create(key, certificate);
+							createLocalCache(key, certificate);
 						} else {
 							throw new Exception("未能获取证书" + c);
 						}
@@ -173,7 +212,7 @@ public class SessionCertificates {
 			certificates = factory.generateCertificates(input);
 		}
 		if (certificates.size() > 0) {
-			create(key, certificates.toArray(new Certificate[0]));
+			createLocalCache(key, certificates.toArray(new Certificate[0]));
 		} else {
 			throw new Exception("未包含证书" + c);
 		}
@@ -198,7 +237,7 @@ public class SessionCertificates {
 	/**
 	 * 加载对端证书并缓存
 	 */
-	static Certificate[] loadCertificate(com.joyzl.network.tls.Certificate c) throws Exception {
+	static Certificate[] loadCertificate(String name, com.joyzl.network.tls.Certificate c) throws Exception {
 		final CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
 		final Certificate[] certificates = new Certificate[c.size()];
 		for (int index = 0; index < c.size(); index++) {
@@ -206,21 +245,21 @@ public class SessionCertificates {
 				certificates[index] = certificateFactory.generateCertificate(new ByteArrayInputStream(c.get(index).getData()));
 			}
 		}
+		createRemoteCache(name, certificates);
 		return certificates;
-		// create(null, certificates);
 	}
 
 	/**
 	 * 创建并缓存证书集，以证书集中的第一项证书中包含的名称为键
 	 */
-	static void create(PrivateKey key, Certificate... certificates) throws Exception {
+	static void createLocalCache(PrivateKey key, Certificate... certificates) throws Exception {
 		final X509Certificate[] x509s = new X509Certificate[certificates.length];
 		for (int i = 0; i < certificates.length; i++) {
 			x509s[i] = (X509Certificate) certificates[i];
 			CAS.put(x509s[i].getSubjectX500Principal(), x509s[i]);
 		}
 		final X509Certificate x509 = (X509Certificate) certificates[0];
-		final CPK cpk = new CPK(x509s, key);
+		final LocalCache local = new LocalCache(x509s, key);
 
 		// 绑定证书名称，服务端和客户端通过名称获取证书
 		final Collection<List<?>> names = x509.getSubjectAlternativeNames();
@@ -228,7 +267,7 @@ public class SessionCertificates {
 			// SAN
 			for (List<?> name : names) {
 				// [0 Integer,1 String]
-				LOCALS.put(name.get(1).toString(), cpk);
+				LOCALS.put(name.get(1).toString(), local);
 			}
 		} else {
 			// CN
@@ -239,7 +278,7 @@ public class SessionCertificates {
 			if (a >= 0 && b > a) {
 				cn = cn.substring(a + 3, b);
 				if (cn != null && cn.length() > 0) {
-					LOCALS.put(cn, cpk);
+					LOCALS.put(cn, local);
 					return;
 				}
 			}
@@ -247,17 +286,28 @@ public class SessionCertificates {
 	}
 
 	/**
-	 * 对应SNI的证书集(证书链)
+	 * 创建并缓存证书集，以证书集中的第一项证书中包含的名称为键
+	 */
+	static void createRemoteCache(String name, Certificate... certificates) throws Exception {
+		final X509Certificate[] x509s = new X509Certificate[certificates.length];
+		for (int i = 0; i < certificates.length; i++) {
+			x509s[i] = (X509Certificate) certificates[i];
+		}
+		REMOTES.put(name, new RemoteCache(x509s));
+	}
+
+	/**
+	 * 本地对应SNI的证书集(证书链)
 	 * 
 	 * @author ZhangXi 2025年2月25日
 	 */
-	static class CPK {
+	public static class LocalCache {
 		private final X509Certificate[] certificates;
 		private final CertificateEntry[] entries;
 		private final PrivateKey privateKey;
 		private final short scheme;
 
-		public CPK(X509Certificate[] certificates, PrivateKey privateKey) throws CertificateException {
+		LocalCache(X509Certificate[] certificates, PrivateKey privateKey) throws CertificateException {
 			this.certificates = certificates;
 			this.privateKey = privateKey;
 			scheme = Signaturer.scheme(certificates[0].getSigAlgName());
@@ -267,7 +317,7 @@ public class SessionCertificates {
 			}
 		}
 
-		public boolean check(OIDFilters filters) {
+		boolean check(OIDFilters filters) {
 			final X509Certificate certificate = getCertificates()[0];
 			OIDFilter filter;
 			Set<String> oids;
@@ -294,7 +344,7 @@ public class SessionCertificates {
 			return true;
 		}
 
-		public boolean check(CertificateAuthorities cas) {
+		boolean check(CertificateAuthorities cas) {
 			X509Certificate certificate;
 			for (int c = 0; c < getCertificates().length; c++) {
 				certificate = getCertificates()[c];
@@ -311,43 +361,53 @@ public class SessionCertificates {
 			return certificates;
 		}
 
-		public CertificateEntry[] getEntries() {
+		CertificateEntry[] getEntries() {
 			return entries;
 		}
 
-		public PrivateKey getPrivateKey() {
+		PrivateKey getPrivateKey() {
 			return privateKey;
 		}
 
-		public short getScheme() {
+		short getScheme() {
 			return scheme;
 		}
 
 		@Override
 		public String toString() {
-			return SignatureScheme.named(scheme) + " " + entries.length;
+			return SignatureScheme.named(scheme) + " " + certificates.length;
 		}
 	}
 
 	/**
-	 * 加载指定信任证书签发机构的证书，默认位于JAVA-HOME/lib/security/cacerts，默认密码 changeit
+	 * 远端对应SNI的证书集
+	 * 
+	 * @author ZhangXi 2025年3月9日
 	 */
-	public static void load(File cacerts, String password) throws Exception {
-		final KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
-		try (FileInputStream input = new FileInputStream(cacerts)) {
-			store.load(input, password.toCharArray());
+	public static class RemoteCache {
+		private final X509Certificate[] certificates;
+		private final short scheme;
+
+		RemoteCache(X509Certificate[] certificates) throws CertificateException {
+			this.certificates = certificates;
+			scheme = Signaturer.scheme(certificates[0].getSigAlgName());
 		}
 
-		Certificate cert;
-		final Enumeration<String> aliases = store.aliases();
-		while (aliases.hasMoreElements()) {
-			String alias = aliases.nextElement();
-			if (store.isCertificateEntry(alias)) {
-				cert = store.getCertificate(alias);
-				if (cert instanceof X509Certificate x509) {
-					CAS.put(x509.getSubjectX500Principal(), x509);
-				}
-			}
+		public X509Certificate[] getCertificates() {
+			return certificates;
+		}
+
+		PublicKey getPublicKey() {
+			return certificates[0].getPublicKey();
+		}
+
+		short getScheme() {
+			return scheme;
+		}
+
+		@Override
+		public String toString() {
+			return SignatureScheme.named(scheme) + " " + certificates.length;
 		}
 	}
 

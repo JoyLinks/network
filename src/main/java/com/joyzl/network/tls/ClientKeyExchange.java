@@ -1,10 +1,10 @@
 package com.joyzl.network.tls;
 
 /**
- * TLS 1.0
+ * 
  * 
  * <pre>
- * RFC2246
+ * RFC2246 TLS 1.0
  * 
  * struct {
  *      select (KeyExchangeAlgorithm) {

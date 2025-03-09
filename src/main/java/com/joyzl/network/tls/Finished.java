@@ -4,8 +4,18 @@ import java.util.Arrays;
 
 /**
  * <pre>
+ * TLS 1.3
+ * 
  * struct {
  *       opaque verify_data[Hash.length];
+ * } Finished;
+ * </pre>
+ * 
+ * <pre>
+ * TLS 1.2
+ * 
+ * struct {
+ *       opaque verify_data[verify_data_length];
  * } Finished;
  * </pre>
  * 

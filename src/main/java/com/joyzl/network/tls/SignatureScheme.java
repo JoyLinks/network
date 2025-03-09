@@ -7,6 +7,7 @@ package com.joyzl.network.tls;
  */
 public interface SignatureScheme {
 
+	// TLS 1.3
 	// SignatureScheme MAX (0xFFFF)
 	// Secure Hash Standard (SHS)
 
@@ -59,6 +60,23 @@ public interface SignatureScheme {
 	public final static short DSA_SHA512_RESERVED = 0x0602;
 	// obsolete_RESERVED(0x0604..0x06FF),
 	// private_use(0xFE00..0xFFFF),
+
+	// TLS 1.2
+	// enum{none(0),md5(1),sha1(2),sha224(3),sha256(4),sha384(5),sha512(6),(255)}HashAlgorithm;
+	// enum{anonymous(0),rsa(1),dsa(2),ecdsa(3),(255)}SignatureAlgorithm;
+
+	public final static byte HASH_NONE = 0;
+	public final static byte HASH_MD5 = 1;
+	public final static byte HASH_SHA1 = 2;
+	public final static byte HASH_SHA224 = 3;
+	public final static byte HASH_SHA256 = 4;
+	public final static byte HASH_SHA384 = 5;
+	public final static byte HASH_SHA512 = 6;
+
+	public final static byte SIGNATURE_ANONYMOUS = 0;
+	public final static byte SIGNATURE_RSA = 1;
+	public final static byte SIGNATURE_DSA = 2;
+	public final static byte SIGNATURE_ECDSA = 3;
 
 	/**
 	 * 全部数字签名算法

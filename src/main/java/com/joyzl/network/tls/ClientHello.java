@@ -2,6 +2,41 @@ package com.joyzl.network.tls;
 
 /**
  * <pre>
+ * RFC 8446 TLSv1.3
+ * 
+ * uint16 ProtocolVersion;
+ * opaque Random[32];
+ * uint8 CipherSuite[2];    / Cryptographic suite selector /
+ * 
+ * struct {
+ *     ProtocolVersion legacy_version = 0x0303;    / TLS v1.2 /
+ *     Random random;
+ *     opaque legacy_session_id<0..32>;
+ *     CipherSuite cipher_suites<2..2^16-2>;
+ *     opaque legacy_compression_methods<1..2^8-1>;
+ *     Extension extensions<8..2^16-1>;
+ * } ClientHello;
+ * </pre>
+ * 
+ * <pre>
+ * RFC 5246 TLSv1.2
+ * 
+ * struct {
+ *     ProtocolVersion client_version;
+ *     Random random;
+ *     SessionID session_id;
+ *     CipherSuite cipher_suites<2..2^16-2>;
+ *     CompressionMethod compression_methods<1..2^8-1>;
+ *     select (extensions_present) {
+ *         case false:
+ *             struct {};
+ *         case true:
+ *             Extension extensions<0..2^16-1>;
+ *     };
+ * } ClientHello;
+ * </pre>
+ * 
+ * <pre>
  * RFC 2246 TLSv1.0
  * RFC 4346 TLSv1.1
  * 
@@ -20,36 +55,6 @@ package com.joyzl.network.tls;
  *     CompressionMethod compression_methods<1..2^8-1>;
  * } ClientHello;
  * 
- * RFC 5246 TLSv1.2
- * struct {
- *     ProtocolVersion client_version;
- *     Random random;
- *     SessionID session_id;
- *     CipherSuite cipher_suites<2..2^16-2>;
- *     CompressionMethod compression_methods<1..2^8-1>;
- *     select (extensions_present) {
- *         case false:
- *             struct {};
- *         case true:
- *             Extension extensions<0..2^16-1>;
- *     };
- * } ClientHello;
- * 
- * RFC 8446 TLSv1.3
- * 
- * uint16 ProtocolVersion;
- * opaque Random[32];
-
- * uint8 CipherSuite[2];    / Cryptographic suite selector /
-
- * struct {
- *     ProtocolVersion legacy_version = 0x0303;    / TLS v1.2 /
- *     Random random;
- *     opaque legacy_session_id<0..32>;
- *     CipherSuite cipher_suites<2..2^16-2>;
- *     opaque legacy_compression_methods<1..2^8-1>;
- *     Extension extensions<8..2^16-1>;
- * } ClientHello;
  * </pre>
  * 
  * @author ZhangXi 2024年12月19日

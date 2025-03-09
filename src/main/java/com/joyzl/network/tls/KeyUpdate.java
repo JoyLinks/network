@@ -22,7 +22,7 @@ class KeyUpdate extends Handshake {
 
 	////////////////////////////////////////////////////////////////////////////////
 
-	private byte request;
+	private byte request = UPDATE_REQUESTED;
 
 	public KeyUpdate() {
 	}
@@ -36,11 +36,16 @@ class KeyUpdate extends Handshake {
 		return KEY_UPDATE;
 	}
 
-	public byte getRequest() {
+	public byte get() {
 		return request;
 	}
 
-	public void setRequest(byte value) {
+	public void set(byte value) {
 		request = value;
+	}
+
+	@Override
+	public String toString() {
+		return name() + ":" + request;
 	}
 }

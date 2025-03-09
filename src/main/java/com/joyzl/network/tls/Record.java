@@ -2,6 +2,8 @@ package com.joyzl.network.tls;
 
 /**
  * <pre>
+ * TLS 1.3
+ * 
  * enum {
  *     invalid(0),
  *     change_cipher_spec(20),
@@ -34,6 +36,65 @@ package com.joyzl.network.tls;
  * } TLSCiphertext;
  * 
  * encrypted_record:TLSInnerPlaintext
+ * </pre>
+ * 
+ * <pre>
+ * TLS 1.2
+ * 
+ * enum {
+ *     change_cipher_spec(20),
+ *     alert(21),
+ *     handshake(22),
+ *     application_data(23),
+ *     (255)
+ * } ContentType;
+ * 
+ * struct {
+ *     ContentType type;
+ *     ProtocolVersion version;
+ *     uint16 length;
+ *     opaque fragment[TLSPlaintext.length];
+ * } TLSPlaintext;
+ * 
+ * struct {
+ *     ContentType type;       // same as TLSPlaintext.type
+ *     ProtocolVersion version;// same as TLSPlaintext.version
+ *     uint16 length;
+ *     opaque fragment[TLSCompressed.length];
+ * } TLSCompressed;
+ * 
+ * struct {
+ *     ContentType type;
+ *     ProtocolVersion version;
+ *     uint16 length;
+ *     select (SecurityParameters.cipher_type) {
+ *         case stream: GenericStreamCipher;
+ *         case block:  GenericBlockCipher;
+ *         case aead:   GenericAEADCipher;
+ *     } fragment;
+ * } TLSCiphertext;
+ * 
+ * stream-ciphered struct {
+ *     opaque content[TLSCompressed.length];
+ *     opaque MAC[SecurityParameters.mac_length];
+ * } GenericStreamCipher;
+ * 
+ * struct {
+ *     opaque IV[SecurityParameters.record_iv_length];
+ *     block-ciphered struct {
+ *         opaque content[TLSCompressed.length];
+ *         opaque MAC[SecurityParameters.mac_length];
+ *         uint8 padding[GenericBlockCipher.padding_length];
+ *         uint8 padding_length;
+ *     };
+ * } GenericBlockCipher;
+ * 
+ * struct {
+ *     opaque nonce_explicit[SecurityParameters.record_iv_length];
+ *     aead-ciphered struct {
+ *         opaque content[TLSCompressed.length];
+ *     };
+ * } GenericAEADCipher;
  * </pre>
  * 
  * @author ZhangXi 2024年12月19日

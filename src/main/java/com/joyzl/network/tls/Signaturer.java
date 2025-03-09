@@ -2,7 +2,6 @@ package com.joyzl.network.tls;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Security;
@@ -28,7 +27,6 @@ class Signaturer implements SignatureScheme {
 
 	private short scheme;
 	private Signature signature;
-	private KeyFactory factory;
 	private PrivateKey privateKey;
 	private PublicKey publicKey;
 
@@ -37,33 +35,33 @@ class Signaturer implements SignatureScheme {
 		switch (value) {
 			// RSASSA-PKCS1-v1_5 algorithms
 			case RSA_PKCS1_SHA256:
-				factory = KeyFactory.getInstance("RSA");
+				// factory = KeyFactory.getInstance("RSA");
 				signature = Signature.getInstance("SHA256withRSA");
 				break;
 			case RSA_PKCS1_SHA384:
-				factory = KeyFactory.getInstance("RSA");
+				// factory = KeyFactory.getInstance("RSA");
 				signature = Signature.getInstance("SHA384withRSA");
 				break;
 			case RSA_PKCS1_SHA512:
-				factory = KeyFactory.getInstance("RSA");
+				// factory = KeyFactory.getInstance("RSA");
 				signature = Signature.getInstance("SHA512withRSA");
 				break;
 
 			// ECDSA algorithms
 			case ECDSA_SECP256R1_SHA256:
-				factory = KeyFactory.getInstance("EC");
+				// factory = KeyFactory.getInstance("EC");
 				// ECGenParameterSpec ecGenParameterSpec = new
 				// ECGenParameterSpec("secp256r1");
 				signature = Signature.getInstance("SHA256withECDSA");
 				break;
 			case ECDSA_SECP384R1_SHA384:
-				factory = KeyFactory.getInstance("EC");
+				// factory = KeyFactory.getInstance("EC");
 				// ECGenParameterSpec ecGenParameterSpec = new
 				// ECGenParameterSpec("secp384r1");
 				signature = Signature.getInstance("SHA384withECDSA");
 				break;
 			case ECDSA_SECP521R1_SHA512:
-				factory = KeyFactory.getInstance("EC");
+				// factory = KeyFactory.getInstance("EC");
 				// ECGenParameterSpec ecGenParameterSpec = new
 				// ECGenParameterSpec("secp521r1");
 				signature = Signature.getInstance("SHA512withECDSA");
@@ -71,71 +69,70 @@ class Signaturer implements SignatureScheme {
 
 			// RSASSA-PSS RSAE algorithms
 			case RSA_PSS_RSAE_SHA256:
-				factory = KeyFactory.getInstance("RSA");
+				// factory = KeyFactory.getInstance("RSA");
 				signature = Signature.getInstance("SHA256withRSA/PSS");
 				break;
 			case RSA_PSS_RSAE_SHA384:
-				factory = KeyFactory.getInstance("RSA");
+				// factory = KeyFactory.getInstance("RSA");
 				signature = Signature.getInstance("SHA384withRSA/PSS");
 				break;
 			case RSA_PSS_RSAE_SHA512:
-				factory = KeyFactory.getInstance("RSA");
+				// factory = KeyFactory.getInstance("RSA");
 				signature = Signature.getInstance("SHA512withRSA/PSS");
 				break;
 
 			// EdDSA algorithms
 			case ED25519:
-				factory = KeyFactory.getInstance("Ed25519");
+				// factory = KeyFactory.getInstance("Ed25519");
 				signature = Signature.getInstance("Ed25519");
 				break;
 			case ED448:
-				factory = KeyFactory.getInstance("Ed448");
+				// factory = KeyFactory.getInstance("Ed448");
 				signature = Signature.getInstance("Ed448");
 				break;
 
 			// RSASSA-PSS PSS algorithms
 			case RSA_PSS_PSS_SHA256:
-				factory = KeyFactory.getInstance("RSA");
+				// factory = KeyFactory.getInstance("RSA");
 				signature = Signature.getInstance("SHA256withRSA/PSS");
 				break;
 			case RSA_PSS_PSS_SHA384:
-				factory = KeyFactory.getInstance("RSA");
+				// factory = KeyFactory.getInstance("RSA");
 				signature = Signature.getInstance("SHA384withRSA/PSS");
 				break;
 			case RSA_PSS_PSS_SHA512:
-				factory = KeyFactory.getInstance("RSA");
+				// factory = KeyFactory.getInstance("RSA");
 				signature = Signature.getInstance("SHA512withRSA/PSS");
 				break;
 
 			// 不推荐的
 			case RSA_PKCS1_SHA1:
-				factory = KeyFactory.getInstance("RSA");
+				// factory = KeyFactory.getInstance("RSA");
 				signature = Signature.getInstance("SHA1withRSA");
 				break;
 			case ECDSA_SHA1:
-				factory = KeyFactory.getInstance("EC");
+				// factory = KeyFactory.getInstance("EC");
 				signature = Signature.getInstance("SHA1withECDSA");
 				break;
 			case DSA_SHA1_RESERVED:
-				factory = KeyFactory.getInstance("DSA");
+				// factory = KeyFactory.getInstance("DSA");
 				signature = Signature.getInstance("SHA1withDSA");
 				break;
 			case DSA_SHA256_RESERVED:
-				factory = KeyFactory.getInstance("DSA");
+				// factory = KeyFactory.getInstance("DSA");
 				signature = Signature.getInstance("SHA256withDSA");
 				break;
 			case DSA_SHA384_RESERVED:
-				factory = KeyFactory.getInstance("DSA");
+				// factory = KeyFactory.getInstance("DSA");
 				signature = Signature.getInstance("SHA384withDSA");
 				break;
 			case DSA_SHA512_RESERVED:
-				factory = KeyFactory.getInstance("DSA");
+				// factory = KeyFactory.getInstance("DSA");
 				signature = Signature.getInstance("SHA512withDSA");
 				break;
 			default:
 				throw new IllegalArgumentException("TLS:UNKNOWN signature algorithm");
 		}
-		factory.toString();
 	}
 
 	public static short scheme(String algorithm) {

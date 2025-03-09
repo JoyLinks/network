@@ -7,7 +7,7 @@ import com.joyzl.network.tls.Certificate.CertificateEntry;
 import com.joyzl.network.tls.CertificateStatusRequest.OCSPStatusRequest;
 import com.joyzl.network.tls.KeyShare.KeyShareEntry;
 import com.joyzl.network.tls.PreSharedKey.PskIdentity;
-import com.joyzl.network.tls.SessionCertificates.CPK;
+import com.joyzl.network.tls.SessionCertificates.LocalCache;
 
 /**
  * TLSClientHandler
@@ -206,7 +206,7 @@ public class TLSClientHandler extends RecordHandler {
 			// certificate_authorities
 			final Certificate certificate = new Certificate();
 			certificate.setContext(certificateRequest.getContext());
-			final CPK entry = SessionCertificates.get(sni);
+			final LocalCache entry = SessionCertificates.getLocal(sni);
 			if (entry != null) {
 				certificate.set(entry.getEntries());
 				final CertificateVerify certificateVerify = new CertificateVerify();
@@ -277,7 +277,7 @@ public class TLSClientHandler extends RecordHandler {
 
 		// AEAD HKDF
 		hello.setCipherSuites(CipherSuite.V13);
-		hello.setCompressionMethods(CompressionMethod.METHODS);
+		hello.setCompressionMethods(TLS.COMPRESSION_METHODS);
 
 		// Extensions
 		hello.addExtension(new ServerNames(new ServerName(sni)));

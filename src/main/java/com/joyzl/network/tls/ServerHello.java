@@ -4,13 +4,33 @@ import java.util.Arrays;
 
 /**
  * <pre>
+ * TLS 1.3
+ * 
  * struct {
- *     ProtocolVersion legacy_version = 0x0303;    / TLS v1.2 /
- *     Random random[32];
- *     opaque legacy_session_id_echo<0..32>;
- *     CipherSuite cipher_suite;
- *     uint8 legacy_compression_method = 0;
- *     Extension extensions<6..2^16-1>;
+ *       ProtocolVersion legacy_version = 0x0303;    / TLS v1.2 /
+ *       Random random[32];
+ *       opaque legacy_session_id_echo<0..32>;
+ *       CipherSuite cipher_suite;
+ *       uint8 legacy_compression_method = 0;
+ *       Extension extensions<6..2^16-1>;
+ * } ServerHello;
+ * </pre>
+ * 
+ * <pre>
+ * TLS 1.2
+ * 
+ * struct {
+ *       ProtocolVersion server_version;
+ *       Random random;
+ *       SessionID session_id;
+ *       CipherSuite cipher_suite;
+ *       CompressionMethod compression_method;
+ *       select (extensions_present) {
+ *             case false:
+ *                   struct {};
+ *             case true:
+ *                   Extension extensions<0..2^16-1>;
+ *       };
  * } ServerHello;
  * </pre>
  * 
@@ -28,8 +48,8 @@ class ServerHello extends HandshakeExtensions {
 	private short version = TLS.V12;
 	private byte[] random = TLS.EMPTY_BYTES;
 	private byte[] session_id = TLS.EMPTY_BYTES;
-	private short cipher_suite = 0;
-	private byte compression_method = 0;
+	private short cipher_suite = CipherSuite.TLS_NULL_WITH_NULL_NULL;
+	private byte compression_method = COMPRESSION_METHOD_NULL;
 
 	@Override
 	public byte msgType() {

@@ -1,7 +1,7 @@
 package com.joyzl.network.tls;
 
 /**
- * 具有状态的密钥处理类
+ * TLS 1.3 具有状态的密钥处理类
  * 
  * @author ZhangXi 2024年12月30日
  */
@@ -64,6 +64,15 @@ class SecretCache extends DeriveSecret {
 	 * {Finished}              ------->      decrypt-handshake
 	 * encrypt-application
 	 * [Application Data]      ------->    decrypt-application
+	 * 
+	 * -----------------------KeyUpdate-----------------------
+	 * encrypt-application
+	 * [key_update]            ------->    decrypt-application
+	 *                          ......
+	 *                                     encrypt-application
+	 * decrypt-application    <-------            [key_update]
+	 * update-encrypt                           update-decrypt
+	 * update-decrypt                           update-encrypt
 	 */
 
 	private byte[] early;
@@ -146,6 +155,10 @@ class SecretCache extends DeriveSecret {
 		return finishedVerifyData(clientHandshakeTraffic, hash());
 	}
 
+	public byte[] clientFinished2() throws Exception {
+		return finishedVerifyData(clientApplicationTraffic, hash());
+	}
+
 	public byte[] serverFinished() throws Exception {
 		return finishedVerifyData(serverHandshakeTraffic, hash());
 	}
@@ -162,6 +175,11 @@ class SecretCache extends DeriveSecret {
 			return serverApplicationTraffic = serverApplicationTraffic(master, hash());
 		}
 		return serverApplicationTraffic;
+	}
+
+	public void nextApplicationTraffic() throws Exception {
+		clientApplicationTraffic = nextApplicationTraffic(clientApplicationTraffic);
+		serverApplicationTraffic = nextApplicationTraffic(serverApplicationTraffic);
 	}
 
 	public byte[] exporterMaster() throws Exception {

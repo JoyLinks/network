@@ -1,7 +1,7 @@
 package com.joyzl.network.tls;
 
 /**
- * TLS 1.0
+ * TLS 1.2 1.1 1.0
  * 
  * <pre>
  * struct { } ServerHelloDone;

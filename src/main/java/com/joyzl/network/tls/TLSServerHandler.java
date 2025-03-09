@@ -9,7 +9,7 @@ import com.joyzl.network.chain.ChainHandler;
 import com.joyzl.network.codec.Binary;
 import com.joyzl.network.tls.KeyShare.KeyShareEntry;
 import com.joyzl.network.tls.PreSharedKey.PskIdentity;
-import com.joyzl.network.tls.SessionCertificates.CPK;
+import com.joyzl.network.tls.SessionCertificates.LocalCache;
 
 /**
  * TLSServerHandler
@@ -252,20 +252,23 @@ public class TLSServerHandler implements ChainHandler {
 				chain.close();
 			}
 		} else {
+			if (context.cipher.decryptLimit()) {
+				chain.send(new KeyUpdate());
+			}
 			handler().received(chain, message);
 		}
 	}
 
 	@Override
 	public void sent(ChainChannel chain, Object message) throws Exception {
+		final TLSContext context = chain.getContext(TLSContext.class);
 		if (message instanceof Record) {
 			System.out.println(message);
 			if (message instanceof Alert) {
 				chain.close();
-			} else //
-			if (message instanceof Handshakes handshakes) {
+				return;
+			} else if (message instanceof Handshakes handshakes) {
 				if (handshakes.last().msgType() == Handshake.FINISHED) {
-					final TLSContext context = chain.getContext(TLSContext.class);
 					if (context.cipher.handshaked()) {
 						// 重置握手数据解密套件
 						context.cipher.decryptReset(context.cipher.clientHandshakeTraffic());
@@ -273,15 +276,23 @@ public class TLSServerHandler implements ChainHandler {
 						context.cipher.encryptReset(context.cipher.serverApplicationTraffic());
 						// 应用数据解密密钥导出，等待客户端完成消息后重置解密套件
 						context.cipher.clientApplicationTraffic();
-						context.cipher.exporterMaster();
+						// context.cipher.exporterMaster();
 						handler().connected(chain);
 					}
 				}
-				chain.receive();
-			} else {
-				chain.receive();
+			} else if (message instanceof KeyUpdate) {
+				final KeyUpdate update = (KeyUpdate) message;
+				if (update.get() == KeyUpdate.UPDATE_NOT_REQUESTED) {
+					// 响应密钥更新，重置加解密套件
+					context.cipher.encryptReset(context.cipher.serverApplicationTraffic());
+					context.cipher.decryptReset(context.cipher.clientApplicationTraffic());
+				}
 			}
+			chain.receive();
 		} else {
+			if (context.cipher.encryptLimit()) {
+				chain.send(new KeyUpdate());
+			}
 			handler().sent(chain, message);
 		}
 	}
@@ -440,7 +451,7 @@ public class TLSServerHandler implements ChainHandler {
 								context.length = 0;
 								if (earlyData != null) {
 									context.cipher.decryptReset(context.cipher.clientEarlyTraffic());
-									context.cipher.earlyExporterMaster();
+									// context.cipher.earlyExporterMaster();
 								} else {
 									// 未有早期数据
 								}
@@ -563,11 +574,11 @@ public class TLSServerHandler implements ChainHandler {
 					cr.addExtension(SessionCertificates.makeOIDFiltersExtension());
 
 					// 服务端证书
-					CPK cpk = null;
+					LocalCache cpk = null;
 					final CertificateAuthorities cas = hello.getExtension(Extension.CERTIFICATE_AUTHORITIES);
 					final ServerNames sns = hello.getExtension(Extension.SERVER_NAME);
 					if (sns != null) {
-						cpk = SessionCertificates.get(sns.get());
+						cpk = SessionCertificates.getLocal(sns.get());
 						if (cpk != null) {
 							if (cas != null) {
 								if (cpk.check(cas)) {
@@ -585,7 +596,7 @@ public class TLSServerHandler implements ChainHandler {
 						}
 					} else {
 						if (cas != null) {
-							for (CPK p : SessionCertificates.all()) {
+							for (LocalCache p : SessionCertificates.allLocals()) {
 								if (p.check(cas)) {
 									cpk = p;
 									break;
@@ -650,6 +661,24 @@ public class TLSServerHandler implements ChainHandler {
 			// Early Application Data - EndOfEarlyData
 			context.cipher.decryptReset(context.cipher.clientHandshakeTraffic());
 			return null;
+		} else
+
+		if (record.msgType() == Handshake.KEY_UPDATE) {
+			final KeyUpdate update = (KeyUpdate) record;
+			if (update.get() == KeyUpdate.UPDATE_REQUESTED) {
+				// 来自对方请求，发送后重置密钥
+				update.set(KeyUpdate.UPDATE_NOT_REQUESTED);
+				context.cipher.nextApplicationTraffic();
+				return update;
+			} else if (update.get() == KeyUpdate.UPDATE_NOT_REQUESTED) {
+				// 来自对方响应，立即重置密钥
+				context.cipher.nextApplicationTraffic();
+				context.cipher.encryptReset(context.cipher.serverApplicationTraffic());
+				context.cipher.decryptReset(context.cipher.clientApplicationTraffic());
+				return null;
+			} else {
+				return new Alert(Alert.ILLEGAL_PARAMETER);
+			}
 		} else
 
 		if (record.msgType() == Handshake.FINISHED) {

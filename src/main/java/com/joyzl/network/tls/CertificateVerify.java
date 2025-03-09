@@ -4,12 +4,22 @@ package com.joyzl.network.tls;
  * 证书签名用于验证Certificate消息
  * 
  * <pre>
+ * TLS 1.3
  * struct {
  *     SignatureScheme algorithm;
  *     opaque signature<0..2^16-1>;
  * } CertificateVerify;
  * 
  * Transcript-Hash(Handshake Context, Certificate)
+ * </pre>
+ * 
+ * <pre>
+ * TLS 1.2
+ * struct {
+ *       digitally-signed struct {
+ *             opaque handshake_messages[handshake_messages_length];
+ *       }
+ * } CertificateVerify;
  * </pre>
  * 
  * @author ZhangXi 2024年12月19日

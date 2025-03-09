@@ -6,7 +6,7 @@ import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.buffer.DataBufferUnit;
 
 /**
- * Transcript-Hash
+ * TLS 1.3 Transcript-Hash
  * 
  * @author ZhangXi 2024年12月30日
  */

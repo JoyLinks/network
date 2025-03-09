@@ -19,7 +19,7 @@ class RecordCoder2 extends TLS {
 		// ContentType 1Byte
 		int type = buffer.readByte();
 		// ProtocolVersion 2Byte
-		short version = buffer.readShort();
+		buffer.readShort();
 		// length 2Byte(uint16)
 		int length = buffer.readUnsignedShort();
 
@@ -114,7 +114,7 @@ class RecordCoder2 extends TLS {
 		// encrypted_record: DATA + ContentType + PADDING(n)
 		// ContentType 1Byte
 		data.writeByte(record.contentType());
-		padding(data);
+		padding(data, 0);
 
 		// ContentType 1Byte
 		buffer.writeByte(Record.APPLICATION_DATA);
@@ -169,13 +169,7 @@ class RecordCoder2 extends TLS {
 		buffer.writeShort(message.getPayload().length);
 		buffer.write(message.getPayload());
 		// opaque padding >= 16Byte
-		int size = Record.PLAINTEXT_MAX - message.getPayload().length - 3;
-		if (size > 64) {
-			size = 64;
-		}
-		while (size-- > 0) {
-			buffer.writeByte(size);
-		}
+		padding(buffer, 16);
 	}
 
 	static HeartbeatMessage decodeHeartbeat(DataBuffer buffer) throws IOException {
@@ -208,19 +202,23 @@ class RecordCoder2 extends TLS {
 	}
 
 	/** PADDING(*) */
-	static void padding(DataBuffer data) {
-		int p = Record.PLAINTEXT_MAX - data.readable();
-		if (p > 16) {
-			p = 16 - (p % 16);
-		} else if (p > 8) {
-			p = 8 - (p % 8);
-		} else if (p > 4) {
-			p = 4 - (p % 4);
-		} else {
-			p = 4 - p;
-		}
-		while (p-- > 0) {
-			data.writeByte(0);
+	static void padding(DataBuffer data, int min) {
+		int size = Record.PLAINTEXT_MAX - data.readable();
+		if (size > min) {
+			if (size > 32) {
+				size = 32 - (size % 32);
+			} else if (size > 16) {
+				size = 16 - (size % 16);
+			} else if (size > 8) {
+				size = 8 - (size % 8);
+			} else if (size > 4) {
+				size = 4 - (size % 4);
+			} else {
+				size = 4 - size;
+			}
+			while (size-- > 0) {
+				data.writeByte(0);
+			}
 		}
 	}
 }

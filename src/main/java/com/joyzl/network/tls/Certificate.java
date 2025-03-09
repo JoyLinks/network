@@ -8,22 +8,10 @@ import java.util.List;
  * 用于认证的证书和链中任何支持的证书
  * 
  * <pre>
- * RFC 2246 TLSv1.0
- * RFC 4336 TLSv1.1
- * RFC 5246 TLSv1.2
- * 
- * opaque ASN.1Cert<1..2^24-1>;
- * 
- * struct {
- *     ASN.1Cert certificate_list<0..2^24-1>;
- * } Certificate;
- * 
  * RFC 8446 TLSv1.3
  * 
  * enum {
- *     X509(0),
- *     RawPublicKey(2),
- *     (255)
+ *     X509(0), RawPublicKey(2), (255)
  * } CertificateType;
  * 
  * struct {
@@ -49,6 +37,18 @@ import java.util.List;
  *       uint24 uncompressed_length;
  *       opaque compressed_certificate_message<1..2^24-1>;
  * } CompressedCertificate;
+ * </pre>
+ * 
+ * <pre>
+ * RFC 2246 TLSv1.0
+ * RFC 4336 TLSv1.1
+ * RFC 5246 TLSv1.2
+ * 
+ * opaque ASN.1Cert<1..2^24-1>;
+ * 
+ * struct {
+ *     ASN.1Cert certificate_list<0..2^24-1>;
+ * } Certificate;
  * </pre>
  * 
  * @author ZhangXi 2024年12月19日
