@@ -14,8 +14,8 @@ public class ClientSessionTickets {
 
 	private final static Map<Key, Queue<NewSessionTicket>> M = new ConcurrentHashMap<>();
 
-	public static void put(String sni, short group, short suite, NewSessionTicket newSessionTicket) {
-		final Key key = new Key(sni, group, suite);
+	public static void put(String sni, short suite, NewSessionTicket newSessionTicket) {
+		final Key key = new Key(sni, suite);
 		Queue<NewSessionTicket> q = M.get(key);
 		if (q == null) {
 			q = new ConcurrentLinkedQueue<>();
@@ -24,8 +24,8 @@ public class ClientSessionTickets {
 		q.add(newSessionTicket);
 	}
 
-	public static NewSessionTicket get(String sni, short group, short suite) {
-		final Key key = new Key(sni, group, suite);
+	public static NewSessionTicket get(String sni, short suite) {
+		final Key key = new Key(sni, suite);
 		final Queue<NewSessionTicket> q = M.get(key);
 		if (q != null) {
 			NewSessionTicket t;
@@ -45,30 +45,25 @@ public class ClientSessionTickets {
 	static class Key {
 		/** ServerName */
 		private final String sni;
-		/** NamedGroup */
-		private final short group;
 		/** CipherSuite */
 		private final short suite;
 
-		public Key(String sni, short group, short suite) {
-			this.group = group;
+		public Key(String sni, short suite) {
 			this.suite = suite;
 			this.sni = sni;
 		}
 
 		@Override
 		public String toString() {
-			return sni + " " + NamedGroup.named(group) + " " + CipherSuite.named(suite);
+			return sni + " " + CipherSuite.named(suite);
 		}
 
 		@Override
 		public final boolean equals(Object o) {
 			if (o instanceof Key that) {
-				if (group == that.group) {
-					if (suite == that.suite) {
-						if (sni.equals(that.sni)) {
-							return true;
-						}
+				if (suite == that.suite) {
+					if (sni.equals(that.sni)) {
+						return true;
 					}
 				}
 			}
@@ -77,7 +72,7 @@ public class ClientSessionTickets {
 
 		@Override
 		public final int hashCode() {
-			return sni.hashCode() + group + suite;
+			return sni.hashCode() + suite;
 		}
 	}
 }

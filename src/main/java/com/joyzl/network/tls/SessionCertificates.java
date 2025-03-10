@@ -47,27 +47,6 @@ public class SessionCertificates {
 	}
 
 	/**
-	 * 获取指定名称的本地证书
-	 */
-	public static LocalCache getLocal(ServerName name) {
-		return LOCALS.get(name.getNameString());
-	}
-
-	/**
-	 * 获取指定名称的本地证书
-	 */
-	public static LocalCache getLocal(ServerName... names) {
-		LocalCache cpk;
-		for (int i = 0; i < names.length; i++) {
-			cpk = LOCALS.get(names[i].getNameString());
-			if (cpk != null) {
-				return cpk;
-			}
-		}
-		return null;
-	}
-
-	/**
 	 * 获取指定名称的远端证书
 	 */
 	public static RemoteCache getRemote(String name) {
@@ -80,26 +59,6 @@ public class SessionCertificates {
 
 	public static Collection<RemoteCache> allRemotes() {
 		return Collections.unmodifiableCollection(REMOTES.values());
-	}
-
-	/**
-	 * 根据用户提供的证书构造信任证书签发机构扩展对象(CertificateAuthorities)
-	 */
-	static CertificateAuthorities makeCASExtension() {
-		final CertificateAuthorities cas = new CertificateAuthorities();
-		for (X509Certificate c : CAS.values()) {
-			cas.add(c.getIssuerX500Principal().getEncoded());
-		}
-		return cas;
-	}
-
-	/**
-	 * 根据用户指定构造客户端证书筛选扩展对象(OIDFilters)
-	 */
-	static OIDFilters makeOIDFiltersExtension() {
-		final OIDFilters filters = new OIDFilters();
-		// TODO 须进一步实现
-		return filters;
 	}
 
 	public static String checkString() {
@@ -122,6 +81,73 @@ public class SessionCertificates {
 		return b.toString();
 	}
 
+	////////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * 获取指定名称的本地证书
+	 */
+	static LocalCache getLocal(ServerName name) {
+		return LOCALS.get(name.getNameString());
+	}
+
+	/**
+	 * 获取指定名称集的本地证书
+	 */
+	static LocalCache getLocal(ServerNames names) {
+		LocalCache cpk;
+		for (int i = 0; i < names.size(); i++) {
+			cpk = LOCALS.get(names.get(i).getNameString());
+			if (cpk != null) {
+				return cpk;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * 根据用户提供的证书构造信任证书签发机构扩展对象(CertificateAuthorities)
+	 */
+	static CertificateAuthorities makeCASExtension() {
+		final CertificateAuthorities cas = new CertificateAuthorities();
+		for (X509Certificate c : CAS.values()) {
+			cas.add(c.getIssuerX500Principal().getEncoded());
+		}
+		return cas;
+	}
+
+	/**
+	 * 根据用户指定构造客户端证书筛选扩展对象(OIDFilters)
+	 */
+	static OIDFilters makeOIDFiltersExtension() {
+		final OIDFilters filters = new OIDFilters();
+		// TODO 须进一步实现
+		return filters;
+	}
+
+	/**
+	 * 根据指定扩展参数筛选本地证书
+	 */
+	static LocalCache filters(CertificateAuthorities cas, OIDFilters oid) {
+		if (LOCALS.isEmpty()) {
+			return null;
+		}
+		for (LocalCache c : LOCALS.values()) {
+			if (cas != null) {
+				if (c.check(cas)) {
+					if (oid != null) {
+						if (c.check(oid)) {
+							return c;
+						}
+					} else {
+						return c;
+					}
+				}
+			}
+		}
+		return null;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
 	// TLS 1.3 证书类型必须是X.509v3[RFC5280]，除非另有明确协商[RFC5081]
 
 	// DER: Distinguished Encoding Rules 证书的二进制编码
@@ -142,10 +168,27 @@ public class SessionCertificates {
 	// JKS: Java KeyStore，多证书和私钥，密码保护
 	// P12: 同PFX
 
+	static {
+		// 加载默认信任机构证书
+		final String JAVA_HOME = System.getProperty("java.home");
+		if (JAVA_HOME != null) {
+			final File file = new File(JAVA_HOME, "/lib/security/cacerts");
+			if (file.exists()) {
+				try {
+					loadAuthorities(file, "changeit");
+				} catch (Exception e) {
+					// 如果用户更改了文件位置和密码，应手动加载
+					// 缺失信任机构证书将导致证书链验证失败
+					// 忽略此异常
+				}
+			}
+		}
+	}
+
 	/**
 	 * 加载指定信任证书签发机构的证书，默认位于JAVA-HOME/lib/security/cacerts，默认密码 changeit
 	 */
-	public static void load(File cacerts, String password) throws Exception {
+	public static void loadAuthorities(File cacerts, String password) throws Exception {
 		final KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
 		try (FileInputStream input = new FileInputStream(cacerts)) {
 			store.load(input, password.toCharArray());
@@ -237,7 +280,7 @@ public class SessionCertificates {
 	/**
 	 * 加载对端证书并缓存
 	 */
-	static Certificate[] loadCertificate(String name, com.joyzl.network.tls.Certificate c) throws Exception {
+	static RemoteCache loadCertificate(String name, com.joyzl.network.tls.Certificate c) throws Exception {
 		final CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
 		final Certificate[] certificates = new Certificate[c.size()];
 		for (int index = 0; index < c.size(); index++) {
@@ -245,8 +288,7 @@ public class SessionCertificates {
 				certificates[index] = certificateFactory.generateCertificate(new ByteArrayInputStream(c.get(index).getData()));
 			}
 		}
-		createRemoteCache(name, certificates);
-		return certificates;
+		return createRemoteCache(name, certificates);
 	}
 
 	/**
@@ -288,12 +330,16 @@ public class SessionCertificates {
 	/**
 	 * 创建并缓存证书集，以证书集中的第一项证书中包含的名称为键
 	 */
-	static void createRemoteCache(String name, Certificate... certificates) throws Exception {
+	static RemoteCache createRemoteCache(String name, Certificate... certificates) throws Exception {
 		final X509Certificate[] x509s = new X509Certificate[certificates.length];
 		for (int i = 0; i < certificates.length; i++) {
 			x509s[i] = (X509Certificate) certificates[i];
 		}
-		REMOTES.put(name, new RemoteCache(x509s));
+		final RemoteCache cache = new RemoteCache(x509s);
+		if (name != null) {
+			REMOTES.put(name, cache);
+		}
+		return cache;
 	}
 
 	/**

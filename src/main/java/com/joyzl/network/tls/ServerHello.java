@@ -69,6 +69,10 @@ class ServerHello extends HandshakeExtensions {
 		version = value;
 	}
 
+	public boolean hasRandom() {
+		return random.length > 0;
+	}
+
 	public byte[] getRandom() {
 		return random;
 	}
@@ -96,6 +100,10 @@ class ServerHello extends HandshakeExtensions {
 
 	public void makeHelloRetryRequest() {
 		random = HELLO_RETRY_REQUEST_RANDOM;
+	}
+
+	public boolean hasSessionId() {
+		return session_id.length > 0;
 	}
 
 	public byte[] getSessionId() {

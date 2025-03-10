@@ -378,6 +378,17 @@ class TestDataBuffer {
 		assertEquals(target.readByte(), Byte.MAX_VALUE);
 		assertEquals(target.readByte(), Byte.MAX_VALUE);
 
+		target.clear();
+		buffer.writeByte(Byte.MAX_VALUE);
+		buffer.writeByte(Byte.MAX_VALUE);
+		buffer.transfer(target, 1);
+		assertEquals(buffer.readable(), 1);
+		assertEquals(target.readable(), 1);
+		buffer.transfer(target, 1);
+		assertEquals(buffer.readable(), 0);
+		assertEquals(target.readable(), 2);
+		target.clear();
+
 		// MORE
 
 		// 转移全部

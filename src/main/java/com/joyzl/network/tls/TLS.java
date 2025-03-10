@@ -46,19 +46,19 @@ abstract class TLS {
 
 	public static String version(short value) {
 		if (value == V13) {
-			return "TLS 1.3";
+			return "1.3";
 		}
 		if (value == V12) {
-			return "TLS 1.2";
+			return "1.2";
 		}
 		if (value == V11) {
-			return "TLS 1.1";
+			return "1.1";
 		}
 		if (value == V10) {
-			return "TLS 1.0";
+			return "1.0";
 		}
 		if (value == SSL30) {
-			return "SSL 3.0";
+			return "3.0";
 		}
 		return "UNKNOWN";
 	}

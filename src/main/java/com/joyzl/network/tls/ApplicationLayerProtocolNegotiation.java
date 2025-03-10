@@ -41,6 +41,10 @@ public class ApplicationLayerProtocolNegotiation extends Extension {
 		set(value);
 	}
 
+	public ApplicationLayerProtocolNegotiation(String... value) {
+		set(value);
+	}
+
 	@Override
 	public short type() {
 		return APPLICATION_LAYER_PROTOCOL_NEGOTIATION;

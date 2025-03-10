@@ -366,13 +366,16 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 		if (length > 0) {
 			if (target.mark == null) {
 				if (target.length == 0) {
+					// 直接交换
+					target.length = length;
+					length = 0;
 					mark = target.read;
 					target.read = read;
+					read = mark;
+					mark = target.write;
 					target.write = write;
-					target.length = length;
-					read = write = mark;
+					write = mark;
 					mark = null;
-					length = 0;
 					return;
 				}
 			}
@@ -400,66 +403,78 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 			if (target.mark == null) {
 				if (target.length == 0) {
 					if (len == length) {
-						target.read = read;
-						read = target.write;
-						target.write = write;
-						write = read;
-					} else {
+						// 直接交换
+						target.length = len;
+						length = 0;
 						mark = target.read;
 						target.read = read;
-						while (len > read.readable()) {
-							len -= read.readable();
-							read = read.next();
-						}
-						target.write = read;
-						if (len > 0) {
-							mark.buffer().put(0, read.buffer(), len, read.readable() - len);
-							read.writeIndex(read.writeIndex() - len);
-							mark.writeIndex(len);
-
-							mark.link(read.braek());
-							read = mark;
-						} else if (read.next() != null) {
-							read = read.braek();
-							mark.release();
-						} else {
-							read = write = mark;
-						}
+						read = mark;
+						mark = target.write;
+						target.write = write;
+						write = mark;
 						mark = null;
+						return;
+					} else {
+						target.length = len;
+						length -= len;
+
+						if (len > read.readable()) {
+							mark = target.read;
+							// 转移单元
+							target.read = read;
+							do {
+								len -= read.readable();
+								target.write = read;
+								read = read.next();
+							} while (len >= read.readable());
+							target.write.braek();
+
+							// 检查空闲单元
+							if (len > target.write.writeable()) {
+								target.write = target.write.link(mark);
+							} else {
+								mark.release();
+							}
+							mark = null;
+						}
+
+						if (len > 0) {
+							// 转移单元剩余数据
+							target.write.receive().put(read.send(len));
+							target.write.received();
+							read.sent();
+						}
+						return;
 					}
-					target.length = len;
-					length -= len;
-					return;
 				}
 			}
+
 			if (len == length) {
+				// 直接连接
+				target.length += len;
+				length = 0;
+
 				target.write = target.write.link(read);
 				read = write = DataBufferUnit.get();
 			} else {
+				target.length += len;
+				length -= len;
+
 				while (len >= read.readable()) {
 					len -= read.readable();
 					target.write.next(read);
-					target.write = read;
 					read = read.braek();
 				}
-				if (len > 0) {
-					target.write = read;
-					mark = DataBufferUnit.get();
-					mark.buffer().put(0, read.buffer(), len, read.readable() - len);
-					read.writeIndex(read.writeIndex() - len);
-					mark.writeIndex(len);
 
-					mark.link(read.braek());
-					read = mark;
-					mark = null;
-				} else if (read.next() != null) {
-					read = read.braek();
-				} else {
-					read = write = DataBufferUnit.get();
+				if (len > 0) {
+					if (len > target.write.writeable()) {
+						target.write = target.write.extend();
+					}
+					target.write.receive().put(read.send(len));
+					target.write.received();
+					read.sent();
 				}
 			}
-			target.length += len;
-			length -= len;
 		}
 	}
 
@@ -526,43 +541,17 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 	}
 
 	/**
-	 * 转入源缓存对象的数据到当前对象中尾部，转入数据不参与校验，此方法执行数据单元转入；
-	 * 读取标记会被擦除，如果要避免擦除应在调用此方法之前执行{@link #reset()}
-	 * 
-	 * @param source 源缓存对象
+	 * @see {@link #transfer(DataBuffer)}
 	 */
 	public void append(DataBuffer source) {
-		source.erase();
-		if (length == 0) {
-			read = source.read;
-			source.read = write;
-			source.write = write;
-			write = read;
-		} else if (write.isFull()) {
-			write.next(source.read);
-			write = source.write;
-			source.read = DataBufferUnit.get();
-			source.write = source.read;
-		} else if (write.isBlank()) {
-			// LAST - 1
-			DataBufferUnit unit = read;
-			while (unit.next() != write) {
-				unit = unit.next();
-			}
+		source.transfer(this);
+	}
 
-			unit.next(source.read);
-			source.read = write;
-			write = source.write;
-			source.write = source.read;
-		} else {
-			// 将产生未满单元
-			write.next(source.read);
-			write = source.write;
-			source.read = DataBufferUnit.get();
-			source.write = source.read;
-		}
-		length += source.length;
-		source.length = 0;
+	/**
+	 * @see {@link #transfer(DataBuffer, int)}
+	 */
+	public void append(DataBuffer source, int length) {
+		source.transfer(this);
 	}
 
 	/**

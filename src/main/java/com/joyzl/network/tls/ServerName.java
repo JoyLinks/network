@@ -4,6 +4,11 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * 扩展：服务名称
+ * 
+ * @author ZhangXi 2025年3月10日
+ */
 class ServerName {
 
 	// NameType MAX(255)
@@ -23,7 +28,7 @@ class ServerName {
 	}
 
 	public ServerName(SocketAddress remote) {
-		setName(findServerName(remote));
+		setName(from(remote));
 	}
 
 	public ServerName(byte type, byte[] name) {
@@ -76,7 +81,7 @@ class ServerName {
 	/**
 	 * 从远端地址中获得服务名称(TLS SNI)
 	 */
-	static String findServerName(SocketAddress address) {
+	static String from(SocketAddress address) {
 		if (address instanceof InetSocketAddress) {
 			final InetSocketAddress i = (InetSocketAddress) address;
 			if (i.getHostName() != null) {

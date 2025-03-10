@@ -30,18 +30,14 @@ public class TLSServerHandler implements ChainHandler {
 		this.handler = handler;
 	}
 
-	protected ChainHandler handler() {
-		return handler;
-	}
-
 	@Override
 	public long getTimeoutRead() {
-		return handler().getTimeoutRead();
+		return handler.getTimeoutRead();
 	}
 
 	@Override
 	public long getTimeoutWrite() {
-		return handler().getTimeoutWrite();
+		return handler.getTimeoutWrite();
 	}
 
 	@Override
@@ -51,11 +47,21 @@ public class TLSServerHandler implements ChainHandler {
 	}
 
 	@Override
+	public void disconnected(ChainChannel chain) throws Exception {
+		handler.disconnected(chain);
+	}
+
+	@Override
+	public void error(ChainChannel chain, Throwable e) {
+		handler.error(chain, e);
+	}
+
+	@Override
 	public Object decode(ChainChannel chain, DataBuffer buffer) throws Exception {
 		final TLSContext context = chain.getContext(TLSContext.class);
 		final int type;
 		try {
-			type = RecordCoder2.decode(context.cipher, buffer, context.data);
+			type = RecordCoder.decode(context.cipher, buffer, context.data);
 		} catch (Exception e) {
 			if (e instanceof TLSException) {
 				return new Alert((TLSException) e);
@@ -66,33 +72,33 @@ public class TLSServerHandler implements ChainHandler {
 		if (type < 0) {
 			return null;
 		} else if (type == Record.APPLICATION_DATA) {
-			Object message = handler().decode(chain, context.data);
+			Object message = handler.decode(chain, context.data);
 			while (message != null && context.data.readable() > 0) {
-				handler().received(chain, message);
-				message = handler().decode(chain, context.data);
+				handler.received(chain, message);
+				message = handler.decode(chain, context.data);
 			}
 			return message;
 		} else if (type == Record.HANDSHAKE) {
 			// 编码后可能会保留数据用于消息哈希
 			// 因此context.length表示保留的数据
-			Handshake handshake = decodeHandshake(context, context.data);
+			Handshake handshake = decode(context, context.data);
 			while (handshake != null && context.data.readable() > context.length) {
 				received(chain, handshake);
-				handshake = decodeHandshake(context, context.data);
+				handshake = decode(context, context.data);
 			}
 			return handshake;
 		} else if (type == Record.CHANGE_CIPHER_SPEC) {
-			return RecordCoder2.decodeChangeCipherSpec(context.data);
+			return RecordCoder.decodeChangeCipherSpec(context.data);
 		} else if (type == Record.HEARTBEAT) {
-			return RecordCoder2.decodeHeartbeat(context.data);
+			return RecordCoder.decodeHeartbeat(context.data);
 		} else if (type == Record.ALERT) {
-			return RecordCoder2.decodeAlert(context.data);
+			return RecordCoder.decodeAlert(context.data);
 		} else {
 			return new TLSException(Alert.UNEXPECTED_MESSAGE);
 		}
 	}
 
-	private Handshake decodeHandshake(TLSContext context, DataBuffer buffer) throws Exception {
+	private Handshake decode(TLSContext context, DataBuffer buffer) throws Exception {
 		if (buffer.readable() < 4) {
 			return null;
 		}
@@ -100,6 +106,7 @@ public class TLSServerHandler implements ChainHandler {
 		final byte type = buffer.get(0);
 		// 获取消息字节数(type 1byte + length uint24 + data)
 		final int length = Binary.join((byte) 0, buffer.get(1), buffer.get(2), buffer.get(3)) + 4;
+		// 校验数据长度
 		if (buffer.readable() < length) {
 			return null;
 		}
@@ -140,10 +147,10 @@ public class TLSServerHandler implements ChainHandler {
 					for (int i = 0; i < handshakes.size(); i++) {
 						encode(context, handshakes.get(i), data);
 						if (handshakes.get(i).msgType() == Handshake.SERVER_HELLO) {
-							RecordCoder2.encodePlaintext(record, data, buffer);
-							RecordCoder2.encode(ChangeCipherSpec.INSTANCE, buffer);
+							RecordCoder.encodePlaintext(record, data, buffer);
+							RecordCoder.encode(ChangeCipherSpec.INSTANCE, buffer);
 						} else {
-							RecordCoder2.encodeCiphertext(context.cipher, record, data, buffer);
+							RecordCoder.encodeCiphertext(context.cipher, record, data, buffer);
 						}
 					}
 					data.release();
@@ -153,36 +160,36 @@ public class TLSServerHandler implements ChainHandler {
 					encode(context, (Handshake) record, data);
 					final DataBuffer buffer = DataBuffer.instance();
 					if (context.cipher.handshaked()) {
-						RecordCoder2.encodeCiphertext(context.cipher, record, data, buffer);
+						RecordCoder.encodeCiphertext(context.cipher, record, data, buffer);
 					} else {
-						RecordCoder2.encodePlaintext(record, data, buffer);
+						RecordCoder.encodePlaintext(record, data, buffer);
 					}
 					data.release();
 					return buffer;
 				}
 			} else if (record.contentType() == Record.CHANGE_CIPHER_SPEC) {
 				final DataBuffer buffer = DataBuffer.instance();
-				RecordCoder2.encode((ChangeCipherSpec) record, buffer);
+				RecordCoder.encode((ChangeCipherSpec) record, buffer);
 				return buffer;
 			} else if (record.contentType() == Record.APPLICATION_DATA) {
 				final DataBuffer buffer = DataBuffer.instance();
-				RecordCoder2.encode((ApplicationData) record, buffer);
+				RecordCoder.encode((ApplicationData) record, buffer);
 				return buffer;
 			} else if (record.contentType() == Record.HEARTBEAT) {
 				final DataBuffer data = DataBuffer.instance();
-				RecordCoder2.encode((HeartbeatMessage) record, data);
+				RecordCoder.encode((HeartbeatMessage) record, data);
 				final DataBuffer buffer = DataBuffer.instance();
-				RecordCoder2.encodeCiphertext(context.cipher, record, data, buffer);
+				RecordCoder.encodeCiphertext(context.cipher, record, data, buffer);
 				data.release();
 				return buffer;
 			} else if (record.contentType() == Record.ALERT) {
 				final DataBuffer data = DataBuffer.instance();
-				RecordCoder2.encode((Alert) record, data);
+				RecordCoder.encode((Alert) record, data);
 				final DataBuffer buffer = DataBuffer.instance();
 				if (context.cipher.handshaked()) {
-					RecordCoder2.encodeCiphertext(context.cipher, record, data, buffer);
+					RecordCoder.encodeCiphertext(context.cipher, record, data, buffer);
 				} else {
-					RecordCoder2.encodePlaintext(record, data, buffer);
+					RecordCoder.encodePlaintext(record, data, buffer);
 				}
 				data.release();
 				return buffer;
@@ -191,9 +198,9 @@ public class TLSServerHandler implements ChainHandler {
 			}
 		} else {
 			// APPLICATION DATA
-			final DataBuffer data = handler().encode(chain, message);
+			final DataBuffer data = handler.encode(chain, message);
 			final DataBuffer buffer = DataBuffer.instance();
-			RecordCoder2.encodeCiphertext(context.cipher, ApplicationData.INSTANCE, data, buffer);
+			RecordCoder.encodeCiphertext(context.cipher, ApplicationData.INSTANCE, data, buffer);
 			data.release();
 			return buffer;
 		}
@@ -226,7 +233,7 @@ public class TLSServerHandler implements ChainHandler {
 		final TLSContext context = chain.getContext(TLSContext.class);
 		if (message == null) {
 			if (context.cipher.application()) {
-				handler().received(chain, message);
+				handler.received(chain, message);
 			} else {
 				chain.close();
 			}
@@ -255,7 +262,7 @@ public class TLSServerHandler implements ChainHandler {
 			if (context.cipher.decryptLimit()) {
 				chain.send(new KeyUpdate());
 			}
-			handler().received(chain, message);
+			handler.received(chain, message);
 		}
 	}
 
@@ -277,7 +284,7 @@ public class TLSServerHandler implements ChainHandler {
 						// 应用数据解密密钥导出，等待客户端完成消息后重置解密套件
 						context.cipher.clientApplicationTraffic();
 						// context.cipher.exporterMaster();
-						handler().connected(chain);
+						handler.connected(chain);
 					}
 				}
 			} else if (message instanceof KeyUpdate) {
@@ -293,22 +300,13 @@ public class TLSServerHandler implements ChainHandler {
 			if (context.cipher.encryptLimit()) {
 				chain.send(new KeyUpdate());
 			}
-			handler().sent(chain, message);
+			handler.sent(chain, message);
 		}
 	}
 
-	@Override
-	public void disconnected(ChainChannel chain) throws Exception {
-		handler().disconnected(chain);
-	}
-
-	@Override
-	public void error(ChainChannel chain, Throwable e) {
-		handler().error(chain, e);
-	}
-
 	/**
-	 * 握手
+	 * 握手，本实现所有握手消息(Handshake)继承自记录层(Record)；<br>
+	 * 收到的握手消息即便在记录层已合并，在解码后也逐消息调用此方法；
 	 */
 	private Record handshake(TLSContext context, Handshake record) throws Exception {
 		if (record.msgType() == Handshake.CLIENT_HELLO) {
@@ -434,7 +432,7 @@ public class TLSServerHandler implements ChainHandler {
 						if (ticket != null) {
 							// 2 验证BinderKey
 							// Transcript-Hash(Truncate(ClientHello1))
-							// binders Length 2Byte
+							// binders Length uint16 Short 2Byte
 							int length = psks.bindersLength() + 2;
 							length = context.length - length;
 							context.cipher.suite(ticket.getSuite());
@@ -578,7 +576,7 @@ public class TLSServerHandler implements ChainHandler {
 					final CertificateAuthorities cas = hello.getExtension(Extension.CERTIFICATE_AUTHORITIES);
 					final ServerNames sns = hello.getExtension(Extension.SERVER_NAME);
 					if (sns != null) {
-						cpk = SessionCertificates.getLocal(sns.get());
+						cpk = SessionCertificates.getLocal(sns);
 						if (cpk != null) {
 							if (cas != null) {
 								if (cpk.check(cas)) {
@@ -714,10 +712,10 @@ public class TLSServerHandler implements ChainHandler {
 	}
 
 	private void heartbeat(ChainChannel chain, HeartbeatMessage message) {
+		// 服务端仅响应心跳检查
 		if (message.getMessageType() == HeartbeatMessage.HEARTBEAT_REQUEST) {
 			message.setMessageType(HeartbeatMessage.HEARTBEAT_RESPONSE);
-			// chain.send(message);
-			chain.close();
+			chain.send(message);
 		} else {
 			chain.send(new Alert(Alert.UNEXPECTED_MESSAGE));
 		}

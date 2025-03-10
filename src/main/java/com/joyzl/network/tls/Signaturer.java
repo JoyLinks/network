@@ -1,18 +1,12 @@
 package com.joyzl.network.tls;
 
-import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Security;
 import java.security.Signature;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateFactory;
-import java.util.Arrays;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
-import com.joyzl.network.tls.Certificate.CertificateEntry;
 
 /**
  * 签名算法，执行签名与验证
@@ -324,57 +318,27 @@ class Signaturer implements SignatureScheme {
 
 	////////////////////////////////////////////////////////////////////////////////
 
-	private Certificate[] certificates;
 	private byte[] hash;
 
 	public void setHash(byte[] value) {
 		hash = value;
 	}
 
-	public void setEntries(CertificateEntry[] entries) throws Exception {
-		final CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
-		CertificateEntry entry;
-		Certificate certificate;
-		for (int index = 0; index < entries.length; index++) {
-			entry = entries[index];
-			if (entry.type() == com.joyzl.network.tls.Certificate.X509) {
-				certificate = certificateFactory.generateCertificate(new ByteArrayInputStream(entry.getData()));
-				if (certificates == null) {
-					certificates = new Certificate[] { certificate };
-				} else {
-					certificates = Arrays.copyOf(certificates, certificates.length + 1);
-					certificates[certificates.length - 1] = certificate;
-				}
-				// System.out.println("--------");
-				// System.out.println(certificate);
-			} else if (entry.type() == com.joyzl.network.tls.Certificate.RAW_PUBLIC_KEY) {
-				// final X509EncodedKeySpec keySpec = new
-				// X509EncodedKeySpec(entry.getData());
-			}
-		}
-	}
-
-	public Certificate getCertificate() throws Exception {
-		if (certificates != null && certificates.length > 0) {
-			return certificates[0];
-		}
-		return null;
-	}
-
-	public Certificate[] getCertificates() throws Exception {
-		return certificates;
-	}
-
 	public boolean verifyServer(byte[] sign) throws Exception {
-		if (certificates != null) {
-			PublicKey key;
-			for (int index = 0; index < certificates.length; index++) {
-				key = certificates[index].getPublicKey();
-				if (verifyServer(key, hash, sign)) {
-					return true;
-				}
-			}
+		if (verifyServer(publicKey, hash, sign)) {
+			hash = null;
+			return true;
 		}
+		hash = null;
+		return false;
+	}
+
+	public boolean verifyClient(byte[] sign) throws Exception {
+		if (verifyClient(publicKey, hash, sign)) {
+			hash = null;
+			return true;
+		}
+		hash = null;
 		return false;
 	}
 }
