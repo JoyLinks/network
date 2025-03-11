@@ -25,6 +25,10 @@ class SupportedVersions extends Extension {
 	public SupportedVersions() {
 	}
 
+	public SupportedVersions(short version) {
+		versions = new short[] { version };
+	}
+
 	public SupportedVersions(short... versions) {
 		this.versions = versions;
 	}

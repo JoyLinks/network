@@ -93,6 +93,32 @@ class TranscriptHash {
 		return current;
 	}
 
+	/** HelloRetryRequest */
+	public void retry() throws Exception {
+		/*-
+		 * Transcript-Hash(ClientHello1, HelloRetryRequest, ... Mn) =
+		 *       Hash(message_hash       || // Handshake type
+		 *            00 00 Hash.length  || // Handshake message length (bytes)
+		 *            Hash(ClientHello1) || // Hash of ClientHello1
+		 *            HelloRetryRequest  || ... || Mn)
+		 * 
+		 * SHA256 Hash.length = 32
+		 * 00 00 Hash.length = 00 00 20
+		 */
+
+		final byte[] hashClientHello1 = digest.digest();
+		final byte[] messageHash0000Hashlength = new byte[4];
+		messageHash0000Hashlength[0] = Handshake.MESSAGE_HASH;
+		messageHash0000Hashlength[1] = 0;
+		messageHash0000Hashlength[2] = 0;
+		messageHash0000Hashlength[3] = (byte) EMPTY_HASH.length;
+
+		digest.reset();
+		digest.update(messageHash0000Hashlength);
+		digest.update(hashClientHello1);
+		current = TLS.EMPTY_BYTES;
+	}
+
 	/** Transcript-Hash("") */
 	public byte[] hashEmpty() {
 		return EMPTY_HASH;

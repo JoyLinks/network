@@ -140,6 +140,10 @@ class ClientHello extends HandshakeExtensions {
 		return cipher_suites;
 	}
 
+	public void setCipherSuites(short value) {
+		cipher_suites = new short[] { value };
+	}
+
 	public void setCipherSuites(short[] value) {
 		if (value == null) {
 			cipher_suites = TLS.EMPTY_SHORTS;

@@ -26,11 +26,11 @@ class Cookie extends Extension {
 		return COOKIE;
 	}
 
-	public byte[] getCookie() {
+	public byte[] get() {
 		return cookie;
 	}
 
-	public void setCookie(byte[] value) {
+	public void set(byte[] value) {
 		if (value == null) {
 			cookie = TLS.EMPTY_BYTES;
 		} else {
@@ -40,6 +40,6 @@ class Cookie extends Extension {
 
 	@Override
 	public String toString() {
-		return "cookie:" + cookie;
+		return "cookie:" + cookie.length + "byte";
 	}
 }

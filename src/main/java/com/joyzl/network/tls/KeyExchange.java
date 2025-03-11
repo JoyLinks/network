@@ -6,6 +6,7 @@ import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.spec.ECGenParameterSpec;
 import java.security.spec.NamedParameterSpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -19,6 +20,25 @@ import javax.crypto.KeyAgreement;
  * @author ZhangXi 2025年2月3日
  */
 class KeyExchange implements NamedGroup {
+
+	final static short[] AVAILABLES;
+	static {
+		final KeyExchange ke = new KeyExchange();
+		short[] items = new short[0];
+		for (short group : ALL) {
+			try {
+				ke.initialize(group);
+				items = Arrays.copyOf(items, items.length + 1);
+				items[items.length - 1] = group;
+			} catch (Exception e) {
+				// 忽略此异常
+				e.printStackTrace();
+			}
+		}
+		AVAILABLES = items;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
 
 	private short group;
 
@@ -52,15 +72,47 @@ class KeyExchange implements NamedGroup {
 				break;
 
 			case SECP256R1:
+				factory = KeyFactory.getInstance("EC");
+				generator = KeyPairGenerator.getInstance("EC");
+				generator.initialize(new ECGenParameterSpec("secp256r1"));
+				break;
 			case SECP384R1:
+				factory = KeyFactory.getInstance("EC");
+				generator = KeyPairGenerator.getInstance("EC");
+				generator.initialize(new ECGenParameterSpec("secp384r1"));
+				break;
 			case SECP521R1:
+				factory = KeyFactory.getInstance("EC");
+				generator = KeyPairGenerator.getInstance("EC");
+				generator.initialize(new ECGenParameterSpec("secp521r1"));
 				break;
+
 			case FFDHE2048:
-			case FFDHE3072:
-			case FFDHE4096:
-			case FFDHE6144:
-			case FFDHE8192:
+				factory = KeyFactory.getInstance("DH");
+				generator = KeyPairGenerator.getInstance("DH");
+				generator.initialize(2048);
 				break;
+			case FFDHE3072:
+				factory = KeyFactory.getInstance("DH");
+				generator = KeyPairGenerator.getInstance("DH");
+				generator.initialize(3072);
+				break;
+			case FFDHE4096:
+				factory = KeyFactory.getInstance("DH");
+				generator = KeyPairGenerator.getInstance("DH");
+				generator.initialize(4096);
+				break;
+			case FFDHE6144:
+				factory = KeyFactory.getInstance("DH");
+				generator = KeyPairGenerator.getInstance("DH");
+				generator.initialize(6144);
+				break;
+			case FFDHE8192:
+				factory = KeyFactory.getInstance("DH");
+				generator = KeyPairGenerator.getInstance("DH");
+				generator.initialize(8192);
+				break;
+
 			default:
 				throw new NoSuchAlgorithmException("KeyExchange:" + group);
 		}

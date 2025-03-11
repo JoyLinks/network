@@ -12,21 +12,26 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  */
 public class ClientSessionTickets {
 
-	private final static Map<Key, Queue<NewSessionTicket>> M = new ConcurrentHashMap<>();
+	/** SNI,Queue */
+	private final static Map<String, Queue<NewSessionTicket>> M = new ConcurrentHashMap<>();
 
-	public static void put(String sni, short suite, NewSessionTicket newSessionTicket) {
-		final Key key = new Key(sni, suite);
-		Queue<NewSessionTicket> q = M.get(key);
+	/**
+	 * 缓存 NewSessionTicket
+	 */
+	public static void put(String sni, NewSessionTicket newSessionTicket) {
+		Queue<NewSessionTicket> q = M.get(sni);
 		if (q == null) {
 			q = new ConcurrentLinkedQueue<>();
-			M.put(key, q);
+			M.put(sni, q);
 		}
 		q.add(newSessionTicket);
 	}
 
-	public static NewSessionTicket get(String sni, short suite) {
-		final Key key = new Key(sni, suite);
-		final Queue<NewSessionTicket> q = M.get(key);
+	/**
+	 * 取出 NewSessionTicket
+	 */
+	public static NewSessionTicket get(String sni) {
+		final Queue<NewSessionTicket> q = M.get(sni);
 		if (q != null) {
 			NewSessionTicket t;
 			do {
@@ -35,44 +40,5 @@ public class ClientSessionTickets {
 			return t;
 		}
 		return null;
-	}
-
-	/**
-	 * 由SNI(ServerName)+GROUP(NamedGroup)+SUITE(CipherSuite)组成的键
-	 * 
-	 * @author ZhangXi 2025年2月25日
-	 */
-	static class Key {
-		/** ServerName */
-		private final String sni;
-		/** CipherSuite */
-		private final short suite;
-
-		public Key(String sni, short suite) {
-			this.suite = suite;
-			this.sni = sni;
-		}
-
-		@Override
-		public String toString() {
-			return sni + " " + CipherSuite.named(suite);
-		}
-
-		@Override
-		public final boolean equals(Object o) {
-			if (o instanceof Key that) {
-				if (suite == that.suite) {
-					if (sni.equals(that.sni)) {
-						return true;
-					}
-				}
-			}
-			return false;
-		}
-
-		@Override
-		public final int hashCode() {
-			return sni.hashCode() + suite;
-		}
 	}
 }

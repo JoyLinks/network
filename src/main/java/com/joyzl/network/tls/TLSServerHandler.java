@@ -335,6 +335,10 @@ public class TLSServerHandler implements ChainHandler {
 
 			// TLS 1.3
 			if (version == TLS.V13) {
+				// 严禁重协商
+				if (context.cipher.handshaked()) {
+					return new Alert(Alert.UNEXPECTED_MESSAGE);
+				}
 				// 压缩模式
 				if (hello.hasCompressionMethods()) {
 					if (hello.getCompressionMethods()[0] == 0) {
@@ -518,6 +522,7 @@ public class TLSServerHandler implements ChainHandler {
 								server.makeHelloRetryRequest();
 								server.addExtension(new KeyShareHelloRetryRequest(group));
 								server.addExtension(new Cookie(context.cipher.hash()));
+								context.cipher.retry();
 								return server;
 							} else {
 								// 没有匹配的密钥算法

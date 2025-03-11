@@ -3,10 +3,8 @@ package com.joyzl.network.tls;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.Security;
 import java.security.Signature;
-
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import java.util.Arrays;
 
 /**
  * 签名算法，执行签名与验证
@@ -15,9 +13,25 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
  */
 class Signaturer implements SignatureScheme {
 
+	// 尝试并建立本地可用的签名算法
+	final static short[] AVAILABLES;
 	static {
-		Security.addProvider(new BouncyCastleProvider());
+		final Signaturer s = new Signaturer();
+		short[] items = new short[0];
+		for (short scheme : ALL) {
+			try {
+				s.scheme(scheme);
+				items = Arrays.copyOf(items, items.length + 1);
+				items[items.length - 1] = scheme;
+			} catch (Exception e) {
+				// 忽略此异常
+				e.printStackTrace();
+			}
+		}
+		AVAILABLES = items;
 	}
+
+	////////////////////////////////////////////////////////////////////////////////
 
 	private short scheme;
 	private Signature signature;

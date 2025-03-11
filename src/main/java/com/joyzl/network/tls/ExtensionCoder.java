@@ -1084,16 +1084,16 @@ class ExtensionCoder {
 
 	/** RFC 8446 */
 	static void encode(Cookie cookie, DataBuffer buffer) throws IOException {
-		buffer.writeShort(cookie.getCookie().length);
-		buffer.write(cookie.getCookie());
+		buffer.writeShort(cookie.get().length);
+		buffer.write(cookie.get());
 	}
 
 	/** RFC 8446 */
 	static Cookie decodeCookie(DataBuffer buffer, int length) throws IOException {
 		final Cookie cookie = new Cookie();
 		if (length > 0) {
-			cookie.setCookie(new byte[buffer.readUnsignedShort()]);
-			buffer.readFully(cookie.getCookie());
+			cookie.set(new byte[buffer.readUnsignedShort()]);
+			buffer.readFully(cookie.get());
 		}
 		return cookie;
 	}

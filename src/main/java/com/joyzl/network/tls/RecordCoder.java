@@ -42,6 +42,7 @@ class RecordCoder extends TLS {
 					return -1;
 				}
 			} catch (Exception e) {
+				e.printStackTrace();
 				throw new TLSException(Alert.BAD_RECORD_MAC);
 			}
 			// 删除 zeros 查找 ContentType

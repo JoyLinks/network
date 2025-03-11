@@ -95,6 +95,9 @@ class TestRFC8448 {
 		server.hash(Utility.hex(ClientHello));
 		server.hash(Utility.hex(ServerHello));
 
+		// System.out.println(Utility.hex(server.hash()));
+		// 860c06edc07858ee8e78f0e7428c58edd6b43f2ca3e6e95f02ed063cf0e1cad8
+
 		// {server} derive secret "tls13 c hs traffic":
 		byte[] sClientHandshakeTraffic = server.clientHandshakeTraffic(handshake, server.hash());
 		assertArrayEquals(Utility.hex("b3eddb126e067f35a780b3abf45e2d8f3b1a950738f52e9600746a0e27a55a21"), sClientHandshakeTraffic);
@@ -596,6 +599,106 @@ class TestRFC8448 {
 		// {client} send alert record
 		// {server} send alert record
 		// System.out.println(Utility.hex(cResumption));
+	}
+
+	@Test
+	void testHelloRetryRequestDeriveSecrets() throws Exception {
+		final DeriveSecret client = new DeriveSecret("SHA-256", "HmacSHA256");
+		final DeriveSecret server = new DeriveSecret("SHA-256", "HmacSHA256");
+
+		// ClientHello (180 octets):
+		String ClientHello1 = """
+				01 00 00 b0 03 03 b0 b1 c5 a5 aa 37 c5
+				91 9f 2e d1 d5 c6 ff f7 fc b7 84 97 16 94 5a 2b 8c ee 92 58 a3
+				46 67 7b 6f 00 00 06 13 01 13 03 13 02 01 00 00 81 00 00 00 0b
+				00 09 00 00 06 73 65 72 76 65 72 ff 01 00 01 00 00 0a 00 08 00
+				06 00 1d 00 17 00 18 00 33 00 26 00 24 00 1d 00 20 e8 e8 e3 f3
+				b9 3a 25 ed 97 a1 4a 7d ca cb 8a 27 2c 62 88 e5 85 c6 48 4d 05
+				26 2f ca d0 62 ad 1f 00 2b 00 03 02 03 04 00 0d 00 20 00 1e 04
+				03 05 03 06 03 02 03 08 04 08 05 08 06 04 01 05 01 06 01 02 01
+				04 02 05 02 06 02 02 02 00 2d 00 02 01 01 00 1c 00 02 40 01""";
+		client.hash(bytes(ClientHello1));
+		server.hash(bytes(ClientHello1));
+
+		// ServerHello (176 octets):HelloRetryRequest
+		String ServerHello1 = """
+				02 00 00 ac 03 03 cf 21 ad 74 e5 9a 61
+				11 be 1d 8c 02 1e 65 b8 91 c2 a2 11 16 7a bb 8c 5e 07 9e 09 e2
+				c8 a8 33 9c 00 13 01 00 00 84 00 33 00 02 00 17 00 2c 00 74 00
+				72 71 dc d0 4b b8 8b c3 18 91 19 39 8a 00 00 00 00 ee fa fc 76
+				c1 46 b8 23 b0 96 f8 aa ca d3 65 dd 00 30 95 3f 4e df 62 56 36
+				e5 f2 1b b2 e2 3f cc 65 4b 1b 5b 40 31 8d 10 d1 37 ab cb b8 75
+				74 e3 6e 8a 1f 02 5f 7d fa 5d 6e 50 78 1b 5e da 4a a1 5b 0c 8b
+				e7 78 25 7d 16 aa 30 30 e9 e7 84 1d d9 e4 c0 34 22 67 e8 ca 0c
+				af 57 1f b2 b7 cf f0 f9 34 b0 00 2b 00 02 03 04""";
+
+		client.retry();
+		client.hash(bytes(ServerHello1));
+		server.retry();
+		server.hash(bytes(ServerHello1));
+
+		// ClientHello (512 octets):
+		String ClientHello2 = """
+				01 00 01 fc 03 03 b0 b1 c5 a5 aa 37 c5
+				91 9f 2e d1 d5 c6 ff f7 fc b7 84 97 16 94 5a 2b 8c ee 92 58 a3
+				46 67 7b 6f 00 00 06 13 01 13 03 13 02 01 00 01 cd 00 00 00 0b
+				00 09 00 00 06 73 65 72 76 65 72 ff 01 00 01 00 00 0a 00 08 00
+				06 00 1d 00 17 00 18 00 33 00 47 00 45 00 17 00 41 04 a6 da 73
+				92 ec 59 1e 17 ab fd 53 59 64 b9 98 94 d1 3b ef b2 21 b3 de f2
+				eb e3 83 0e ac 8f 01 51 81 26 77 c4 d6 d2 23 7e 85 cf 01 d6 91
+				0c fb 83 95 4e 76 ba 73 52 83 05 34 15 98 97 e8 06 57 80 00 2b
+				00 03 02 03 04 00 0d 00 20 00 1e 04 03 05 03 06 03 02 03 08 04
+				08 05 08 06 04 01 05 01 06 01 02 01 04 02 05 02 06 02 02 02 00
+				2c 00 74 00 72 71 dc d0 4b b8 8b c3 18 91 19 39 8a 00 00 00 00
+				ee fa fc 76 c1 46 b8 23 b0 96 f8 aa ca d3 65 dd 00 30 95 3f 4e
+				df 62 56 36 e5 f2 1b b2 e2 3f cc 65 4b 1b 5b 40 31 8d 10 d1 37
+				ab cb b8 75 74 e3 6e 8a 1f 02 5f 7d fa 5d 6e 50 78 1b 5e da 4a
+				a1 5b 0c 8b e7 78 25 7d 16 aa 30 30 e9 e7 84 1d d9 e4 c0 34 22
+				67 e8 ca 0c af 57 1f b2 b7 cf f0 f9 34 b0 00 2d 00 02 01 01 00
+				1c 00 02 40 01 00 15 00 af 00 00 00 00 00 00 00 00 00 00 00 00
+				00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+				00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+				00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+				00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+				00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+				00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+				00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+				00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00""";
+		client.hash(bytes(ClientHello2));
+		server.hash(bytes(ClientHello2));
+
+		// {server} extract secret "early":
+		assertArrayEquals(server.early(null), Utility.hex("33ad0a1c607ec03b09e6cd9893680ce210adf300aa1f2660e1b22e10f170f92a"));
+
+		// ServerHello (123 octets):
+		String ServerHello2 = """
+				02 00 00 77 03 03 bb 34 1d 84 7f d7 89
+				c4 7c 38 71 72 dc 0c 9b f1 47 fc ca cb 50 43 d8 6c a4 c5 98 d3
+				ff 57 1b 98 00 13 01 00 00 4f 00 33 00 45 00 17 00 41 04 58 3e
+				05 4b 7a 66 67 2a e0 20 ad 9d 26 86 fc c8 5b 5a d4 1a 13 4a 0f
+				03 ee 72 b8 93 05 2b d8 5b 4c 8d e6 77 6f 5b 04 ac 07 d8 35 40
+				ea b3 e3 d9 c5 47 bc 65 28 c4 31 7d 29 46 86 09 3a 6c ad 7d 00
+				2b 00 02 03 04""";
+		client.hash(bytes(ServerHello2));
+		server.hash(bytes(ServerHello2));
+
+		// {server} derive secret for handshake "tls13 derived":
+		byte[] handshake = server.handshake(//
+			Utility.hex("33ad0a1c607ec03b09e6cd9893680ce210adf300aa1f2660e1b22e10f170f92a"), //
+			Utility.hex("c142ce13ca11b5c2233652e63ad3d97844f1621fbfb9de69d547dc8fedeabeb4"));
+		assertArrayEquals(Utility.hex("ce022e5e6e81e50736d773f2d3adfce8220d049bf510f0dbfac927ef4243b148"), handshake);
+
+		// HASH
+		assertArrayEquals(Utility.hex("8aa8e828ec2f8a884fec95a3139de01c15a3daa7ff5bfc3f4bfcc21b438d7bf8"), server.hash());
+		assertArrayEquals(Utility.hex("8aa8e828ec2f8a884fec95a3139de01c15a3daa7ff5bfc3f4bfcc21b438d7bf8"), client.hash());
+
+		// {server} derive secret "tls13 c hs traffic":
+		byte[] clientHandshakeTraffic = server.clientHandshakeTraffic(handshake, server.hash());
+		assertArrayEquals(Utility.hex("158aa7ab8855073582b41d674b4055cabcc534728f659314861b4e08e2011566"), clientHandshakeTraffic);
+
+		// {server} derive secret "tls13 s hs traffic":
+		byte[] serverHandshakeTraffic = server.serverHandshakeTraffic(handshake, server.hash());
+		assertArrayEquals(Utility.hex("3403e781e2af7b6508da28574f6e95a1abf162de83a97927c37672a4a0cef8a1"), serverHandshakeTraffic);
 
 	}
 
@@ -1484,5 +1587,13 @@ class TestRFC8448 {
 		final DataBuffer buffer = DataBuffer.instance();
 		buffer.write(Utility.hex(data));
 		return buffer;
+	}
+
+	/**
+	 * 多行字符串转换为字节数据
+	 */
+	byte[] bytes(String data) {
+		data = data.replaceAll("\\s*", "");
+		return Utility.hex(data);
 	}
 }

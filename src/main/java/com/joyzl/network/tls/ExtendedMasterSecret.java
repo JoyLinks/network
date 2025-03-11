@@ -11,6 +11,9 @@ class ExtendedMasterSecret extends Extension {
 
 	public final static ExtendedMasterSecret INSTANCE = new ExtendedMasterSecret();
 
+	private ExtendedMasterSecret() {
+	}
+
 	@Override
 	public short type() {
 		return EXTENDED_MASTER_SECRET;

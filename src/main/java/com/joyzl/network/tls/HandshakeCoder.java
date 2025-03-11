@@ -199,6 +199,20 @@ class HandshakeCoder extends TLS {
 		return message;
 	}
 
+	/**
+	 * 检查待解码握手消息是否HelloRetryRequest
+	 */
+	static boolean isHelloRetryRequest(DataBuffer buffer) {
+		// type 1byte + length uint24 + legacy_version 2byte | random[32]
+
+		for (int i = 0; i < ServerHello.HELLO_RETRY_REQUEST_RANDOM.length; i++) {
+			if (buffer.get(6 + i) != ServerHello.HELLO_RETRY_REQUEST_RANDOM[i]) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	private static void encode(NewSessionTicket message, DataBuffer buffer) throws IOException {
 		// uint32 ticket_lifetime;
 		buffer.writeInt(message.getLifetime());

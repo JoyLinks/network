@@ -1,9 +1,11 @@
 package com.joyzl.network.tls;
 
 import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
 import java.security.SecureRandom;
+import java.security.Security;
 
-abstract class TLS {
+public abstract class TLS {
 
 	/** TLS 1.3 */
 	public final static short V13 = 0x0304;
@@ -24,6 +26,8 @@ abstract class TLS {
 	/** RFC3749 enum { null(0),DEFLATE(1),(255) } CompressionMethod; */
 	public final static byte COMPRESSION_METHOD_NULL = 0;
 	public final static byte COMPRESSION_METHOD_DEFLATE = 1;
+	/** ALL COMPRESSION METHODS */
+	public final static byte[] ALL_COMPRESSION_METHODS = new byte[] { COMPRESSION_METHOD_NULL, COMPRESSION_METHOD_DEFLATE };
 	/** TLS 1.3 不支持压缩 */
 	public final static byte[] COMPRESSION_METHODS = new byte[] { COMPRESSION_METHOD_NULL };
 
@@ -42,6 +46,15 @@ abstract class TLS {
 		} catch (NoSuchAlgorithmException e) {
 			throw new RuntimeException(e);
 		}
+
+		try {
+			// 尝试动态加载密码算法提供者类
+			Class<?> providerClass = Class.forName("org.bouncycastle.jce.provider.BouncyCastleProvider");
+			Provider bcProvider = (Provider) providerClass.getDeclaredConstructor().newInstance();
+			Security.addProvider(bcProvider);
+		} catch (Exception e) {
+			// 忽略异常
+		}
 	}
 
 	public static String version(short value) {
@@ -58,7 +71,10 @@ abstract class TLS {
 			return "1.0";
 		}
 		if (value == SSL30) {
-			return "3.0";
+			return "0.3";
+		}
+		if (value == SSL20) {
+			return "0.2";
 		}
 		return "UNKNOWN";
 	}

@@ -1,5 +1,7 @@
 package com.joyzl.network.tls;
 
+import java.util.Arrays;
+
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.chain.ChainHandler;
@@ -24,6 +26,7 @@ public class TLSClientHandler implements ChainHandler {
 	private String sn;
 
 	private final DataBuffer data = DataBuffer.instance();
+	private byte[] sessionId;
 
 	public TLSClientHandler(ChainHandler handler) {
 		this.handler = handler;
@@ -62,34 +65,37 @@ public class TLSClientHandler implements ChainHandler {
 		hello.makeRandom();
 		hello.setCipherSuites(CipherSuite.V13);
 		hello.setCompressionMethods(TLS.COMPRESSION_METHODS);
+		sessionId = hello.getSessionId();
 
 		// Extensions
 
 		hello.addExtension(new ServerNames(name));
 		hello.addExtension(new SupportedVersions(TLS.ALL_VERSIONS));
-		hello.addExtension(new SignatureAlgorithms(SignatureAlgorithms.ALL));
+		hello.addExtension(new SignatureAlgorithms(Signaturer.AVAILABLES));
 		hello.addExtension(new Heartbeat(Heartbeat.PEER_NOT_ALLOWED_TO_SEND));
 		hello.addExtension(new ApplicationLayerProtocolNegotiation("http/1.1"));
 
 		// TLS 1.2
 		hello.addExtension(new ECPointFormats(ECPointFormats.UNCOMPRESSED));
-		hello.addExtension(new ExtendedMasterSecret());
+		hello.addExtension(ExtendedMasterSecret.INSTANCE);
 		hello.addExtension(new RenegotiationInfo());
 		hello.addExtension(new SessionTicket());
 
 		// Key Exchange
 		hello.addExtension(new PskKeyExchangeModes(PskKeyExchangeModes.ALL));
-		hello.addExtension(new SupportedGroups(NamedGroup.ALL));
+		hello.addExtension(new SupportedGroups(KeyExchange.AVAILABLES));
 
-		key = new KeyExchange(NamedGroup.X25519);
-		hello.addExtension(new KeyShareClientHello(new KeyShareEntry(NamedGroup.X25519, key.publicKey())));
-		cipher.suite(CipherSuite.TLS_AES_128_GCM_SHA256);
-
-		// 获取缓存的PSK
-		final NewSessionTicket ticket = ClientSessionTickets.get(sn, CipherSuite.TLS_AES_128_GCM_SHA256);
+		// 获取缓存的预共享密钥(PSK)
+		final NewSessionTicket ticket = ClientSessionTickets.get(sn);
 		if (ticket != null) {
-			// 0-RTT PSK
-			// 注意此扩展必须位于最后
+			// 0-RTT
+			cipher.suite(ticket.getSuite());
+
+			// Key Share
+			key = new KeyExchange(NamedGroup.X25519);
+			hello.addExtension(new KeyShareClientHello(new KeyShareEntry(NamedGroup.X25519, key.publicKey())));
+
+			// PSK 注意此扩展必须位于最后
 			final PreSharedKeys psk = new PreSharedKeys();
 			final PskIdentity pskIdentity = new PskIdentity();
 			pskIdentity.setTicketAge(ticket.obfuscatedAgeAdd());
@@ -100,6 +106,15 @@ public class TLSClientHandler implements ChainHandler {
 			cipher.reset(ticket.getResumption());
 
 			// early_data
+		} else {
+			// 1-RTT
+			cipher.suite(CipherSuite.TLS_AES_128_GCM_SHA256);
+
+			key = new KeyExchange(NamedGroup.X25519);
+			hello.addExtension(new KeyShareClientHello(new KeyShareEntry(NamedGroup.X25519, key.publicKey())));
+
+			// Request HelloRetry
+			// hello.addExtension(new KeyShareClientHello());
 		}
 
 		chain.send(hello);
@@ -112,6 +127,7 @@ public class TLSClientHandler implements ChainHandler {
 			type = RecordCoder.decode(cipher, buffer, data);
 		} catch (Exception e) {
 			if (e instanceof TLSException) {
+				e.printStackTrace();
 				return new Alert((TLSException) e);
 			} else {
 				throw e;
@@ -227,7 +243,15 @@ public class TLSClientHandler implements ChainHandler {
 		if (buffer.readable() < length) {
 			return null;
 		}
-		if (type == Handshake.FINISHED) {
+
+		if (type == Handshake.SERVER_HELLO) {
+			// 特殊合成处理
+			if (HandshakeCoder.isHelloRetryRequest(buffer)) {
+				cipher.retry();
+			}
+			cipher.hash(buffer, length);
+			return HandshakeCoder.decode(buffer);
+		} else if (type == Handshake.FINISHED) {
 			// 服务端完成消息校验码
 			final byte[] local = cipher.serverFinished();
 			cipher.hash(buffer, length);
@@ -283,10 +307,10 @@ public class TLSClientHandler implements ChainHandler {
 			if (cipher.application()) {
 				handler.received(chain, message);
 			} else {
-				chain.close();
+				// chain.close();
 			}
 		} else if (message instanceof Record) {
-			System.out.println(message);
+			System.out.println("RECV " + message);
 			final Record record = (Record) message;
 			if (record.contentType() == Record.APPLICATION_DATA) {
 				// 忽略空的应用消息
@@ -300,11 +324,11 @@ public class TLSClientHandler implements ChainHandler {
 			} else if (record.contentType() == Record.HEARTBEAT) {
 				heartbeat(chain, (HeartbeatMessage) record);
 			} else if (record.contentType() == Record.INVALID) {
-				chain.close();
+				// chain.close();
 			} else if (record.contentType() == Record.ALERT) {
-				chain.close();
+				// chain.close();
 			} else {
-				chain.close();
+				// chain.close();
 			}
 		} else {
 			if (cipher.decryptLimit()) {
@@ -317,14 +341,16 @@ public class TLSClientHandler implements ChainHandler {
 	@Override
 	public void sent(ChainChannel chain, Object message) throws Exception {
 		if (message instanceof Record) {
-			System.out.println(message);
+			System.out.println("SENT " + message);
 			if (message instanceof Alert) {
-				chain.close();
+				// chain.close();
 			} else if (message instanceof Finished) {
 				if (cipher.handshaked()) {
 					// 重置为应用加密套件
 					cipher.encryptReset(cipher.clientApplicationTraffic());
-					// cipher.resumptionMaster();
+					// 生成恢复密钥
+					cipher.resumptionMaster();
+					// 握手成功
 					handler.connected(chain);
 				}
 			} else if (message instanceof KeyUpdate) {
@@ -360,13 +386,16 @@ public class TLSClientHandler implements ChainHandler {
 					return new Alert(Alert.ILLEGAL_PARAMETER);
 				}
 				if (hello.hasSessionId()) {
-					// TODO
+					if (Arrays.equals(hello.getSessionId(), sessionId)) {
+						// OK
+					} else {
+						return new Alert(Alert.ILLEGAL_PARAMETER);
+					}
 				} else {
 					return new Alert(Alert.ILLEGAL_PARAMETER);
 				}
 				if (hello.getCipherSuite() > 0) {
-					cipher.suite(hello.getCipherSuite());
-					// TODO
+					// cipher.suite(hello.getCipherSuite());
 				} else {
 					return new Alert(Alert.ILLEGAL_PARAMETER);
 				}
@@ -379,6 +408,7 @@ public class TLSClientHandler implements ChainHandler {
 				if (version == null) {
 					return new Alert(Alert.ILLEGAL_PARAMETER);
 				}
+
 				if (version.get() == TLS.V13) {
 					final ClientHello retry = new ClientHello();
 					final KeyShareHelloRetryRequest ksr = hello.getExtension(Extension.KEY_SHARE);
@@ -396,6 +426,22 @@ public class TLSClientHandler implements ChainHandler {
 						// Cookie由Server发送并原样送回
 						retry.addExtension(cookie);
 					}
+					// 完善消息参数
+					retry.setVersion(TLS.V12);
+					retry.makeSessionId();
+					retry.makeRandom();
+					retry.setCipherSuites(hello.getCipherSuite());
+					retry.setCompressionMethods(TLS.COMPRESSION_METHODS);
+					sessionId = hello.getSessionId();
+					// 其它必要扩展
+					retry.addExtension(new ServerNames(new ServerName(sn)));
+					retry.addExtension(new SupportedVersions(version.get()));
+					retry.addExtension(new SignatureAlgorithms(SignatureAlgorithms.ALL));
+					retry.addExtension(new Heartbeat(Heartbeat.PEER_NOT_ALLOWED_TO_SEND));
+					retry.addExtension(new ApplicationLayerProtocolNegotiation("http/1.1"));
+					retry.addExtension(ExtendedMasterSecret.INSTANCE);
+					retry.addExtension(new RenegotiationInfo());
+					retry.addExtension(new SessionTicket());
 					return retry;
 				} else if (version.get() == TLS.V12) {
 					// DOWNGRD
@@ -470,9 +516,14 @@ public class TLSClientHandler implements ChainHandler {
 			certificate.setContext(request.getContext());
 			final LocalCache local = SessionCertificates.filters(authorities, filters);
 			if (local != null) {
-				final CertificateVerify certificateVerify = new CertificateVerify();
-				certificateVerify.setAlgorithm(local.getScheme());
-				certificate.set(local.getEntries());
+				final short scheme = algorithms.match(local.getScheme());
+				if (scheme > 0) {
+					final CertificateVerify certificateVerify = new CertificateVerify();
+					certificateVerify.setAlgorithm(scheme);
+					certificate.set(local.getEntries());
+				} else {
+
+				}
 			} else {
 				// 没有任何证书时也应返回空消息
 			}
@@ -518,13 +569,14 @@ public class TLSClientHandler implements ChainHandler {
 		} else if (record.msgType() == Handshake.NEW_SESSION_TICKET) {
 			final NewSessionTicket ticket = (NewSessionTicket) record;
 			ticket.setResumption(cipher.resumption(ticket.getNonce()));
-			ClientSessionTickets.put(sn, cipher.suite(), ticket);
+			ticket.setSuite(cipher.suite());
+			ClientSessionTickets.put(sn, ticket);
 		} else if (record.msgType() == Handshake.FINISHED) {
 			final Finished finished = (Finished) record;
 			if (finished.validate()) {
 				cipher.decryptReset(cipher.serverApplicationTraffic());
 				cipher.clientApplicationTraffic();
-				cipher.exporterMaster();
+				// cipher.exporterMaster();
 				// EndOfEarlyData
 				// chain.send(EndOfEarlyData.INSTANCE);
 				finished.setVerifyData(cipher.clientFinished());
@@ -538,11 +590,13 @@ public class TLSClientHandler implements ChainHandler {
 
 	@Override
 	public void beat(ChainChannel chain) throws Exception {
-		final HeartbeatMessage heartbeat = new HeartbeatMessage();
-		heartbeat.setMessageType(HeartbeatMessage.HEARTBEAT_REQUEST);
-		heartbeat.setPayload(Binary.split(chain.hashCode()));
-		chain.send(heartbeat);
-	};
+		if (cipher.application()) {
+			final HeartbeatMessage heartbeat = new HeartbeatMessage();
+			heartbeat.setMessageType(HeartbeatMessage.HEARTBEAT_REQUEST);
+			heartbeat.setPayload(Binary.split(chain.hashCode()));
+			chain.send(heartbeat);
+		}
+	}
 
 	private void heartbeat(ChainChannel chain, HeartbeatMessage message) {
 		if (message.getMessageType() == HeartbeatMessage.HEARTBEAT_RESPONSE) {

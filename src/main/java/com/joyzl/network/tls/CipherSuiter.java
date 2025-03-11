@@ -3,14 +3,12 @@ package com.joyzl.network.tls;
 import java.nio.ByteBuffer;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
-import java.security.Security;
 import java.security.spec.AlgorithmParameterSpec;
+import java.util.Arrays;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.buffer.DataBufferUnit;
@@ -41,12 +39,28 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 	// https://www.bouncycastle.org/
 	// https://docs.oracle.com/en/java/javase/17/docs/specs/security/standard-names.html
 
+	// 尝试并建立本地可用的密码套件
+	final static short[] AVAILABLES;
+	static {
+		final CipherSuiter s = new CipherSuiter();
+		short[] items = new short[0];
+		for (short suite : ALL) {
+			try {
+				s.suite(suite);
+				items = Arrays.copyOf(items, items.length + 1);
+				items[items.length - 1] = suite;
+			} catch (Exception e) {
+				// 忽略此异常
+				e.printStackTrace();
+			}
+		}
+		AVAILABLES = items;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
+
 	/** AES-GCM 加密记录限制 */
 	final static long MAX_SEQUENCE = (long) Math.pow(2, 24.5);
-
-	static {
-		Security.addProvider(new BouncyCastleProvider());
-	}
 
 	private short code = TLS_NULL_WITH_NULL_NULL;
 

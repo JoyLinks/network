@@ -128,7 +128,7 @@ public class TCPClient extends TCPLink {
 		}
 	};
 
-	void check(long timestamp) {
+	protected void check(long timestamp) {
 		// 实现者可重载此方法检查指令超时
 		// System.out.println(active() + "," + timestamp);
 	}
