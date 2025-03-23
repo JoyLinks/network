@@ -369,6 +369,11 @@ class V2RecordCoder extends TLS {
 			buffer.clear();
 			throw new TLSException(Alert.RECORD_OVERFLOW);
 		}
+		// 数据是否收完
+		if (length > buffer.readable()) {
+			buffer.reset();
+			return -1;
+		}
 
 		// IV
 		final byte[] iv = new byte[cipher.ivLength()];

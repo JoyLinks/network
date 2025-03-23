@@ -86,7 +86,6 @@ public class V2ClientHandler extends TLSParameters implements ChainHandler {
 	private void clientHello(ClientHello hello) {
 		hello.setCompressionMethods(TLS.COMPRESSION_METHODS);
 		hello.setCipherSuites(cipherSuites());
-		// hello.setCipherSuites(CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA256);
 		hello.setVersion(TLS.V12);
 		hello.makeRandom();
 

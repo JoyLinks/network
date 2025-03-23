@@ -386,6 +386,7 @@ class V2CipherSuiter extends V2SecretCache implements CipherSuite {
 		}
 		encryptKey = null;
 		decryptKey = null;
+
 		if (transformation != null) {
 			encryptCipher = Cipher.getInstance(transformation);
 			decryptCipher = Cipher.getInstance(transformation);

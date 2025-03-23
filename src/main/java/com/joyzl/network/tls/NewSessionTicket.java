@@ -139,6 +139,10 @@ class NewSessionTicket extends HandshakeExtensions {
 	 * 验证票据是否有效（未过期）
 	 */
 	public boolean valid() {
+		if (lifetime == 0) {
+			// RFC5077 零表示未指定生命周期
+			return true;
+		}
 		return (System.currentTimeMillis() - timestamp) / 1000 < lifetime;
 	}
 
