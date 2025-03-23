@@ -3,6 +3,7 @@ package com.joyzl.network.tls;
 import java.io.IOException;
 
 import com.joyzl.network.buffer.DataBuffer;
+import com.joyzl.network.codec.Binary;
 import com.joyzl.network.tls.Certificate.CertificateEntry;
 import com.joyzl.network.tls.CertificateStatusRequest.OCSPResponse;
 import com.joyzl.network.tls.CertificateStatusRequest.OCSPStatusRequest;
@@ -923,17 +924,30 @@ class ExtensionCoder {
 	}
 
 	/** RFC 5077 */
-	static void encode(SessionTicket extension, DataBuffer buffer) throws IOException {
-		buffer.writeShort(extension.getTicket().length);
-		buffer.write(extension.getTicket());
+	static void encode(SessionTicket ticket, DataBuffer buffer) throws IOException {
+		if (ticket.getTicket() == TLS.EMPTY_BYTES) {
+			buffer.writeShort(0);
+		} else {
+			// buffer.writeShort(ticket.getTicket().length);
+			buffer.write(ticket.getTicket());
+		}
 	}
 
 	/** RFC 5077 */
 	static SessionTicket decodeSessionTicket(DataBuffer buffer, int length) throws IOException {
 		final SessionTicket ticket = new SessionTicket();
 		if (length > 0) {
-			ticket.setTicket(new byte[length]);
-			buffer.readFully(ticket.getTicket());
+			short len = buffer.readShort();
+			if (len == 0) {
+				// EMPTY
+			} else if (len == length - 2) {
+				ticket.setTicket(new byte[len]);
+				buffer.readFully(ticket.getTicket());
+			} else {
+				ticket.setTicket(new byte[length]);
+				Binary.put(ticket.getTicket(), 0, len);
+				buffer.readFully(ticket.getTicket(), 2, length - 2);
+			}
 		}
 		return ticket;
 	}

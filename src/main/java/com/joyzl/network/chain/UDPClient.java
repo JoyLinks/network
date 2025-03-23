@@ -234,4 +234,9 @@ public class UDPClient extends Client {
 			}
 		}
 	}
+
+	@Override
+	public void reset() {
+		close();
+	}
 }

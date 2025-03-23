@@ -404,7 +404,8 @@ public class TCPLink extends Client {
 	/**
 	 * 重置链路，重置后可再次执行连接
 	 */
-	protected void reset() {
+	@Override
+	public void reset() {
 		if (connected) {
 			synchronized (this) {
 				if (connected) {

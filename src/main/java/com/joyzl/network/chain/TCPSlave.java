@@ -397,4 +397,9 @@ public class TCPSlave extends Slave {
 			}
 		}
 	}
+
+	@Override
+	public void reset() {
+		close();
+	}
 }

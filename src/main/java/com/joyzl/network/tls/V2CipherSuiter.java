@@ -80,6 +80,7 @@ class V2CipherSuiter extends V2SecretCache implements CipherSuite {
 	private int tagLength;
 	private int keyLength;
 	private int ivLength;
+	private int kea;
 
 	private long encryptSequence = 0;
 	private long decryptSequence = 0;
@@ -101,6 +102,10 @@ class V2CipherSuiter extends V2SecretCache implements CipherSuite {
 	}
 
 	public void suite(short code) throws Exception {
+		// prf_tls12_sha256:默认是SHA256算法(这是能满足最低安全的算法)
+		// prf_tls12_sha384:如果加密套件指定的HMAC算法安全级别高于SHA256，则采用加密基元SHA384算法
+		// 基于以上规则，如下密码套件解析均将MD5和SHA1替换为SHA256
+
 		switch (this.code = code) {
 			case TLS_KRB5_WITH_3DES_EDE_CBC_MD5:
 				secretKeyAlgorithm = "DESede";
@@ -381,30 +386,33 @@ class V2CipherSuiter extends V2SecretCache implements CipherSuite {
 		}
 		encryptKey = null;
 		decryptKey = null;
-		encryptCipher = Cipher.getInstance(transformation);
-		decryptCipher = Cipher.getInstance(transformation);
-
-		// TranscriptHash
-		// extended_master_secret:session_hash
-		// 扩展密钥使用至少SHA256(RFC7627)
-
-		// PRF:所有密码套件至少使用SHA256
-		// PRF:如果密码套件指定的算法安全级别高于SHA256，则采用SHA384算法
-		if ("HmacMD5".equalsIgnoreCase(macAlgorithm) //
-				|| "HmacSHA1".equalsIgnoreCase(macAlgorithm)) {
-			hmac("HmacSHA256");
-			digest("SHA-256");
-		} else {
-			hmac(macAlgorithm);
-			digest(digestAlgorithm);
+		if (transformation != null) {
+			encryptCipher = Cipher.getInstance(transformation);
+			decryptCipher = Cipher.getInstance(transformation);
 		}
 
-		// 消息签名使用密码套件算法
-		// SecurityParameters.mac_algorithm
-		// SecurityParameters.mac_length
-		// SecurityParameters.mac_key_length
-		mac = Mac.getInstance(macAlgorithm);
-		// mac = Mac.getInstance("HmacSHA256");
+		if (macAlgorithm != null) {
+			// TranscriptHash
+			// extended_master_secret:session_hash
+			// 扩展密钥使用至少SHA256(RFC7627)
+
+			// PRF:所有密码套件至少使用SHA256
+			// PRF:如果密码套件指定的算法安全级别高于SHA256，则采用SHA384算法
+			if ("HmacMD5".equalsIgnoreCase(macAlgorithm) //
+					|| "HmacSHA1".equalsIgnoreCase(macAlgorithm)) {
+				hmac("HmacSHA256");
+				digest("SHA-256");
+			} else {
+				hmac(macAlgorithm);
+				digest(digestAlgorithm);
+			}
+
+			// 消息签名使用密码套件算法
+			// SecurityParameters.mac_algorithm
+			// SecurityParameters.mac_length
+			// SecurityParameters.mac_key_length
+			mac = Mac.getInstance(macAlgorithm);
+		}
 	}
 
 	/**

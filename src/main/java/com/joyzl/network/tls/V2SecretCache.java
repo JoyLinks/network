@@ -34,6 +34,24 @@ abstract class V2SecretCache extends V2DeriveSecret {
 	 * [ChangeCipherSpec]
 	 * Finished                  -------->
 	 * Application Data          <------->        Application Data
+	 * -----------------------Session Ticket----------------------
+	 * ClientHello
+	 * (empty SessionTicket extension)-------->
+	 *                                                 ServerHello
+	 *                             (empty SessionTicket extension)
+	 *                                                Certificate*
+	 *                                          ServerKeyExchange*
+	 *                                         CertificateRequest*
+	 *                              <--------      ServerHelloDone
+	 * Certificate*
+	 * ClientKeyExchange
+	 * CertificateVerify*
+	 * [ChangeCipherSpec]
+	 * Finished                     -------->
+	 * 											  NewSessionTicket
+	 *                                          [ChangeCipherSpec]
+	 *                              <--------             Finished
+	 * Application Data             <------->     Application Data
 	 */
 
 	private byte[] pms;
@@ -45,11 +63,19 @@ abstract class V2SecretCache extends V2DeriveSecret {
 	}
 
 	public void pms(byte[] value) {
+		master = null;
+		block = null;
 		pms = value;
 	}
 
 	public byte[] master() {
 		return master;
+	}
+
+	public void master(byte[] value) {
+		master = value;
+		block = null;
+		pms = null;
 	}
 
 	/** RSA(pms) / Diffie-Hellman(key) */

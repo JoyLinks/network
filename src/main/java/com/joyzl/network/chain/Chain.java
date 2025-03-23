@@ -52,6 +52,14 @@ public abstract class Chain {
 	public abstract ChainType type();
 
 	/**
+	 * 重置链路
+	 * <p>
+	 * 服务端的重置与关闭行为通常相同，客户端如果具有重连机制则重置后可继续尝试连接。
+	 * 因此消息处理的内部逻辑通常应调用reset()，而外部逻辑应调用close()表示无须尝试继续连接。
+	 */
+	public abstract void reset();
+
+	/**
 	 * 关闭链路
 	 */
 	public abstract void close();

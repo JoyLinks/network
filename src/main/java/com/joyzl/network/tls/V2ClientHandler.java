@@ -18,11 +18,12 @@ public class V2ClientHandler extends TLSParameters implements ChainHandler {
 	private final ChainHandler handler;
 
 	private final V2CipherSuiter cipher = new V2CipherSuiter();
-	private Signaturer signaturer;
+	private final Signaturer signaturer = new Signaturer();
 	private KeyExchange key;
 	private String sn;
 
 	private final DataBuffer data = DataBuffer.instance();
+	private boolean extendedMasterSecret;
 	private DataBuffer clientHello, serverHello;
 	private byte[] clientVerify, serverVerify;
 	private byte[] sessionId;
@@ -60,7 +61,19 @@ public class V2ClientHandler extends TLSParameters implements ChainHandler {
 		// 构建握手请求消息
 		final ClientHello hello = new ClientHello();
 		clientHello(hello);
+		// SESSION ID
 		hello.setSessionId(sessionId);
+		// SESSION TICKET
+		final NewSessionTicket nst = ClientSessionTickets.get(sn);
+		if (nst != null) {
+			final SessionTicket st = hello.getExtension(Extension.SESSION_TICKET);
+			st.setTicket(nst.getTicket());
+			cipher.suite(nst.getSuite());
+			cipher.master(nst.getResumption());
+		} else {
+			cipher.suite(CipherSuiter.TLS_NULL_WITH_NULL_NULL);
+			cipher.pms(null);
+		}
 		clientVerify = hello.getRandom();
 
 		chain.send(hello);
@@ -213,68 +226,73 @@ public class V2ClientHandler extends TLSParameters implements ChainHandler {
 		if (buffer.readable() < length) {
 			return null;
 		}
-		// System.out.println("H:" + type);
+
 		if (type == Handshake.SERVER_HELLO) {
 			serverHello = DataBuffer.instance();
 			serverHello.replicate(buffer, 0, length);
-			return HandshakeCoder.decode(version, buffer);
+			return V2HandshakeCoder.decode(buffer);
 		} else if (type == Handshake.FINISHED) {
 			// 服务端完成消息校验码
 			final byte[] local = cipher.serverFinished();
 			cipher.hash(buffer, length);
-			System.out.println("HASH:" + Handshake.name(type));
 
-			final Finished finished = (Finished) HandshakeCoder.decode(version, buffer);
+			final Finished finished = (Finished) V2HandshakeCoder.decode(buffer);
 			finished.setLocalData(local);
-
-			// 重置解密密钥
-			cipher.decryptReset(cipher.serverWriteKey(), cipher.serverWriteIV());
-			cipher.decryptMACKey(cipher.serverWriteMACKey());
-
 			return finished;
 		} else if (type == Handshake.HELLO_REQUEST) {
 			// 此消息不包含在握手验证摘要中
-			return HandshakeCoder.decode(version, buffer);
+			return V2HandshakeCoder.decode(buffer);
 		} else {
 			cipher.hash(buffer, length);
-			System.out.println("HASH:" + Handshake.name(type));
-			return HandshakeCoder.decode(version, buffer);
+			return V2HandshakeCoder.decode(buffer);
 		}
 	}
 
 	private void encode(Handshake handshake, DataBuffer buffer) throws Exception {
 		if (handshake.msgType() == Handshake.CLIENT_HELLO) {
-			HandshakeCoder.encode(handshake, buffer);
+			V2HandshakeCoder.encode(handshake, buffer);
 
 			// 等待握手协商时执行首条消息哈希
 			clientHello = DataBuffer.instance();
 			clientHello.replicate(buffer);
-			return;
 		} else if (handshake.msgType() == Handshake.CERTIFICATE_VERIFY) {
-			// 生成客户端证书消息签名
 			final CertificateVerify verify = (CertificateVerify) handshake;
+			// 生成客户端证书消息签名
 			verify.setSignature(signaturer.singClient(cipher.hash()));
-			HandshakeCoder.encode(handshake, buffer);
+
+			V2HandshakeCoder.encode(handshake, buffer);
+			cipher.hash(buffer);
+		} else if (handshake.msgType() == Handshake.CLIENT_KEY_EXCHANGE) {
+			V2HandshakeCoder.encode(handshake, buffer);
+			cipher.hash(buffer);
+
+			// 导出客户端密钥
+			if (extendedMasterSecret) {
+				cipher.masterSecret();
+				cipher.keyBlock(serverVerify, clientVerify);
+			} else {
+				cipher.masterSecret(clientVerify, serverVerify);
+				cipher.keyBlock(serverVerify, clientVerify);
+			}
 		} else if (handshake.msgType() == Handshake.FINISHED) {
-			// 握手完成消息编码之前构造验证码
 			final Finished finished = (Finished) handshake;
+			// 握手完成消息编码之前构造验证码
 			finished.setVerifyData(cipher.clientFinished());
 			clientVerify = finished.getVerifyData();
+
+			V2HandshakeCoder.encode(handshake, buffer);
+			cipher.hash(buffer);
 
 			// 重置加密密钥
 			cipher.encryptReset(cipher.clientWriteKey(), cipher.clientWriteIV());
 			cipher.encryptMACKey(cipher.clientWriteMACKey());
-
-			HandshakeCoder.encode(handshake, buffer);
 		} else if (handshake.msgType() == Handshake.HELLO_REQUEST) {
 			// 此消息不包含在握手验证摘要中
-			HandshakeCoder.encode(handshake, buffer);
-			return;
+			V2HandshakeCoder.encode(handshake, buffer);
 		} else {
-			HandshakeCoder.encode(handshake, buffer);
+			V2HandshakeCoder.encode(handshake, buffer);
+			cipher.hash(buffer);
 		}
-		System.out.println("HASH:" + handshake.name());
-		cipher.hash(buffer);
 	}
 
 	@Override
@@ -282,28 +300,25 @@ public class V2ClientHandler extends TLSParameters implements ChainHandler {
 		if (message == null) {
 			handler.received(chain, message);
 		} else if (message instanceof Record) {
-			System.out.println("RECV " + message);
+			System.out.println("RECV \n" + message);
 			final Record record = (Record) message;
 			if (record.contentType() == Record.APPLICATION_DATA) {
 				// 忽略空的应用消息
 			} else if (record.contentType() == Record.CHANGE_CIPHER_SPEC) {
-				// 忽略兼容性消息
+				// 重置解密密钥
+				cipher.decryptReset(cipher.serverWriteKey(), cipher.serverWriteIV());
+				cipher.decryptMACKey(cipher.serverWriteMACKey());
 			} else if (record.contentType() == Record.HANDSHAKE) {
 				message = handshake((Handshake) record);
 				if (message != null) {
 					chain.send(message);
 				}
-			} else if (record.contentType() == Record.INVALID) {
-				// chain.close();
 			} else if (record.contentType() == Record.ALERT) {
-				// chain.close();
+				chain.reset();
 			} else {
-				// chain.close();
+				chain.reset();
 			}
 		} else {
-			if (cipher.decryptLimit()) {
-				chain.send(new KeyUpdate());
-			}
 			handler.received(chain, message);
 		}
 	}
@@ -311,16 +326,17 @@ public class V2ClientHandler extends TLSParameters implements ChainHandler {
 	@Override
 	public void sent(ChainChannel chain, Object message) throws Exception {
 		if (message instanceof Record) {
-			System.out.println("SENT " + message);
+			System.out.println("SENT \n" + message);
 			if (message instanceof Alert) {
-				// chain.close();
+				chain.reset();
 			} else if (message instanceof Finished) {
-
+				handler.connected(chain);
+			} else if (message instanceof Handshakes handshakes) {
+				if (handshakes.last().msgType() == Handshake.FINISHED) {
+					handler.connected(chain);
+				}
 			}
 		} else {
-			if (cipher.encryptLimit()) {
-				chain.send(new KeyUpdate());
-			}
 			handler.sent(chain, message);
 		}
 	}
@@ -354,29 +370,17 @@ public class V2ClientHandler extends TLSParameters implements ChainHandler {
 
 				if (clientHello != null) {
 					cipher.hash(clientHello);
-					System.out.println("HASH:clientHello");
 					clientHello.release();
 					clientHello = null;
 				}
 				if (serverHello != null) {
 					cipher.hash(serverHello);
-					System.out.println("HASH:serverHello");
 					serverHello.release();
 					serverHello = null;
 				}
 
-				// RSA
-				cipher.pms(V2DeriveSecret.preMasterSecret(hello.getVersion()));
-				// Diffie-Hellman
-
 				final ExtendedMasterSecret ems = hello.getExtension(Extension.EXTENDED_MASTER_SECRET);
-				if (ems != null) {
-					cipher.masterSecret();
-					cipher.keyBlock(serverVerify, clientVerify);
-				} else {
-					cipher.masterSecret(clientVerify, serverVerify);
-					cipher.keyBlock(serverVerify, clientVerify);
-				}
+				extendedMasterSecret = ems != null;
 
 				final RenegotiationInfo ri = hello.getExtension(Extension.RENEGOTIATION_INFO);
 				if (ri != null) {
@@ -385,6 +389,34 @@ public class V2ClientHandler extends TLSParameters implements ChainHandler {
 					} else {
 						return new Alert(Alert.HANDSHAKE_FAILURE);
 					}
+				}
+
+				final SessionTicket st = hello.getExtension(Extension.SESSION_TICKET);
+				if (st != null) {
+					if (cipher.pms() != null) {
+						// 执行票据恢复
+						// developer.mozilla.org
+						// 未发送此扩展也未发送NewSessionTicket
+						// return null;
+					} else {
+						// 继续常规握手
+					}
+				} else {
+					// 继续常规握手
+				}
+
+				if (cipher.master() != null) {
+					// 执行票据恢复
+					// 导出客户端密钥
+					if (extendedMasterSecret) {
+						cipher.keyBlock(serverVerify, clientVerify);
+					} else {
+						cipher.keyBlock(serverVerify, clientVerify);
+					}
+				} else {
+					// RSA
+					cipher.pms(V2DeriveSecret.preMasterSecret(hello.getVersion()));
+					// Diffie-Hellman
 				}
 			}
 		} else if (record.msgType() == Handshake.HELLO_REQUEST) {
@@ -431,33 +463,24 @@ public class V2ClientHandler extends TLSParameters implements ChainHandler {
 						return new Alert(Alert.UNSUPPORTED_CERTIFICATE);
 					}
 				}
-				if (signaturer == null) {
-					// 构建证书签名验证对象
-					// 签名算法待证书验证消息指定
-					signaturer = new Signaturer();
-					signaturer.setPublicKey(remote.getPublicKey());
-					signaturer.setHash(cipher.hash());
-				} else {
-					return new Alert(Alert.UNEXPECTED_MESSAGE);
-				}
+
+				// 设置证书签名验证对象
+				// 证书可能不具备签名算法
+				signaturer.scheme(remote.getScheme());
+				signaturer.setPublicKey(remote.getPublicKey());
+				signaturer.setHash(cipher.hash());
 			} else {
 				// 不允许服务端发送空的证书消息
 				return new Alert(Alert.DECODE_ERROR);
 			}
 		} else if (record.msgType() == Handshake.CERTIFICATE_VERIFY) {
 			final CertificateVerify verify = (CertificateVerify) record;
-			if (signaturer != null) {
-				signaturer.scheme(verify.getAlgorithm());
-				if (signaturer.verifyServer(verify.getSignature())) {
-					signaturer = null;
-					// OK
-				} else {
-					signaturer = null;
-					// 证书消息签名验证失败
-					return new Alert(Alert.DECRYPT_ERROR);
-				}
+			signaturer.scheme(verify.getAlgorithm());
+			if (signaturer.verifyServer(verify.getSignature())) {
+				// OK
 			} else {
-				return new Alert(Alert.UNEXPECTED_MESSAGE);
+				// 证书消息签名验证失败
+				return new Alert(Alert.DECRYPT_ERROR);
 			}
 		} else if (record.msgType() == Handshake.SERVER_HELLO_DONE) {
 			final Handshakes handshakes = new Handshakes();
@@ -469,15 +492,24 @@ public class V2ClientHandler extends TLSParameters implements ChainHandler {
 			final Finished finished = new Finished();
 			// 握手消息完成验证码待编码时生成
 			handshakes.add(finished);
-
 			return handshakes;
+		} else if (record.msgType() == Handshake.NEW_SESSION_TICKET) {
+			final NewSessionTicket ticket = (NewSessionTicket) record;
+			// 将预备主密钥和密码套件关联到会话恢复票据
+			ticket.setResumption(cipher.master());
+			ticket.setSuite(cipher.suite());
+			ClientSessionTickets.put(sn, ticket);
 		} else if (record.msgType() == Handshake.FINISHED) {
 			final Finished finished = (Finished) record;
 			if (finished.validate()) {
 				// 计算并保留消息完成验证码
 				// 用于旧版本1.2重协商
 				serverVerify = finished.getVerifyData();
-				return finished;
+
+				if (cipher.pms() == null) {
+					// 票据恢复时
+					return finished;
+				}
 			} else {
 				return new Alert(Alert.DECRYPT_ERROR);
 			}

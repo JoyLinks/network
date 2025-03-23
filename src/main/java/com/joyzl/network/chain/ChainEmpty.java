@@ -66,7 +66,7 @@ public class ChainEmpty extends ChainChannel {
 	}
 
 	@Override
-	public void close() {
+	public void reset() {
 		try {
 			handler().disconnected(this);
 		} catch (Exception e) {
@@ -77,6 +77,11 @@ public class ChainEmpty extends ChainChannel {
 		} catch (IOException e) {
 			handler().error(this, e);
 		}
+	}
+
+	@Override
+	public void close() {
+		reset();
 	}
 
 	@Override

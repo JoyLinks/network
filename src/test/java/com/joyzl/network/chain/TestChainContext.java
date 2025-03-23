@@ -24,6 +24,10 @@ class TestChainContext {
 		public String getPoint() {
 			return null;
 		}
+
+		@Override
+		public void reset() {
+		}
 	};
 
 	@Test

@@ -184,4 +184,9 @@ public class UDPServer extends Server {
 			handler().error(this, e);
 		}
 	}
+
+	@Override
+	public void reset() {
+		close();
+	}
 }

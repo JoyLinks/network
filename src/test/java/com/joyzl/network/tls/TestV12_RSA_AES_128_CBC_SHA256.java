@@ -348,7 +348,7 @@ public class TestV12_RSA_AES_128_CBC_SHA256 extends TestHelper {
 			""");
 
 	@Test
-	void testRSA() throws Exception {
+	void test() throws Exception {
 		final V2CipherSuiter client = new V2CipherSuiter(CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA256);
 		final V2CipherSuiter server = new V2CipherSuiter(CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA256);
 		client.pms(clientPMS);

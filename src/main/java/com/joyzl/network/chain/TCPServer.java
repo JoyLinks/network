@@ -96,6 +96,11 @@ public class TCPServer extends Server {
 	}
 
 	@Override
+	public void reset() {
+		close();
+	}
+
+	@Override
 	public void close() {
 		if (server_socket_channel.isOpen()) {
 			ChainGroup.remove(this);

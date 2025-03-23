@@ -1,9 +1,8 @@
 package com.joyzl.network.tls;
 
-import com.joyzl.network.Utility;
-
 /**
  * <pre>
+ * TLS 1.3 RFC 8446
  * struct {
  *     uint32 ticket_lifetime;
  *     uint32 ticket_age_add;
@@ -11,6 +10,14 @@ import com.joyzl.network.Utility;
  *     opaque ticket<1..2^16-1>;
  *     Extension extensions<0..2^16-2>;
  * } NewSessionTicket;
+ * </pre>
+ * 
+ * <pre>
+ * TLS 1.2 RFC 5077
+ * struct {
+          uint32 ticket_lifetime_hint;
+          opaque ticket<0..2^16-1>;
+      } NewSessionTicket;
  * </pre>
  * 
  * @author ZhangXi 2024年12月19日
@@ -144,7 +151,8 @@ class NewSessionTicket extends HandshakeExtensions {
 		b.append(",age_add=");
 		b.append(age_add & 0xFFFFFFFFL);
 		b.append(",nonce=");
-		b.append(Utility.hex(nonce));
+		b.append(nonce.length);
+		b.append("Byte");
 		b.append(",ticket=");
 		b.append(ticket.length);
 		b.append("Byte");

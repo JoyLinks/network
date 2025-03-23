@@ -94,4 +94,9 @@ public class UDPSlave extends Slave {
 			handler().error(this, e);
 		}
 	}
+
+	@Override
+	public void reset() {
+		close();
+	}
 }
