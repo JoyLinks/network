@@ -420,6 +420,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 
 						if (len > read.readable()) {
 							mark = target.read;
+
 							// 转移单元
 							target.read = read;
 							do {
@@ -436,6 +437,9 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 								mark.release();
 							}
 							mark = null;
+						} else {
+							// 单元恢复原始位置
+							target.write.clear();
 						}
 
 						if (len > 0) {

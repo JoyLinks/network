@@ -12,10 +12,6 @@ import java.security.spec.X509EncodedKeySpec;
 
 import javax.crypto.KeyAgreement;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.joyzl.network.Utility;
@@ -26,22 +22,6 @@ import com.joyzl.network.Utility;
  * @author ZhangXi 2025年2月4日
  */
 class TestKeyExchange {
-
-	@BeforeAll
-	static void setUpBeforeClass() throws Exception {
-	}
-
-	@AfterAll
-	static void tearDownAfterClass() throws Exception {
-	}
-
-	@BeforeEach
-	void setUp() throws Exception {
-	}
-
-	@AfterEach
-	void tearDown() throws Exception {
-	}
 
 	@Test
 	void x25519() throws Exception {
@@ -80,6 +60,140 @@ class TestKeyExchange {
 
 		assertArrayEquals(clientSharedKey, Utility.hex("8bd4054fb55b9d63fdfbacf9f04b9f0d35e6d63f537563efd46272900f89492d"));
 		assertArrayEquals(serverSharedKey, Utility.hex("8bd4054fb55b9d63fdfbacf9f04b9f0d35e6d63f537563efd46272900f89492d"));
+	}
+
+	@Test
+	void testX448() throws Exception {
+		final KeyExchange client = new KeyExchange();
+		final KeyExchange server = new KeyExchange();
+
+		client.initialize(NamedGroup.X448);
+		server.initialize(NamedGroup.X448);
+
+		byte[] clientPublicKey = client.publicKey();
+		byte[] serverPublicKey = server.publicKey();
+
+		byte[] clientSharedKey = client.sharedKey(serverPublicKey);
+		byte[] serverSharedKey = server.sharedKey(clientPublicKey);
+
+		assertArrayEquals(clientSharedKey, serverSharedKey);
+
+		clientSharedKey = client.sharedKey(serverPublicKey);
+		serverSharedKey = server.sharedKey(clientPublicKey);
+
+		assertArrayEquals(clientSharedKey, serverSharedKey);
+	}
+
+	@Test
+	void testSECP521R1() throws Exception {
+		final KeyExchange client = new KeyExchange();
+		final KeyExchange server = new KeyExchange();
+
+		client.initialize(NamedGroup.SECP521R1);
+		server.initialize(NamedGroup.SECP521R1);
+
+		/*-
+		 * struct {
+		 *       uint8 legacy_form = 4;
+		 *       opaque X[coordinate_length];
+		 *       opaque Y[coordinate_length];
+		 * } UncompressedPointRepresentation;
+		 */
+
+		byte[] clientPublicKey = client.publicKey();
+		byte[] serverPublicKey = server.publicKey();
+
+		byte[] clientSharedKey = client.sharedKey(serverPublicKey);
+		byte[] serverSharedKey = server.sharedKey(clientPublicKey);
+
+		assertArrayEquals(clientSharedKey, serverSharedKey);
+
+		clientSharedKey = client.sharedKey(serverPublicKey);
+		serverSharedKey = server.sharedKey(clientPublicKey);
+
+		assertArrayEquals(clientSharedKey, serverSharedKey);
+	}
+
+	@Test
+	void testSECP384R1() throws Exception {
+		final KeyExchange client = new KeyExchange();
+		final KeyExchange server = new KeyExchange();
+
+		client.initialize(NamedGroup.SECP384R1);
+		server.initialize(NamedGroup.SECP384R1);
+
+		/*-
+		 * struct {
+		 *       uint8 legacy_form = 4;
+		 *       opaque X[coordinate_length];
+		 *       opaque Y[coordinate_length];
+		 * } UncompressedPointRepresentation;
+		 */
+
+		byte[] clientPublicKey = client.publicKey();
+		byte[] serverPublicKey = server.publicKey();
+
+		byte[] clientSharedKey = client.sharedKey(serverPublicKey);
+		byte[] serverSharedKey = server.sharedKey(clientPublicKey);
+
+		assertArrayEquals(clientSharedKey, serverSharedKey);
+
+		clientSharedKey = client.sharedKey(serverPublicKey);
+		serverSharedKey = server.sharedKey(clientPublicKey);
+
+		assertArrayEquals(clientSharedKey, serverSharedKey);
+	}
+
+	@Test
+	void testSECP256R1() throws Exception {
+		final KeyExchange client = new KeyExchange();
+		final KeyExchange server = new KeyExchange();
+
+		client.initialize(NamedGroup.SECP256R1);
+		server.initialize(NamedGroup.SECP256R1);
+
+		/*-
+		 * struct {
+		 *       uint8 legacy_form = 4;
+		 *       opaque X[coordinate_length];
+		 *       opaque Y[coordinate_length];
+		 * } UncompressedPointRepresentation;
+		 */
+
+		byte[] clientPublicKey = client.publicKey();
+		byte[] serverPublicKey = server.publicKey();
+
+		byte[] clientSharedKey = client.sharedKey(serverPublicKey);
+		byte[] serverSharedKey = server.sharedKey(clientPublicKey);
+
+		assertArrayEquals(clientSharedKey, serverSharedKey);
+
+		clientSharedKey = client.sharedKey(serverPublicKey);
+		serverSharedKey = server.sharedKey(clientPublicKey);
+
+		assertArrayEquals(clientSharedKey, serverSharedKey);
+	}
+
+	@Test
+	void testFFDHE2048() throws Exception {
+		final KeyExchange client = new KeyExchange();
+		final KeyExchange server = new KeyExchange();
+
+		client.initialize(NamedGroup.FFDHE2048);
+		server.initialize(NamedGroup.FFDHE2048);
+
+		byte[] clientPublicKey = client.publicKey();
+		byte[] serverPublicKey = server.publicKey();
+
+		byte[] clientSharedKey = client.sharedKey(serverPublicKey);
+		byte[] serverSharedKey = server.sharedKey(clientPublicKey);
+
+		assertArrayEquals(clientSharedKey, serverSharedKey);
+
+		clientSharedKey = client.sharedKey(serverPublicKey);
+		serverSharedKey = server.sharedKey(clientPublicKey);
+
+		assertArrayEquals(clientSharedKey, serverSharedKey);
 	}
 
 	@Test

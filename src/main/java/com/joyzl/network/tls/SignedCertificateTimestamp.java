@@ -5,6 +5,8 @@ import java.util.Arrays;
 
 /**
  * <pre>
+ * RFC 6962 Certificate Transparency
+ * 
  * opaque SerializedSCT<1..2^16-1>;
  * 
  * struct {

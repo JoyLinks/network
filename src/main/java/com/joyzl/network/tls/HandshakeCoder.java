@@ -27,7 +27,7 @@ class HandshakeCoder extends TLS {
 		} else if (message.msgType() == Handshake.CERTIFICATE_REQUEST) {
 			encode((CertificateRequest) message, buffer);
 		} else if (message.msgType() == Handshake.CERTIFICATE) {
-			encode((Certificate) message, buffer);
+			encodeV3((Certificate) message, buffer);
 		} else if (message.msgType() == Handshake.CERTIFICATE_VERIFY) {
 			encode((CertificateVerify) message, buffer);
 		} else if (message.msgType() == Handshake.CERTIFICATE_URL) {
@@ -65,15 +65,17 @@ class HandshakeCoder extends TLS {
 		buffer.set(position, (byte) (length));
 	}
 
-	public static Handshake decode(DataBuffer buffer) throws IOException {
-		int type, length;
-		Handshake message;
-
+	public static Handshake decode(short version, DataBuffer buffer) throws IOException {
 		// HandshakeType 1Byte
-		type = buffer.readByte();
+		int type = buffer.readByte();
 		// uint24 length 3Byte
-		length = buffer.readUnsignedMedium();
+		int length = buffer.readUnsignedMedium();
+
+		Handshake message;
 		if (buffer.readable() >= length) {
+			// 消息主体解码后剩余字节
+			final int excess = buffer.readable() - length;
+
 			if (type == Handshake.CLIENT_HELLO) {
 				message = decodeClientHello(buffer);
 			} else if (type == Handshake.SERVER_HELLO) {
@@ -83,7 +85,11 @@ class HandshakeCoder extends TLS {
 			} else if (type == Handshake.CERTIFICATE_REQUEST) {
 				message = decodeCertificateRequest(buffer);
 			} else if (type == Handshake.CERTIFICATE) {
-				message = decodeCertificate(buffer);
+				if (version == TLS.V13) {
+					message = decodeCertificateV3(buffer);
+				} else {
+					message = decodeCertificateV2(buffer);
+				}
 			} else if (type == Handshake.CERTIFICATE_VERIFY) {
 				message = decodeCertificateVerify(buffer);
 			} else if (type == Handshake.CERTIFICATE_URL) {
@@ -109,9 +115,14 @@ class HandshakeCoder extends TLS {
 			} else {
 				throw new UnsupportedOperationException("TLS:未知的握手消息类型" + type);
 			}
-			if (message instanceof HandshakeExtensions) {
-				// Extensions <8..2^16-1>
-				ExtensionCoder.decode((HandshakeExtensions) message, buffer);
+
+			// 旧版本应监测主体解码后是否剩余
+			// 如果有剩余在尝试解码扩展
+			if (buffer.readable() > excess) {
+				if (message instanceof HandshakeExtensions) {
+					// Extensions <8..2^16-1>
+					ExtensionCoder.decode((HandshakeExtensions) message, buffer);
+				}
 			}
 		} else {
 			throw new IllegalArgumentException("TLS:数据缺失");
@@ -241,7 +252,7 @@ class HandshakeCoder extends TLS {
 		return message;
 	}
 
-	private static void encode(Certificate message, DataBuffer buffer) throws IOException {
+	private static void encodeV3(Certificate message, DataBuffer buffer) throws IOException {
 		// opaque certificate_request_context<0..2^8-1>;
 		buffer.writeByte(message.getContext().length);
 		buffer.write(message.getContext());
@@ -249,14 +260,17 @@ class HandshakeCoder extends TLS {
 		// CertificateEntry certificate_list<0..2^24-1>;
 		int position = buffer.readable();
 		buffer.writeMedium(0);
+
 		CertificateEntry entry;
 		for (int index = 0; index < message.get().length; index++) {
 			entry = message.get()[index];
-			buffer.writeByte(entry.type());
-			buffer.writeShort(entry.getData().length);
+
+			// opaque cert_data<1..2^24-1>;
+			buffer.writeMedium(entry.getData().length);
 			buffer.write(entry.getData());
 			ExtensionCoder.encode(entry, buffer);
 		}
+
 		// SET LENGTH
 		int length = buffer.readable() - position - 3;
 		buffer.set(position++, (byte) (length >>> 16));
@@ -264,7 +278,7 @@ class HandshakeCoder extends TLS {
 		buffer.set(position, (byte) (length));
 	}
 
-	private static Certificate decodeCertificate(DataBuffer buffer) throws IOException {
+	private static Certificate decodeCertificateV3(DataBuffer buffer) throws IOException {
 		final Certificate message = new Certificate();
 		// opaque certificate_request_context<0..2^8-1>;
 		int length = buffer.readUnsignedByte();
@@ -275,12 +289,53 @@ class HandshakeCoder extends TLS {
 		// CertificateEntry certificate_list<0..2^24-1>;
 		length = buffer.readUnsignedMedium();
 		length = buffer.readable() - length;
+
 		CertificateEntry entry;
 		while (buffer.readable() > length) {
-			entry = new CertificateEntry(buffer.readByte());
-			entry.setData(new byte[buffer.readUnsignedShort()]);
+			entry = new CertificateEntry();
+			// opaque cert_data<1..2^24-1>;
+			entry.setData(new byte[buffer.readUnsignedMedium()]);
 			buffer.readFully(entry.getData());
 			ExtensionCoder.decode(entry, buffer);
+			message.add(entry);
+		}
+		return message;
+	}
+
+	private static void encodeV2(Certificate message, DataBuffer buffer) throws IOException {
+		// ASN.1Cert certificate_list<0..2^24-1>;
+		int position = buffer.readable();
+		buffer.writeMedium(0);
+
+		CertificateEntry entry;
+		for (int index = 0; index < message.get().length; index++) {
+			entry = message.get()[index];
+			// opaque ASN.1Cert<1..2^24-1>;
+			buffer.writeMedium(entry.getData().length);
+			buffer.write(entry.getData());
+			ExtensionCoder.encode(entry, buffer);
+		}
+
+		// SET LENGTH
+		int length = buffer.readable() - position - 3;
+		buffer.set(position++, (byte) (length >>> 16));
+		buffer.set(position++, (byte) (length >>> 8));
+		buffer.set(position, (byte) (length));
+	}
+
+	private static Certificate decodeCertificateV2(DataBuffer buffer) throws IOException {
+		final Certificate message = new Certificate();
+
+		// CertificateEntry certificate_list<0..2^24-1>;
+		int length = buffer.readUnsignedMedium();
+		length = buffer.readable() - length;
+
+		CertificateEntry entry;
+		while (buffer.readable() > length) {
+			entry = new CertificateEntry();
+			// opaque ASN.1Cert<1..2^24-1>;
+			entry.setData(new byte[buffer.readUnsignedMedium()]);
+			buffer.readFully(entry.getData());
 			message.add(entry);
 		}
 		return message;
@@ -386,19 +441,51 @@ class HandshakeCoder extends TLS {
 
 	private static void encode(CertificateStatus message, DataBuffer buffer) throws IOException {
 		// CertificateStatusType status_type;
-		buffer.writeByte(message.getType());
-		// opaque OCSPResponse<1..2^24-1>;
-		buffer.writeMedium(message.getResponse().length);
-		buffer.write(message.getResponse());
+		buffer.writeByte(message.getStatusType());
+
+		if (message.getStatusType() == CertificateStatusRequest.OCSP) {
+			// opaque OCSPResponse<1..2^24-1>;
+			buffer.writeMedium(message.getResponse().length);
+			buffer.write(message.getResponse());
+		} else if (message.getStatusType() == CertificateStatusRequestListV2.OCSP_MULTI) {
+			// ocsp_response_list<1..2^24-1>;
+			int position = buffer.readable();
+			buffer.writeMedium(0);
+
+			for (int r = 0; r < message.size(); r++) {
+				// opaque OCSPResponse<1..2^24-1>;
+				buffer.writeMedium(message.getResponse(r).length);
+				buffer.write(message.getResponse(r));
+			}
+
+			// SET LENGTH
+			int length = buffer.readable() - position - 3;
+			buffer.set(position++, (byte) (length >>> 16));
+			buffer.set(position++, (byte) (length >>> 8));
+			buffer.set(position, (byte) (length));
+		}
 	}
 
 	private static CertificateStatus decodeCertificateStatus(DataBuffer buffer) throws IOException {
 		final CertificateStatus message = new CertificateStatus();
 		// CertificateStatusType status_type;
-		message.setType(buffer.readByte());
-		// opaque OCSPResponse<1..2^24-1>;
-		message.setResponse(new byte[buffer.readUnsignedMedium()]);
-		buffer.readFully(message.getResponse());
+		message.setStatusType(buffer.readByte());
+
+		if (message.getStatusType() == CertificateStatusRequest.OCSP) {
+			// opaque OCSPResponse<1..2^24-1>;
+			message.setResponse(new byte[buffer.readUnsignedMedium()]);
+			buffer.readFully(message.getResponse());
+		} else if (message.getStatusType() == CertificateStatusRequestListV2.OCSP_MULTI) {
+			// ocsp_response_list<1..2^24-1>;
+			int length = buffer.readUnsignedMedium();
+			byte[] opaque;
+			while (length > 0) {
+				// opaque OCSPResponse<1..2^24-1>;
+				message.addResponse(opaque = new byte[buffer.readUnsignedMedium()]);
+				buffer.readFully(message.getResponse());
+				length -= opaque.length + 3;
+			}
+		}
 		return message;
 	}
 

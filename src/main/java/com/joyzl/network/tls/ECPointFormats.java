@@ -3,6 +3,8 @@ package com.joyzl.network.tls;
 import java.util.Arrays;
 
 /**
+ * 扩展：椭圆曲线是否压缩
+ * 
  * <pre>
  * enum {
  *     elliptic_curves(10),
@@ -85,5 +87,26 @@ class ECPointFormats extends Extension {
 
 	public int size() {
 		return items.length;
+	}
+
+	@Override
+	public String toString() {
+		if (size() > 0) {
+			final StringBuilder b = new StringBuilder();
+			b.append(name());
+			b.append(':');
+			for (int i = 0; i < size(); i++) {
+				if (i > 0) {
+					b.append(',');
+				}
+				if (get(i) == 0) {
+					b.append("uncompressed");
+				} else {
+					b.append(get(i));
+				}
+			}
+			return b.toString();
+		}
+		return name() + ":EMPTY";
 	}
 }

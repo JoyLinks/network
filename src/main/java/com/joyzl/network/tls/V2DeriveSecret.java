@@ -5,13 +5,15 @@ import java.nio.charset.StandardCharsets;
 import com.joyzl.network.codec.Binary;
 
 /**
- * TLS 1.2 1.1. 1.0 密钥导出
+ * TLS 1.2 密钥推导计划基础方法
  * 
- * @author ZhangXi 2025年3月9日
+ * @author ZhangXi 2025年1月9日
  */
-public class MasterSecret extends PRF {
+class V2DeriveSecret extends PRF {
 
 	/*-
+	 * TLS 1.2 密钥导出
+	 * 
 	 * struct {
 	 *       uint8 major;
 	 *       uint8 minor;
@@ -31,16 +33,16 @@ public class MasterSecret extends PRF {
 	 * master_secret[0..47] = PRF(pre_master_secret, "extended master secret", session_hash);
 	 */
 
-	/** preMasterSecret */
-	public byte[] pre(short version) {
+	/** TLS 1.2 preMasterSecret[48] */
+	public static byte[] preMasterSecret(short version) {
 		final byte[] secret = new byte[48];
 		TLS.RANDOM.nextBytes(secret);
 		Binary.put(secret, 0, version);
 		return secret;
 	}
 
-	/** ClientHello/ServerHello Random */
-	public byte[] random() {
+	/** TLS 1.2 ClientHello/ServerHello Random[32] */
+	public static byte[] helloRandom() {
 		final byte[] random = new byte[32];
 		TLS.RANDOM.nextBytes(random);
 		Binary.put(random, 0, (int) System.currentTimeMillis());
@@ -50,9 +52,18 @@ public class MasterSecret extends PRF {
 	final static byte[] MASTER_SECRET = "master secret".getBytes(StandardCharsets.US_ASCII);
 	final static byte[] EXTENDED_MASTER_SECRET = "extended master secret".getBytes(StandardCharsets.US_ASCII);
 
-	/** RSA:preMasterSecret / Diffie-Hellman:PublicKey -> master_secret */
-	public byte[] master(byte[] pms, byte[] clientRandom, byte[] serverRandom) throws Exception {
-		return expandLabel(pms, MASTER_SECRET, clientRandom, serverRandom, 48);
+	/**
+	 * TLS 1.2 RSA:preMasterSecret / Diffie-Hellman:PublicKey -> master_secret
+	 */
+	protected byte[] masterSecret(byte[] pms, byte[] clientRandom, byte[] serverRandom) throws Exception {
+		return prf(pms, MASTER_SECRET, clientRandom, serverRandom, 48);
+	}
+
+	/**
+	 * TLS 1.2 RSA:preMasterSecret / Diffie-Hellman:PublicKey -> master_secret
+	 */
+	protected byte[] masterSecret(byte[] pms, byte[] hash) throws Exception {
+		return prf(pms, EXTENDED_MASTER_SECRET, hash, 48);
 	}
 
 	/*-
@@ -95,48 +106,48 @@ public class MasterSecret extends PRF {
 
 	final static byte[] KEY_EXPANSION = "key expansion".getBytes(StandardCharsets.US_ASCII);
 
-	/** master_secret -> key_block */
-	public byte[] keyBlock(byte[] secret, byte[] serverRandom, byte[] clientRandom, int length) throws Exception {
-		return expandLabel(secret, KEY_EXPANSION, serverRandom, clientRandom, length);
+	/** TLS 1.2 master_secret -> key_block */
+	protected byte[] keyBlock(byte[] master, byte[] serverRandom, byte[] clientRandom, int length) throws Exception {
+		return prf(master, KEY_EXPANSION, serverRandom, clientRandom, length);
 	}
 
-	/** client_write_MAC_key */
-	public byte[] clientWriteMACkey(byte[] block, int length) {
+	/** TLS 1.2 client_write_MAC_key */
+	protected byte[] clientWriteMACKey(byte[] block, int length) {
 		final byte[] key = new byte[length];
 		System.arraycopy(block, 0, key, 0, length);
 		return key;
 	}
 
-	/** server_write_MAC_key */
-	public byte[] serverWriteMACkey(byte[] block, int length) {
+	/** TLS 1.2 server_write_MAC_key */
+	protected byte[] serverWriteMACKey(byte[] block, int length) {
 		final byte[] key = new byte[length];
 		System.arraycopy(block, length, key, 0, length);
 		return key;
 	}
 
-	/** client_write_key */
-	public byte[] clientWriteKey(byte[] block, int macLength, int length) {
+	/** TLS 1.2 client_write_key */
+	protected byte[] clientWriteKey(byte[] block, int macLength, int length) {
 		final byte[] key = new byte[length];
 		System.arraycopy(block, macLength * 2, key, 0, length);
 		return key;
 	}
 
-	/** server_write_key */
-	public byte[] serverWriteKey(byte[] block, int macLength, int length) {
+	/** TLS 1.2 server_write_key */
+	protected byte[] serverWriteKey(byte[] block, int macLength, int length) {
 		final byte[] key = new byte[length];
 		System.arraycopy(block, macLength * 2 + length, key, 0, length);
 		return key;
 	}
 
-	/** client_write_IV */
-	public byte[] clientWriteIV(byte[] block, int macLength, int keyLength, int length) {
+	/** TLS 1.2 client_write_IV */
+	protected byte[] clientWriteIV(byte[] block, int macLength, int keyLength, int length) {
 		final byte[] key = new byte[length];
 		System.arraycopy(block, macLength * 2 + keyLength * 2, key, 0, length);
 		return key;
 	}
 
-	/** server_write_IV */
-	public byte[] serverWriteIV(byte[] block, int macLength, int keyLength, int length) {
+	/** TLS 1.2 server_write_IV */
+	protected byte[] serverWriteIV(byte[] block, int macLength, int keyLength, int length) {
 		final byte[] key = new byte[length];
 		System.arraycopy(block, macLength * 2 + keyLength * 2 + length, key, 0, length);
 		return key;
@@ -152,13 +163,13 @@ public class MasterSecret extends PRF {
 	final static byte[] SERVER_FINISHED = "server finished".getBytes(StandardCharsets.US_ASCII);
 	final static byte[] CLIENT_FINISHED = "client finished".getBytes(StandardCharsets.US_ASCII);
 
-	/** master_secret -> verify_data */
-	public byte[] serverFinished(byte[] secret, byte[] hash, int length) throws Exception {
-		return expandLabel(secret, SERVER_FINISHED, hash, length);
+	/** TLS 1.2 master_secret -> verify_data */
+	protected byte[] serverFinished(byte[] master, byte[] hash) throws Exception {
+		return prf(master, SERVER_FINISHED, hash, 12);
 	}
 
-	/** master_secret -> verify_data */
-	public byte[] clientFinished(byte[] secret, byte[] hash, int length) throws Exception {
-		return expandLabel(secret, CLIENT_FINISHED, hash, length);
+	/** TLS 1.2 master_secret -> verify_data */
+	protected byte[] clientFinished(byte[] master, byte[] hash) throws Exception {
+		return prf(master, CLIENT_FINISHED, hash, 12);
 	}
 }

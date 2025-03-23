@@ -1,9 +1,7 @@
 package com.joyzl.network.tls;
 
 import java.security.NoSuchAlgorithmException;
-import java.security.Provider;
 import java.security.SecureRandom;
-import java.security.Security;
 
 public abstract class TLS {
 
@@ -46,15 +44,6 @@ public abstract class TLS {
 		} catch (NoSuchAlgorithmException e) {
 			throw new RuntimeException(e);
 		}
-
-		try {
-			// 尝试动态加载密码算法提供者类
-			Class<?> providerClass = Class.forName("org.bouncycastle.jce.provider.BouncyCastleProvider");
-			Provider bcProvider = (Provider) providerClass.getDeclaredConstructor().newInstance();
-			Security.addProvider(bcProvider);
-		} catch (Exception e) {
-			// 忽略异常
-		}
 	}
 
 	public static String version(short value) {
@@ -77,5 +66,27 @@ public abstract class TLS {
 			return "0.2";
 		}
 		return "UNKNOWN";
+	}
+
+	public static short version(String value) {
+		if (value.equalsIgnoreCase("1.3")) {
+			return V13;
+		}
+		if (value.equalsIgnoreCase("1.2")) {
+			return V12;
+		}
+		if (value.equalsIgnoreCase("1.1")) {
+			return V11;
+		}
+		if (value.equalsIgnoreCase("1.0")) {
+			return V10;
+		}
+		if (value.equalsIgnoreCase("3.0")) {
+			return SSL30;
+		}
+		if (value.equalsIgnoreCase("2.0")) {
+			return SSL20;
+		}
+		return 0;
 	}
 }

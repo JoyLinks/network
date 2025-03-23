@@ -87,6 +87,8 @@ class ServerHello extends HandshakeExtensions {
 
 	public void makeRandom(short version) {
 		TLS.RANDOM.nextBytes(random = new byte[32]);
+
+		// 根据指定版本注入降级标志
 		if (version == TLS.V12) {
 			for (int i = 0; i < V12_LAST8.length; i++) {
 				random[i + 24] = V12_LAST8[i];
@@ -156,7 +158,7 @@ class ServerHello extends HandshakeExtensions {
 		b.append(session_id.length);
 		b.append("byte");
 		b.append(",cipher_suites=");
-		b.append(CipherSuite.named(cipher_suite));
+		b.append(CipherSuite.name(cipher_suite));
 		b.append(",compression_methods=");
 		b.append(compression_method);
 		if (hasExtensions()) {

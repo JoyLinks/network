@@ -8,7 +8,7 @@ import java.util.List;
  * 用于认证的证书和链中任何支持的证书
  * 
  * <pre>
- * RFC 8446 TLSv1.3
+ * RFC 8446 TLS 1.3
  * 
  * enum {
  *     X509(0), RawPublicKey(2), (255)
@@ -44,7 +44,7 @@ import java.util.List;
  * RFC 4336 TLSv1.1
  * RFC 5246 TLSv1.2
  * 
- * opaque ASN.1Cert<1..2^24-1>;
+ * opaque ASN.1Cert<1..2^24-1>; // X.509v3
  * 
  * struct {
  *     ASN.1Cert certificate_list<0..2^24-1>;

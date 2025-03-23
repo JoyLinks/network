@@ -1,6 +1,8 @@
 package com.joyzl.network.tls;
 
 /**
+ * 扩展：使用增强型主密钥计算方式，用于TLS 1.2密钥交换，TLS 1.3也应明确设置此扩展。
+ * 
  * <pre>
  * { EMPTY }
  * </pre>

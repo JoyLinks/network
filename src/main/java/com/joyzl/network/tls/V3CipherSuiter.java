@@ -8,15 +8,13 @@ import java.util.Arrays;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.buffer.DataBufferUnit;
-import com.joyzl.network.codec.Binary;
 
 /**
- * 密码套件执行消息加密与解密
+ * TLS 1.3 密码套件执行消息加密与解密
  * 
  * <pre>
  * 构建套件
@@ -36,7 +34,7 @@ import com.joyzl.network.codec.Binary;
  * 
  * @author ZhangXi 2024年12月24日
  */
-class CipherSuiter extends SecretCache implements CipherSuite {
+class V3CipherSuiter extends V3SecretCache implements CipherSuite {
 
 	// https://www.bouncycastle.org/
 	// https://docs.oracle.com/en/java/javase/17/docs/specs/security/standard-names.html
@@ -44,7 +42,7 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 	// 尝试并建立本地可用的密码套件
 	final static short[] AVAILABLES;
 	static {
-		final CipherSuiter s = new CipherSuiter();
+		final V3CipherSuiter s = new V3CipherSuiter();
 		short[] items = new short[0];
 		for (short suite : ALL) {
 			try {
@@ -66,7 +64,6 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 	private String transformation;
 	private String digestAlgorithm;
 	private String macAlgorithm;
-	private int blockLength;
 	private int tagLength;
 	private int keyLength;
 	private int ivLength;
@@ -80,11 +77,11 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 	private Key encryptKey;
 	private Key decryptKey;
 
-	public CipherSuiter() {
+	public V3CipherSuiter() {
 		super();
 	}
 
-	public CipherSuiter(short code) throws Exception {
+	public V3CipherSuiter(short code) throws Exception {
 		super();
 		suite(code);
 	}
@@ -97,7 +94,6 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 				transformation = "AES/CCM/NoPadding";
 				digestAlgorithm = "SHA-256";
 				macAlgorithm = "HmacSHA256";
-				blockLength = 0;
 				tagLength = 16;
 				keyLength = 16;
 				ivLength = 12;
@@ -107,7 +103,6 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 				transformation = "AES/CCM/NoPadding";
 				digestAlgorithm = "SHA-256";
 				macAlgorithm = "HmacSHA256";
-				blockLength = 0;
 				tagLength = 8;
 				keyLength = 16;
 				ivLength = 12;
@@ -117,7 +112,6 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 				transformation = "AES/GCM/NoPadding";
 				digestAlgorithm = "SHA-256";
 				macAlgorithm = "HmacSHA256";
-				blockLength = 0;
 				tagLength = 16;
 				keyLength = 16;
 				ivLength = 12;
@@ -127,7 +121,6 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 				transformation = "AES/GCM/NoPadding";
 				digestAlgorithm = "SHA-384";
 				macAlgorithm = "HmacSHA384";
-				blockLength = 0;
 				keyLength = 32;
 				tagLength = 16;
 				ivLength = 12;
@@ -137,285 +130,9 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 				transformation = "ChaCha20-Poly1305";
 				digestAlgorithm = "SHA-256";
 				macAlgorithm = "HmacSHA256";
-				blockLength = 0;
 				keyLength = 32;
 				tagLength = 16;
 				ivLength = 12;
-				break;
-			// v1.2 v1.1 v1.0
-			case TLS_KRB5_WITH_3DES_EDE_CBC_MD5:
-				secretKeyAlgorithm = "DESede";
-				transformation = "DESede/CBC/NoPadding";
-				macAlgorithm = "HmacMD5";
-				digestAlgorithm = "MD5";
-				blockLength = 8;
-				keyLength = 24;
-				tagLength = 0;
-				ivLength = 8;
-				break;
-			case TLS_DH_ANON_WITH_3DES_EDE_CBC_SHA:
-			case TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA:
-			case TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA:
-			case TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA:
-			case TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA:
-			case TLS_KRB5_WITH_3DES_EDE_CBC_SHA:
-			case TLS_RSA_WITH_3DES_EDE_CBC_SHA:
-				secretKeyAlgorithm = "DESede";
-				transformation = "DESede/CBC/NoPadding";
-				macAlgorithm = "HmacSHA1";
-				digestAlgorithm = "SHA-1";
-				blockLength = 8;
-				keyLength = 24;
-				tagLength = 0;
-				ivLength = 8;
-				break;
-			case TLS_DH_ANON_WITH_AES_128_CBC_SHA:
-			case TLS_DH_DSS_WITH_AES_128_CBC_SHA:
-			case TLS_DH_RSA_WITH_AES_128_CBC_SHA:
-			case TLS_DHE_DSS_WITH_AES_128_CBC_SHA:
-			case TLS_DHE_RSA_WITH_AES_128_CBC_SHA:
-			case TLS_RSA_WITH_AES_128_CBC_SHA:
-				secretKeyAlgorithm = "AES";
-				transformation = "AES/CBC/NoPadding";
-				macAlgorithm = "HmacSHA1";
-				digestAlgorithm = "SHA-1";
-				blockLength = 16;
-				keyLength = 16;
-				tagLength = 0;
-				ivLength = 16;
-				break;
-			case TLS_DH_ANON_WITH_AES_128_CBC_SHA256:
-			case TLS_DH_DSS_WITH_AES_128_CBC_SHA256:
-			case TLS_DH_RSA_WITH_AES_128_CBC_SHA256:
-			case TLS_DHE_DSS_WITH_AES_128_CBC_SHA256:
-			case TLS_DHE_RSA_WITH_AES_128_CBC_SHA256:
-			case TLS_RSA_WITH_AES_128_CBC_SHA256:
-				secretKeyAlgorithm = "AES";
-				transformation = "AES/CBC/NoPadding";
-				macAlgorithm = "HmacSHA256";
-				digestAlgorithm = "SHA-256";
-				blockLength = 16;
-				keyLength = 16;
-				tagLength = 0;
-				ivLength = 16;
-				break;
-			case TLS_DH_ANON_WITH_AES_256_CBC_SHA:
-			case TLS_DH_DSS_WITH_AES_256_CBC_SHA:
-			case TLS_DH_RSA_WITH_AES_256_CBC_SHA:
-			case TLS_DHE_DSS_WITH_AES_256_CBC_SHA:
-			case TLS_DHE_RSA_WITH_AES_256_CBC_SHA:
-			case TLS_RSA_WITH_AES_256_CBC_SHA:
-				secretKeyAlgorithm = "AES";
-				transformation = "AES/CBC/NoPadding";
-				macAlgorithm = "HmacSHA1";
-				digestAlgorithm = "SHA-1";
-				blockLength = 16;
-				keyLength = 32;
-				tagLength = 0;
-				ivLength = 16;
-				break;
-			case TLS_DH_ANON_WITH_AES_256_CBC_SHA256:
-			case TLS_DH_DSS_WITH_AES_256_CBC_SHA256:
-			case TLS_DH_RSA_WITH_AES_256_CBC_SHA256:
-			case TLS_DHE_DSS_WITH_AES_256_CBC_SHA256:
-			case TLS_DHE_RSA_WITH_AES_256_CBC_SHA256:
-			case TLS_RSA_WITH_AES_256_CBC_SHA256:
-				secretKeyAlgorithm = "AES";
-				transformation = "AES/CBC/NoPadding";
-				macAlgorithm = "HmacSHA256";
-				digestAlgorithm = "SHA-256";
-				blockLength = 16;
-				keyLength = 32;
-				tagLength = 0;
-				ivLength = 16;
-				break;
-			case TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5:
-				secretKeyAlgorithm = "DES";
-				transformation = "DES/CBC/NoPadding";
-				macAlgorithm = "HmacMD5";
-				digestAlgorithm = "MD5";
-				blockLength = 8;
-				keyLength = 8;
-				tagLength = 0;
-				ivLength = 8;
-				break;
-			case TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA:
-				secretKeyAlgorithm = "DES";
-				transformation = "DES/CBC/NoPadding";
-				macAlgorithm = "HmacSHA1";
-				digestAlgorithm = "SHA-1";
-				blockLength = 8;
-				keyLength = 8;
-				tagLength = 0;
-				ivLength = 8;
-				break;
-			case TLS_KRB5_WITH_DES_CBC_MD5:
-				secretKeyAlgorithm = "DES";
-				transformation = "DES/CBC/NoPadding";
-				macAlgorithm = "HmacMD5";
-				digestAlgorithm = "MD5";
-				blockLength = 8;
-				keyLength = 8;
-				tagLength = 0;
-				ivLength = 8;
-				break;
-			case TLS_DH_ANON_WITH_DES_CBC_SHA:
-			case TLS_DH_DSS_WITH_DES_CBC_SHA:
-			case TLS_DH_RSA_WITH_DES_CBC_SHA:
-			case TLS_DHE_DSS_WITH_DES_CBC_SHA:
-			case TLS_DHE_RSA_WITH_DES_CBC_SHA:
-			case TLS_KRB5_WITH_DES_CBC_SHA:
-			case TLS_RSA_WITH_DES_CBC_SHA:
-				secretKeyAlgorithm = "DES";
-				transformation = "DES/CBC/NoPadding";
-				macAlgorithm = "HmacSHA1";
-				digestAlgorithm = "SHA-1";
-				blockLength = 8;
-				keyLength = 8;
-				tagLength = 0;
-				ivLength = 8;
-				break;
-			case TLS_DH_ANON_EXPORT_WITH_DES40_CBC_SHA:
-			case TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA:
-			case TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA:
-			case TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA:
-			case TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA:
-			case TLS_RSA_EXPORT_WITH_DES40_CBC_SHA:
-				secretKeyAlgorithm = "DES";
-				transformation = "DES/CBC/NoPadding";
-				macAlgorithm = "HmacSHA1";
-				digestAlgorithm = "SHA-1";
-				blockLength = 8;
-				keyLength = 8;
-				tagLength = 0;
-				ivLength = 8;
-				break;
-			case TLS_KRB5_WITH_IDEA_CBC_MD5:
-				secretKeyAlgorithm = "IDEA";
-				transformation = "IDEA/CBC/NoPadding";
-				macAlgorithm = "HmacMD5";
-				digestAlgorithm = "MD5";
-				blockLength = 8;
-				keyLength = 16;
-				tagLength = 0;
-				ivLength = 8;
-				break;
-			case TLS_KRB5_WITH_IDEA_CBC_SHA:
-			case TLS_RSA_WITH_IDEA_CBC_SHA:
-				secretKeyAlgorithm = "IDEA";
-				transformation = "IDEA/CBC/NoPadding";
-				macAlgorithm = "HmacSHA1";
-				digestAlgorithm = "SHA-1";
-				blockLength = 8;
-				keyLength = 16;
-				tagLength = 0;
-				ivLength = 8;
-				break;
-			case TLS_RSA_WITH_NULL_MD5:
-				secretKeyAlgorithm = null;
-				transformation = null;
-				macAlgorithm = "HmacMD5";
-				digestAlgorithm = "MD5";
-				blockLength = 0;
-				keyLength = 0;
-				tagLength = 0;
-				ivLength = 0;
-				break;
-			case TLS_RSA_WITH_NULL_SHA:
-				secretKeyAlgorithm = null;
-				transformation = null;
-				macAlgorithm = "HmacSHA1";
-				digestAlgorithm = "SHA-1";
-				blockLength = 0;
-				keyLength = 0;
-				tagLength = 0;
-				ivLength = 0;
-				break;
-			case TLS_RSA_WITH_NULL_SHA256:
-				secretKeyAlgorithm = null;
-				transformation = null;
-				macAlgorithm = "HmacSHA256";
-				digestAlgorithm = "SHA-256";
-				blockLength = 0;
-				keyLength = 0;
-				tagLength = 0;
-				ivLength = 0;
-				break;
-			case TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5:
-			case TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5:
-				secretKeyAlgorithm = "RC2";
-				transformation = "RC2/CBC/NoPadding";
-				macAlgorithm = "HmacMD5";
-				digestAlgorithm = "MD5";
-				blockLength = 8;
-				keyLength = 5;
-				tagLength = 0;
-				ivLength = 8;
-				break;
-			case TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA:
-				secretKeyAlgorithm = "RC2";
-				transformation = "RC2/CBC/NoPadding";
-				macAlgorithm = "HmacSHA1";
-				digestAlgorithm = "SHA-1";
-				blockLength = 8;
-				keyLength = 5;
-				tagLength = 0;
-				ivLength = 8;
-				break;
-			case TLS_DH_ANON_WITH_RC4_128_MD5:
-			case TLS_KRB5_WITH_RC4_128_MD5:
-			case TLS_RSA_WITH_RC4_128_MD5:
-				secretKeyAlgorithm = "RC4";
-				transformation = "RC4";
-				macAlgorithm = "HmacMD5";
-				digestAlgorithm = "MD5";
-				blockLength = 0;
-				keyLength = 16;
-				tagLength = 0;
-				ivLength = 0;
-				break;
-			case TLS_KRB5_WITH_RC4_128_SHA:
-			case TLS_RSA_WITH_RC4_128_SHA:
-				secretKeyAlgorithm = "RC4";
-				transformation = "RC4";
-				macAlgorithm = "HmacSHA1";
-				digestAlgorithm = "SHA-1";
-				blockLength = 0;
-				keyLength = 16;
-				tagLength = 0;
-				ivLength = 0;
-				break;
-			case TLS_DH_ANON_EXPORT_WITH_RC4_40_MD5:
-			case TLS_KRB5_EXPORT_WITH_RC4_40_MD5:
-			case TLS_RSA_EXPORT_WITH_RC4_40_MD5:
-				secretKeyAlgorithm = "RC4";
-				transformation = "RC4";
-				macAlgorithm = "HmacMD5";
-				digestAlgorithm = "MD5";
-				blockLength = 0;
-				keyLength = 5;
-				tagLength = 0;
-				ivLength = 0;
-				break;
-			case TLS_KRB5_EXPORT_WITH_RC4_40_SHA:
-				secretKeyAlgorithm = "RC4";
-				transformation = "RC4";
-				macAlgorithm = "HmacSHA1";
-				digestAlgorithm = "SHA-1";
-				blockLength = 0;
-				keyLength = 5;
-				tagLength = 0;
-				ivLength = 0;
-				break;
-			case TLS_NULL_WITH_NULL_NULL:
-				secretKeyAlgorithm = null;
-				transformation = null;
-				macAlgorithm = null;
-				digestAlgorithm = null;
-				blockLength = 0;
-				keyLength = 0;
-				tagLength = 0;
-				ivLength = 0;
 				break;
 			default:
 				throw new NoSuchAlgorithmException("TLS:UNKNOWN cipher suiter " + code);
@@ -429,31 +146,7 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 	}
 
 	/**
-	 * 标准流加密 Standard Stream Cipher<br>
-	 * 无须初始化向量IV，任意大小块，须额外认证
-	 */
-	public boolean isStream() {
-		return ivLength == 0 && blockLength == 0 && tagLength == 0;
-	}
-
-	/**
-	 * 分组加密 CBC(Cipher Block Chaining)<br>
-	 * 需求初始化向量IV，固定大小块，须额外认证
-	 */
-	public boolean isBlock() {
-		return ivLength > 0 && blockLength > 0 && tagLength == 0;
-	}
-
-	/**
-	 * 关联数据认证加密 AEAD(Authenticated Encryption with Associated Data)<br>
-	 * 需求初始化向量IV，任意大小块，加密后带认证标签Tag
-	 */
-	public boolean isAEAD() {
-		return ivLength > 0 && blockLength == 0 && tagLength > 0;
-	}
-
-	/**
-	 * AEAD 随机数 TLS 1.3
+	 * AEAD 随机数
 	 */
 	private byte[] v13Nonce(byte[] IV, long sequence) {
 		final byte[] nonce = new byte[ivLength];
@@ -496,26 +189,6 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 	}
 
 	/**
-	 * TLS 1.2 AEAD 附加数据
-	 * 
-	 * <pre>
-	 * additional_data = seq_num +
-	 *                   TLSCompressed.type +
-	 *                   TLSCompressed.version +
-	 *                   TLSCompressed.length
-	 * -
-	 * </pre>
-	 */
-	private byte[] v12AdditionalData(long sequence, byte type, short version, int length) {
-		final byte[] data = new byte[8 + 1 + 2 + 2];
-		Binary.put(data, 0, sequence);
-		data[8] = type;
-		Binary.put(data, 9, version);
-		Binary.put(data, 11, (short) length);
-		return data;
-	}
-
-	/**
 	 * 加密是否已就绪
 	 */
 	public boolean encryptReady() {
@@ -548,24 +221,6 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 	}
 
 	/**
-	 * 重置加密密钥
-	 */
-	public void v12EncryptReset(byte[] key, byte[] iv) throws Exception {
-		encryptKey = new SecretKeySpec(key, secretKeyAlgorithm);
-		encryptIV = iv;
-		// encryptSequence = 0;
-	}
-
-	/**
-	 * 重置解密密钥
-	 */
-	public void v12DecryptReset(byte[] key, byte[] iv) throws Exception {
-		decryptKey = new SecretKeySpec(key, secretKeyAlgorithm);
-		decryptIV = iv;
-		// decryptSequence = 0;
-	}
-
-	/**
 	 * TLS 1.3 开始加密，AEAD 附加数据长度应包括Tag部分
 	 */
 	public void v13EncryptAEAD(int length) throws Exception {
@@ -581,52 +236,6 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 		final AlgorithmParameterSpec spec = new GCMParameterSpec(tagLength * 8, v13Nonce(decryptIV, decryptSequence));
 		decryptCipher.init(Cipher.DECRYPT_MODE, decryptKey, spec);
 		decryptCipher.updateAAD(v13AdditionalData(length));
-	}
-
-	/**
-	 * TLS 1.2 开始加密，AEAD 附加数据长度应包括Tag部分
-	 */
-	public void v12EncryptAEAD(byte type, short version, int length) throws Exception {
-		final AlgorithmParameterSpec apspec = new GCMParameterSpec(tagLength * 8, encryptIV);
-		encryptCipher.init(Cipher.ENCRYPT_MODE, encryptKey, apspec);
-		encryptCipher.updateAAD(v12AdditionalData(encryptSequence, type, version, length));
-	}
-
-	/**
-	 * TLS 1.2 开始解密，AEAD 附加数据长度应包括Tag部分
-	 */
-	public void v12DecryptAEAD(byte type, short version, int length) throws Exception {
-		final AlgorithmParameterSpec apspec = new GCMParameterSpec(tagLength * 8, decryptIV);
-		decryptCipher.init(Cipher.DECRYPT_MODE, decryptKey, apspec);
-		decryptCipher.updateAAD(v12AdditionalData(decryptSequence, type, version, length));
-	}
-
-	/**
-	 * TLS 1.2 开始加密
-	 */
-	public void encryptBlock() throws Exception {
-		encryptCipher.init(Cipher.ENCRYPT_MODE, encryptKey, new IvParameterSpec(encryptIV));
-	}
-
-	/**
-	 * TLS 1.2 开始解密
-	 */
-	public void decryptBlock() throws Exception {
-		decryptCipher.init(Cipher.DECRYPT_MODE, decryptKey, new IvParameterSpec(decryptIV));
-	}
-
-	/**
-	 * TLS 1.2 开始加密
-	 */
-	public void encryptStream() throws Exception {
-		encryptCipher.init(Cipher.ENCRYPT_MODE, encryptKey);
-	}
-
-	/**
-	 * TLS 1.2 开始解密
-	 */
-	public void decryptStream() throws Exception {
-		decryptCipher.init(Cipher.ENCRYPT_MODE, decryptKey);
 	}
 
 	/** AES-GCM 加密记录限制 */
@@ -906,53 +515,10 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 	}
 
 	/**
-	 * 加密序列号
-	 */
-	public void encryptIncrease() {
-		encryptSequence++;
-	}
-
-	/**
 	 * 解密序列号
 	 */
 	public long decryptSequence() {
 		return decryptSequence;
-	}
-
-	/**
-	 * 解密序列号
-	 */
-	public void decryptIncrease() {
-		decryptSequence++;
-	}
-
-	byte[] encryptMACKey;
-
-	public void encryptMACKey(byte[] key) {
-		encryptMACKey = key;
-	}
-
-	public byte[] encryptMAC(byte type, short version, DataBuffer data, int length) throws Exception {
-		System.out.println("encryptSequence" + encryptSequence);
-		return v12MAC(encryptMACKey, encryptSequence, type, version, length, data);
-	}
-
-	byte[] decryptMACKey;
-
-	public void decryptMACKey(byte[] key) {
-		decryptMACKey = key;
-	}
-
-	public byte[] decryptMAC(byte type, short version, DataBuffer data, int length) throws Exception {
-		System.out.println("decryptSequence" + decryptSequence);
-		return v12MAC(decryptMACKey, decryptSequence, type, version, length, data);
-	}
-
-	/**
-	 * 加密数据块最小长度(Byte)
-	 */
-	public int blockLength() {
-		return blockLength;
 	}
 
 	/**

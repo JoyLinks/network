@@ -102,9 +102,9 @@ package com.joyzl.network.tls;
 abstract class Record extends TLS {
 
 	/** TLSPlaintext 16K (2^14) */
-	final static int PLAINTEXT_MAX = 16384;
+	final static short PLAINTEXT_MAX = 16384;
 	/** TLSCiphertext 16.25K */
-	final static int CIPHERTEXT_MAX = PLAINTEXT_MAX + 256;
+	final static short CIPHERTEXT_MAX = PLAINTEXT_MAX + 256;
 
 	// ContentType MAX(255)
 

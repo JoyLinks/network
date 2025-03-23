@@ -1,9 +1,14 @@
 package com.joyzl.network.tls;
 
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+
+import com.joyzl.network.buffer.DataBuffer;
+import com.joyzl.network.buffer.DataBufferUnit;
+import com.joyzl.network.codec.Binary;
 
 /**
  * 密钥提取与展开方法<br>
@@ -13,7 +18,7 @@ import javax.crypto.spec.SecretKeySpec;
  * 
  * @author ZhangXi 2024年12月22日
  */
-class HKDF extends TranscriptHash {
+class PRF_HKDF extends TranscriptHash {
 
 	/** HMAC */
 	private Mac hmac;
@@ -21,10 +26,10 @@ class HKDF extends TranscriptHash {
 	/** Hash.length 00 */
 	private byte[] ZEROS;
 
-	public HKDF() {
+	public PRF_HKDF() {
 	}
 
-	public HKDF(String name) throws Exception {
+	public PRF_HKDF(String name) throws Exception {
 		hmac(name);
 	}
 
@@ -176,5 +181,164 @@ class HKDF extends TranscriptHash {
 	 */
 	protected final byte[] v13DeriveSecret(byte[] secret, byte[] label, byte[] hash) throws Exception {
 		return v13ExpandLabel(secret, label, hash, hashLength());
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
+
+	/*-
+	 * TLS 1.2 PRF 基础方法
+	 * 
+	 * struct {
+	 *       uint8 major;
+	 *       uint8 minor;
+	 * } ProtocolVersion;
+	 * 
+	 * struct {
+	 *       uint32 gmt_unix_time;
+	 *       opaque random_bytes[28];
+	 * } Random;
+	 * 
+	 * struct {
+	 *       ProtocolVersion client_version;
+	 *       opaque random[46];
+	 * } PreMasterSecret;
+	 * 
+	 * 
+	 * P_hash(secret, seed) = HMAC_hash(secret, A(1) + seed) +
+	 *                        HMAC_hash(secret, A(2) + seed) + 
+	 *                        HMAC_hash(secret, A(3) + seed) + ...
+	 * 
+	 * A(0) = seed
+	 * A(i) = HMAC_hash(secret, A(i-1))
+	 * 
+	 * PRF(secret, label, seed) = P_hash(secret, label + seed)
+	 */
+
+	/** TLS 1.2 P_hash(secret, seed) */
+	protected final byte[] v12PHash(byte[] secret, byte[] seed, int length) throws InvalidKeyException {
+		hmac.reset();
+		hmac.init(new SecretKeySpec(secret, hmac.getAlgorithm()));
+
+		final byte[] output = new byte[length];
+
+		byte[] A = seed;
+		int copy;
+		while (length > 0) {
+			hmac.update(A);
+			A = hmac.doFinal(seed);
+			copy = Math.min(length, A.length);
+			System.arraycopy(A, 0, output, output.length - length, copy);
+			length -= copy;
+		}
+		return output;
+	}
+
+	/** TLS 1.2 PRF(secret, label, seed) = P_hash(secret, label + seed) */
+	protected final byte[] v12PRF(byte[] secret, byte[] label, byte[] seed, int length) throws InvalidKeyException {
+		if (length <= 0) {
+			throw new IllegalArgumentException("length");
+		}
+
+		hmac.reset();
+		hmac.init(new SecretKeySpec(secret, hmac.getAlgorithm()));
+
+		final byte[] output = new byte[length];
+
+		hmac.update(label);
+		byte[] A = hmac.doFinal(seed);
+		int copy = Math.min(length, A.length);
+		System.arraycopy(A, 0, output, output.length - length, copy);
+		length -= copy;
+
+		while (length > 0) {
+			hmac.update(A);
+			hmac.update(label);
+			A = hmac.doFinal(seed);
+			copy = Math.min(length, A.length);
+			System.arraycopy(A, 0, output, output.length - length, copy);
+			length -= copy;
+		}
+		return output;
+	}
+
+	/**
+	 * TLS 1.2 PRF(secret, label, seed) = P_hash(secret, label + seed1 +seed2)
+	 */
+	protected final byte[] v12PRF(byte[] secret, byte[] label, byte[] seed1, byte[] seed2, int length) throws InvalidKeyException {
+		if (length <= 0) {
+			throw new IllegalArgumentException("length");
+		}
+
+		hmac.reset();
+		hmac.init(new SecretKeySpec(secret, hmac.getAlgorithm()));
+
+		final byte[] output = new byte[length];
+
+		hmac.update(label);
+		hmac.update(seed1);
+		byte[] A = hmac.doFinal(seed2);
+		int copy = Math.min(length, A.length);
+		System.arraycopy(A, 0, output, output.length - length, copy);
+		length -= copy;
+
+		while (length > 0) {
+			hmac.update(A);
+			hmac.update(label);
+			hmac.update(seed1);
+			A = hmac.doFinal(seed2);
+			copy = Math.min(length, A.length);
+			System.arraycopy(A, 0, output, output.length - length, copy);
+			length -= copy;
+		}
+		return output;
+	}
+
+	/**
+	 * TLS 1.2
+	 * 
+	 * <pre>
+	 * MAC(MAC_write_key, seq_num +
+	 *                    TLSCompressed.type +
+	 *                    TLSCompressed.version +
+	 *                    TLSCompressed.length +
+	 *                    TLSCompressed.fragment);
+	 * 由于压缩未启用TLSCompressed = TLSPlaintext
+	 * </pre>
+	 */
+	protected final byte[] v12MAC(byte[] key, long seqnum, byte type, short version, int length, DataBuffer fragment) throws InvalidKeyException {
+		hmac.reset();
+		hmac.init(new SecretKeySpec(key, hmac.getAlgorithm()));
+
+		final byte[] temp = new byte[8];
+		Binary.put(temp, 0, seqnum);
+		hmac.update(temp);
+
+		hmac.update(type);
+
+		Binary.put(temp, 0, version);
+		hmac.update(temp, 0, 2);
+
+		Binary.put(temp, 0, (short) length);
+		hmac.update(temp, 0, 2);
+
+		// fragment
+		DataBufferUnit unit = fragment.head();
+		while (unit != null && length > 0) {
+			unit.buffer().mark();
+			if (unit.readable() <= length) {
+				length -= unit.readable();
+				hmac.update(unit.buffer());
+			} else {
+				length = unit.readable() - length;
+				unit.writeIndex(unit.writeIndex() - length);
+				hmac.update(unit.buffer());
+				unit.writeIndex(unit.writeIndex() + length);
+				length = 0;
+			}
+			unit.buffer().reset();
+			unit = unit.next();
+		}
+		
+		return hmac.doFinal();
 	}
 }

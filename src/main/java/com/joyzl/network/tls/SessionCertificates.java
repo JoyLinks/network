@@ -266,7 +266,7 @@ public class SessionCertificates {
 	 * 扩展名可能为 .key .pem
 	 */
 	public static PrivateKey loadPrivateKey(File k) throws Exception {
-		final PEM pem = PEM.load(k);
+		final PEM pem = PEM.loadFile(k);
 		if (pem.getLabel().endsWith(" PRIVATE KEY")) {
 			final String algorithm = pem.getLabel().substring(0, pem.getLabel().length() - 12);
 			final PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(pem.getData());
@@ -421,7 +421,7 @@ public class SessionCertificates {
 
 		@Override
 		public String toString() {
-			return SignatureScheme.named(scheme) + " " + certificates.length;
+			return SignatureScheme.name(scheme) + " " + certificates.length;
 		}
 	}
 
@@ -453,7 +453,7 @@ public class SessionCertificates {
 
 		@Override
 		public String toString() {
-			return SignatureScheme.named(scheme) + " " + certificates.length;
+			return SignatureScheme.name(scheme) + " " + certificates.length;
 		}
 	}
 

@@ -32,8 +32,7 @@ class CompressCertificate extends Extension {
 
 	////////////////////////////////////////////////////////////////////////////////
 
-	private final static short[] EMPTY = new short[0];
-	private short[] items = EMPTY;
+	private short[] items = TLS.EMPTY_SHORTS;
 
 	public CompressCertificate() {
 	}
@@ -57,14 +56,14 @@ class CompressCertificate extends Extension {
 
 	public void set(short... value) {
 		if (value == null) {
-			items = EMPTY;
+			items = TLS.EMPTY_SHORTS;
 		} else {
 			items = value;
 		}
 	}
 
 	public void add(short value) {
-		if (items == EMPTY) {
+		if (items == TLS.EMPTY_SHORTS) {
 			items = new short[] { value };
 		} else {
 			items = Arrays.copyOf(items, items.length + 1);

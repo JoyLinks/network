@@ -3,10 +3,11 @@ package com.joyzl.network.tls;
 import java.util.Arrays;
 
 /**
- * SNI(Server Name Identification)
+ * 扩展：服务器名称标识，通常为域名或主机名；服务器可通过此名称匹配证书。
  * 
  * <pre>
  * RFC 6066
+ * SNI(Server Name Identification)
  * 
  * struct {
  *    NameType name_type;

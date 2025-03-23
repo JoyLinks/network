@@ -51,13 +51,13 @@ public interface SignatureScheme {
 
 	/** Reserved Code Points */
 	// obsolete_RESERVED(0x0000..0x0200;
-	public final static short DSA_SHA1_RESERVED = 0x0202;
+	public final static short DSA_SHA1 = 0x0202;
 	// obsolete_RESERVED(0x0204..0x0400;
-	public final static short DSA_SHA256_RESERVED = 0x0402;
+	public final static short DSA_SHA256 = 0x0402;
 	// obsolete_RESERVED(0x0404..0x0500;
-	public final static short DSA_SHA384_RESERVED = 0x0502;
+	public final static short DSA_SHA384 = 0x0502;
 	// obsolete_RESERVED(0x0504..0x0600;
-	public final static short DSA_SHA512_RESERVED = 0x0602;
+	public final static short DSA_SHA512 = 0x0602;
 	// obsolete_RESERVED(0x0604..0x06FF),
 	// private_use(0xFE00..0xFFFF),
 
@@ -78,9 +78,6 @@ public interface SignatureScheme {
 	public final static byte SIGNATURE_DSA = 2;
 	public final static byte SIGNATURE_ECDSA = 3;
 
-	/**
-	 * 全部数字签名算法
-	 */
 	public final static short[] ALL = new short[] { //
 			ECDSA_SECP256R1_SHA256, //
 			ECDSA_SECP384R1_SHA384, //
@@ -105,7 +102,7 @@ public interface SignatureScheme {
 			ECDSA_SHA1,//
 	};
 
-	public static String named(short value) {
+	public static String name(short value) {
 		switch (value) {
 			case RSA_PKCS1_SHA256:
 				return "RSA_PKCS1_SHA256";
@@ -141,6 +138,45 @@ public interface SignatureScheme {
 				return "ECDSA_SHA1";
 			default:
 				return null;
+		}
+	}
+
+	public static short name(String value) {
+		switch (value.toUpperCase()) {
+			case "RSA_PKCS1_SHA256":
+				return RSA_PKCS1_SHA256;
+			case "RSA_PKCS1_SHA384":
+				return RSA_PKCS1_SHA384;
+			case "RSA_PKCS1_SHA512":
+				return RSA_PKCS1_SHA512;
+			case "ECDSA_SECP256R1_SHA256":
+				return ECDSA_SECP256R1_SHA256;
+			case "ECDSA_SECP384R1_SHA384":
+				return ECDSA_SECP384R1_SHA384;
+			case "ECDSA_SECP521R1_SHA512":
+				return ECDSA_SECP521R1_SHA512;
+			case "RSA_PSS_RSAE_SHA256":
+				return RSA_PSS_RSAE_SHA256;
+			case "RSA_PSS_RSAE_SHA384":
+				return RSA_PSS_RSAE_SHA384;
+			case "RSA_PSS_RSAE_SHA512":
+				return RSA_PSS_RSAE_SHA512;
+			case "ED25519":
+				return ED25519;
+			case "ED448":
+				return ED448;
+			case "RSA_PSS_PSS_SHA256":
+				return RSA_PSS_PSS_SHA256;
+			case "RSA_PSS_PSS_SHA384":
+				return RSA_PSS_PSS_SHA384;
+			case "RSA_PSS_PSS_SHA512":
+				return RSA_PSS_PSS_SHA512;
+			case "RSA_PKCS1_SHA1":
+				return RSA_PKCS1_SHA1;
+			case "ECDSA_SHA1":
+				return ECDSA_SHA1;
+			default:
+				return 0;
 		}
 	}
 

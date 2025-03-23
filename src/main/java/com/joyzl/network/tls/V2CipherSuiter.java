@@ -1,12 +1,14 @@
 package com.joyzl.network.tls;
 
 import java.nio.ByteBuffer;
+import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.Arrays;
 
 import javax.crypto.Cipher;
+import javax.crypto.Mac;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -36,17 +38,25 @@ import com.joyzl.network.codec.Binary;
  * 
  * @author ZhangXi 2024年12月24日
  */
-class CipherSuiter extends SecretCache implements CipherSuite {
+class V2CipherSuiter extends V2SecretCache implements CipherSuite {
 
-	// https://www.bouncycastle.org/
-	// https://docs.oracle.com/en/java/javase/17/docs/specs/security/standard-names.html
+	// KeyExchangeAlgorithm
+
+	final static int RSA = 0;
+	final static int DHE_DSS = 1;
+	final static int DHE_RSA = 2;
+	final static int DH_DSS = 3;
+	final static int DH_RSA = 4;
+	final static int DH_ANON = 5;
+
+	////////////////////////////////////////////////////////////////////////////////
 
 	// 尝试并建立本地可用的密码套件
 	final static short[] AVAILABLES;
 	static {
 		final CipherSuiter s = new CipherSuiter();
 		short[] items = new short[0];
-		for (short suite : ALL) {
+		for (short suite : V12) {
 			try {
 				s.suite(suite);
 				items = Arrays.copyOf(items, items.length + 1);
@@ -79,70 +89,19 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 	private byte[] decryptIV;
 	private Key encryptKey;
 	private Key decryptKey;
+	private Mac mac;
 
-	public CipherSuiter() {
+	public V2CipherSuiter() {
 		super();
 	}
 
-	public CipherSuiter(short code) throws Exception {
+	public V2CipherSuiter(short code) throws Exception {
 		super();
 		suite(code);
 	}
 
 	public void suite(short code) throws Exception {
 		switch (this.code = code) {
-			// 1.3
-			case TLS_AES_128_CCM_SHA256:
-				secretKeyAlgorithm = "AES";
-				transformation = "AES/CCM/NoPadding";
-				digestAlgorithm = "SHA-256";
-				macAlgorithm = "HmacSHA256";
-				blockLength = 0;
-				tagLength = 16;
-				keyLength = 16;
-				ivLength = 12;
-				break;
-			case TLS_AES_128_CCM_8_SHA256:
-				secretKeyAlgorithm = "AES";
-				transformation = "AES/CCM/NoPadding";
-				digestAlgorithm = "SHA-256";
-				macAlgorithm = "HmacSHA256";
-				blockLength = 0;
-				tagLength = 8;
-				keyLength = 16;
-				ivLength = 12;
-				break;
-			case TLS_AES_128_GCM_SHA256:
-				secretKeyAlgorithm = "AES";
-				transformation = "AES/GCM/NoPadding";
-				digestAlgorithm = "SHA-256";
-				macAlgorithm = "HmacSHA256";
-				blockLength = 0;
-				tagLength = 16;
-				keyLength = 16;
-				ivLength = 12;
-				break;
-			case TLS_AES_256_GCM_SHA384:
-				secretKeyAlgorithm = "AES";
-				transformation = "AES/GCM/NoPadding";
-				digestAlgorithm = "SHA-384";
-				macAlgorithm = "HmacSHA384";
-				blockLength = 0;
-				keyLength = 32;
-				tagLength = 16;
-				ivLength = 12;
-				break;
-			case TLS_CHACHA20_POLY1305_SHA256:
-				secretKeyAlgorithm = "ChaCha20-Poly1305";
-				transformation = "ChaCha20-Poly1305";
-				digestAlgorithm = "SHA-256";
-				macAlgorithm = "HmacSHA256";
-				blockLength = 0;
-				keyLength = 32;
-				tagLength = 16;
-				ivLength = 12;
-				break;
-			// v1.2 v1.1 v1.0
 			case TLS_KRB5_WITH_3DES_EDE_CBC_MD5:
 				secretKeyAlgorithm = "DESede";
 				transformation = "DESede/CBC/NoPadding";
@@ -424,8 +383,28 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 		decryptKey = null;
 		encryptCipher = Cipher.getInstance(transformation);
 		decryptCipher = Cipher.getInstance(transformation);
-		digest(digestAlgorithm);
-		hmac(macAlgorithm);
+
+		// TranscriptHash
+		// extended_master_secret:session_hash
+		// 扩展密钥使用至少SHA256(RFC7627)
+
+		// PRF:所有密码套件至少使用SHA256
+		// PRF:如果密码套件指定的算法安全级别高于SHA256，则采用SHA384算法
+		if ("HmacMD5".equalsIgnoreCase(macAlgorithm) //
+				|| "HmacSHA1".equalsIgnoreCase(macAlgorithm)) {
+			hmac("HmacSHA256");
+			digest("SHA-256");
+		} else {
+			hmac(macAlgorithm);
+			digest(digestAlgorithm);
+		}
+
+		// 消息签名使用密码套件算法
+		// SecurityParameters.mac_algorithm
+		// SecurityParameters.mac_length
+		// SecurityParameters.mac_key_length
+		mac = Mac.getInstance(macAlgorithm);
+		// mac = Mac.getInstance("HmacSHA256");
 	}
 
 	/**
@@ -453,49 +432,6 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 	}
 
 	/**
-	 * AEAD 随机数 TLS 1.3
-	 */
-	private byte[] v13Nonce(byte[] IV, long sequence) {
-		final byte[] nonce = new byte[ivLength];
-		// 1.填充的序列号
-		nonce[ivLength - 8] = (byte) (sequence >>> 56);
-		nonce[ivLength - 7] = (byte) (sequence >>> 48);
-		nonce[ivLength - 6] = (byte) (sequence >>> 40);
-		nonce[ivLength - 5] = (byte) (sequence >>> 32);
-		nonce[ivLength - 4] = (byte) (sequence >>> 24);
-		nonce[ivLength - 3] = (byte) (sequence >>> 16);
-		nonce[ivLength - 2] = (byte) (sequence >>> 8);
-		nonce[ivLength - 1] = (byte) sequence;
-		// 2.填充的序列号与writeIV异或
-		// writeIV.length始终与iv_length相同
-		for (int i = 0; i < ivLength; i++) {
-			nonce[i] = (byte) (nonce[i] ^ IV[i]);
-		}
-		return nonce;
-	}
-
-	/**
-	 * TLS 1.3 AEAD 附加数据
-	 * 
-	 * <pre>
-	 * additional_data = TLSCiphertext.opaque_type ||
-	 *                   TLSCiphertext.legacy_record_version ||
-	 *                   TLSCiphertext.length
-	 * -
-	 * </pre>
-	 */
-	private byte[] v13AdditionalData(int length) {
-		final byte[] data = new byte[] {
-				// TLSCiphertext.opaque_type 1Byte
-				Record.APPLICATION_DATA,
-				// TLSCiphertext.legacy_record_version 2Byte
-				(byte) (TLS.V12 >>> 8), (byte) TLS.V12,
-				// TLSCiphertext.length 2Byte
-				(byte) (length >>> 8), (byte) (length) };
-		return data;
-	}
-
-	/**
 	 * TLS 1.2 AEAD 附加数据
 	 * 
 	 * <pre>
@@ -506,7 +442,7 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 	 * -
 	 * </pre>
 	 */
-	private byte[] v12AdditionalData(long sequence, byte type, short version, int length) {
+	private byte[] additionalData(long sequence, byte type, short version, int length) {
 		final byte[] data = new byte[8 + 1 + 2 + 2];
 		Binary.put(data, 0, sequence);
 		data[8] = type;
@@ -532,101 +468,65 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 	/**
 	 * 重置加密密钥
 	 */
-	public void v13EncryptReset(byte[] secret) throws Exception {
-		encryptKey = new SecretKeySpec(v13WriteKey(secret, keyLength()), secretKeyAlgorithm);
-		encryptIV = v13WriteIV(secret, ivLength());
+	public void encryptReset(byte[] key, byte[] iv) throws Exception {
+		encryptKey = new SecretKeySpec(key, secretKeyAlgorithm);
+		encryptIV = iv;
 		encryptSequence = 0;
 	}
 
 	/**
 	 * 重置解密密钥
 	 */
-	public void v13DecryptReset(byte[] secret) throws Exception {
-		decryptKey = new SecretKeySpec(v13WriteKey(secret, keyLength()), secretKeyAlgorithm);
-		decryptIV = v13WriteIV(secret, ivLength());
-		decryptSequence = 0;
-	}
-
-	/**
-	 * 重置加密密钥
-	 */
-	public void v12EncryptReset(byte[] key, byte[] iv) throws Exception {
-		encryptKey = new SecretKeySpec(key, secretKeyAlgorithm);
-		encryptIV = iv;
-		// encryptSequence = 0;
-	}
-
-	/**
-	 * 重置解密密钥
-	 */
-	public void v12DecryptReset(byte[] key, byte[] iv) throws Exception {
+	public void decryptReset(byte[] key, byte[] iv) throws Exception {
 		decryptKey = new SecretKeySpec(key, secretKeyAlgorithm);
 		decryptIV = iv;
-		// decryptSequence = 0;
-	}
-
-	/**
-	 * TLS 1.3 开始加密，AEAD 附加数据长度应包括Tag部分
-	 */
-	public void v13EncryptAEAD(int length) throws Exception {
-		final AlgorithmParameterSpec spec = new GCMParameterSpec(tagLength * 8, v13Nonce(encryptIV, encryptSequence));
-		encryptCipher.init(Cipher.ENCRYPT_MODE, encryptKey, spec);
-		encryptCipher.updateAAD(v13AdditionalData(length));
-	}
-
-	/**
-	 * TLS 1.3 开始解密，AEAD 附加数据长度应包括Tag部分
-	 */
-	public void v13DecryptAEAD(int length) throws Exception {
-		final AlgorithmParameterSpec spec = new GCMParameterSpec(tagLength * 8, v13Nonce(decryptIV, decryptSequence));
-		decryptCipher.init(Cipher.DECRYPT_MODE, decryptKey, spec);
-		decryptCipher.updateAAD(v13AdditionalData(length));
+		decryptSequence = 0;
 	}
 
 	/**
 	 * TLS 1.2 开始加密，AEAD 附加数据长度应包括Tag部分
 	 */
-	public void v12EncryptAEAD(byte type, short version, int length) throws Exception {
+	public void encryptAEAD(byte type, short version, int length) throws Exception {
 		final AlgorithmParameterSpec apspec = new GCMParameterSpec(tagLength * 8, encryptIV);
-		encryptCipher.init(Cipher.ENCRYPT_MODE, encryptKey, apspec);
-		encryptCipher.updateAAD(v12AdditionalData(encryptSequence, type, version, length));
+		encryptCipher.init(Cipher.ENCRYPT_MODE, encryptKey, apspec, TLS.RANDOM);
+		encryptCipher.updateAAD(additionalData(encryptSequence, type, version, length));
 	}
 
 	/**
 	 * TLS 1.2 开始解密，AEAD 附加数据长度应包括Tag部分
 	 */
-	public void v12DecryptAEAD(byte type, short version, int length) throws Exception {
+	public void decryptAEAD(byte type, short version, int length) throws Exception {
 		final AlgorithmParameterSpec apspec = new GCMParameterSpec(tagLength * 8, decryptIV);
-		decryptCipher.init(Cipher.DECRYPT_MODE, decryptKey, apspec);
-		decryptCipher.updateAAD(v12AdditionalData(decryptSequence, type, version, length));
+		decryptCipher.init(Cipher.DECRYPT_MODE, decryptKey, apspec, TLS.RANDOM);
+		decryptCipher.updateAAD(additionalData(decryptSequence, type, version, length));
 	}
 
 	/**
 	 * TLS 1.2 开始加密
 	 */
-	public void encryptBlock() throws Exception {
-		encryptCipher.init(Cipher.ENCRYPT_MODE, encryptKey, new IvParameterSpec(encryptIV));
+	public void encryptBlock(byte[] iv) throws Exception {
+		encryptCipher.init(Cipher.ENCRYPT_MODE, encryptKey, new IvParameterSpec(iv), TLS.RANDOM);
 	}
 
 	/**
 	 * TLS 1.2 开始解密
 	 */
-	public void decryptBlock() throws Exception {
-		decryptCipher.init(Cipher.DECRYPT_MODE, decryptKey, new IvParameterSpec(decryptIV));
+	public void decryptBlock(byte[] iv) throws Exception {
+		decryptCipher.init(Cipher.DECRYPT_MODE, decryptKey, new IvParameterSpec(iv), TLS.RANDOM);
 	}
 
 	/**
 	 * TLS 1.2 开始加密
 	 */
 	public void encryptStream() throws Exception {
-		encryptCipher.init(Cipher.ENCRYPT_MODE, encryptKey);
+		encryptCipher.init(Cipher.ENCRYPT_MODE, encryptKey, TLS.RANDOM);
 	}
 
 	/**
 	 * TLS 1.2 开始解密
 	 */
 	public void decryptStream() throws Exception {
-		decryptCipher.init(Cipher.ENCRYPT_MODE, decryptKey);
+		decryptCipher.init(Cipher.ENCRYPT_MODE, decryptKey, TLS.RANDOM);
 	}
 
 	/** AES-GCM 加密记录限制 */
@@ -639,13 +539,6 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 	 */
 	public byte[] encrypt(byte[] data) {
 		return encryptCipher.update(data);
-	}
-
-	/**
-	 * 解密
-	 */
-	public byte[] decrypt(byte[] data) {
-		return decryptCipher.update(data);
 	}
 
 	/**
@@ -662,14 +555,6 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 	public byte[] encryptFinal(byte[] data) throws Exception {
 		encryptSequence++;
 		return encryptCipher.doFinal(data);
-	}
-
-	/**
-	 * 解密完成
-	 */
-	public byte[] decryptFinal() throws Exception {
-		decryptSequence++;
-		return decryptCipher.doFinal();
 	}
 
 	/**
@@ -797,6 +682,21 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 		encryptSequence++;
 	}
 
+	/**
+	 * 解密
+	 */
+	public byte[] decrypt(byte[] data) {
+		return decryptCipher.update(data);
+	}
+
+	/**
+	 * 解密完成
+	 */
+	public byte[] decryptFinal() throws Exception {
+		decryptSequence++;
+		return decryptCipher.doFinal();
+	}
+
 	// GCM模式解码时须等待最后的Tag校验完成才会输出解码后的数据
 	// 这将导致必须构建足够长度的ByteBuffer以接收输出结果
 	// 强烈建议：Java应逐块解码输出结果，不应等待最终校验
@@ -826,7 +726,6 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 
 		decryptCipher.doFinal(EMPTY, output);
 		decryptSequence++;
-
 		buffer.append(output.flip());
 	}
 
@@ -844,7 +743,6 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 
 		decryptCipher.doFinal(EMPTY, output);
 		decryptSequence++;
-
 		out.append(output.flip());
 	}
 
@@ -874,7 +772,6 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 
 		decryptCipher.doFinal(EMPTY, output);
 		decryptSequence++;
-
 		out.append(output.flip());
 	}
 
@@ -906,24 +803,10 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 	}
 
 	/**
-	 * 加密序列号
-	 */
-	public void encryptIncrease() {
-		encryptSequence++;
-	}
-
-	/**
 	 * 解密序列号
 	 */
 	public long decryptSequence() {
 		return decryptSequence;
-	}
-
-	/**
-	 * 解密序列号
-	 */
-	public void decryptIncrease() {
-		decryptSequence++;
 	}
 
 	byte[] encryptMACKey;
@@ -933,8 +816,9 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 	}
 
 	public byte[] encryptMAC(byte type, short version, DataBuffer data, int length) throws Exception {
-		System.out.println("encryptSequence" + encryptSequence);
-		return v12MAC(encryptMACKey, encryptSequence, type, version, length, data);
+		// System.out.println("encryptSequence" + encryptSequence);
+		// 经过实际验证序列号从加密消息开始自增
+		return MAC(encryptMACKey, encryptSequence, type, version, length, data);
 	}
 
 	byte[] decryptMACKey;
@@ -944,8 +828,58 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 	}
 
 	public byte[] decryptMAC(byte type, short version, DataBuffer data, int length) throws Exception {
-		System.out.println("decryptSequence" + decryptSequence);
-		return v12MAC(decryptMACKey, decryptSequence, type, version, length, data);
+		// System.out.println("decryptSequence" + decryptSequence);
+		// 经过实际验证序列号从加密消息开始自增
+		// 由于解密后才能执行验证，因此解密序列号须减一
+		return MAC(decryptMACKey, decryptSequence - 1, type, version, length, data);
+	}
+
+	/**
+	 * TLS 1.2
+	 * 
+	 * <pre>
+	 * MAC(MAC_write_key, seq_num +
+	 *                    TLSCompressed.type +
+	 *                    TLSCompressed.version +
+	 *                    TLSCompressed.length +
+	 *                    TLSCompressed.fragment);
+	 * 由于压缩未启用TLSCompressed = TLSPlaintext
+	 * </pre>
+	 */
+	protected final byte[] MAC(byte[] key, long seqnum, byte type, short version, int length, DataBuffer fragment) throws InvalidKeyException {
+		mac.init(new SecretKeySpec(key, mac.getAlgorithm()));
+
+		final byte[] temp = new byte[8];
+		Binary.put(temp, 0, seqnum);
+		mac.update(temp);
+
+		mac.update(type);
+
+		Binary.put(temp, 0, version);
+		mac.update(temp, 0, 2);
+
+		Binary.put(temp, 0, (short) length);
+		mac.update(temp, 0, 2);
+
+		// fragment
+		DataBufferUnit unit = fragment.head();
+		while (unit != null && length > 0) {
+			unit.buffer().mark();
+			if (unit.readable() <= length) {
+				length -= unit.readable();
+				mac.update(unit.buffer());
+			} else {
+				length = unit.readable() - length;
+				unit.writeIndex(unit.writeIndex() - length);
+				mac.update(unit.buffer());
+				unit.writeIndex(unit.writeIndex() + length);
+				length = 0;
+			}
+			unit.buffer().reset();
+			unit = unit.next();
+		}
+
+		return mac.doFinal();
 	}
 
 	/**
@@ -953,6 +887,13 @@ class CipherSuiter extends SecretCache implements CipherSuite {
 	 */
 	public int blockLength() {
 		return blockLength;
+	}
+
+	/**
+	 * 消息签名长度(Byte)
+	 */
+	public int macLength() {
+		return mac.getMacLength();
 	}
 
 	/**

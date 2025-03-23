@@ -16,15 +16,9 @@ import com.joyzl.network.tls.SessionCertificates.LocalCache;
  * 
  * @author ZhangXi 2025年2月14日
  */
-public class TLSServerHandler implements ChainHandler {
+public class TLSServerHandler extends TLSParameters implements ChainHandler {
 
 	private final ChainHandler handler;
-	/** 启用的密钥算法 */
-	private short[] namedGroups = NamedGroup.ALL;
-	/** 启用的版本 */
-	private short[] versions = TLS.ALL_VERSIONS;
-	/** 启用的协议 */
-	private byte[][] protocols = ApplicationLayerProtocolNegotiation.ALL;
 
 	public TLSServerHandler(ChainHandler handler) {
 		this.handler = handler;
@@ -61,7 +55,7 @@ public class TLSServerHandler implements ChainHandler {
 		final TLSContext context = chain.getContext(TLSContext.class);
 		final int type;
 		try {
-			type = RecordCoder.decode(context.cipher, buffer, context.data);
+			type = RecordCoder.v13Decode(context.cipher, buffer, context.data);
 		} catch (Exception e) {
 			if (e instanceof TLSException) {
 				return new Alert((TLSException) e);
@@ -79,7 +73,7 @@ public class TLSServerHandler implements ChainHandler {
 			}
 			return message;
 		} else if (type == Record.HANDSHAKE) {
-			// 编码后可能会保留数据用于消息哈希
+			// 解码后可能会保留数据用于消息哈希
 			// 因此context.length表示保留的数据
 			Handshake handshake = decode(context, context.data);
 			while (handshake != null && context.data.readable() > context.length) {
@@ -113,23 +107,25 @@ public class TLSServerHandler implements ChainHandler {
 		if (type == Handshake.CLIENT_HELLO) {
 			// 握手消息应保留数据用于TranscriptHash
 			buffer.mark();
-			final Handshake handshake = HandshakeCoder.decode(buffer);
+			final Handshake handshake = HandshakeCoder.decode(context.version, buffer);
 			// 待协商后执行消息哈希
 			context.length = length;
 			buffer.reset();
 			return handshake;
-		} else//
-		if (type == Handshake.FINISHED) {
+		} else if (type == Handshake.FINISHED) {
 			// 客户端完成消息校验码
-			final byte[] local = context.cipher.clientFinished();
+			final byte[] local = context.cipher.v13ClientFinished();
 			context.cipher.hash(buffer, length);
 
-			final Finished finished = (Finished) HandshakeCoder.decode(buffer);
+			final Finished finished = (Finished) HandshakeCoder.decode(context.version, buffer);
 			finished.setLocalData(local);
 			return finished;
+		} else if (type == Handshake.HELLO_REQUEST) {
+			// 此消息不包含在握手验证摘要中
+			return HandshakeCoder.decode(context.version, buffer);
 		} else {
 			context.cipher.hash(buffer, length);
-			return HandshakeCoder.decode(buffer);
+			return HandshakeCoder.decode(context.version, buffer);
 		}
 	}
 
@@ -150,7 +146,7 @@ public class TLSServerHandler implements ChainHandler {
 							RecordCoder.encodePlaintext(record, data, buffer);
 							RecordCoder.encode(ChangeCipherSpec.INSTANCE, buffer);
 						} else {
-							RecordCoder.encodeCiphertext(context.cipher, record, data, buffer);
+							RecordCoder.v13EncodeCiphertext(context.cipher, record, data, buffer);
 						}
 					}
 					data.release();
@@ -159,8 +155,8 @@ public class TLSServerHandler implements ChainHandler {
 					final DataBuffer data = DataBuffer.instance();
 					encode(context, (Handshake) record, data);
 					final DataBuffer buffer = DataBuffer.instance();
-					if (context.cipher.handshaked()) {
-						RecordCoder.encodeCiphertext(context.cipher, record, data, buffer);
+					if (context.cipher.v13IsHandshaked()) {
+						RecordCoder.v13EncodeCiphertext(context.cipher, record, data, buffer);
 					} else {
 						RecordCoder.encodePlaintext(record, data, buffer);
 					}
@@ -179,15 +175,15 @@ public class TLSServerHandler implements ChainHandler {
 				final DataBuffer data = DataBuffer.instance();
 				RecordCoder.encode((HeartbeatMessage) record, data);
 				final DataBuffer buffer = DataBuffer.instance();
-				RecordCoder.encodeCiphertext(context.cipher, record, data, buffer);
+				RecordCoder.v13EncodeCiphertext(context.cipher, record, data, buffer);
 				data.release();
 				return buffer;
 			} else if (record.contentType() == Record.ALERT) {
 				final DataBuffer data = DataBuffer.instance();
 				RecordCoder.encode((Alert) record, data);
 				final DataBuffer buffer = DataBuffer.instance();
-				if (context.cipher.handshaked()) {
-					RecordCoder.encodeCiphertext(context.cipher, record, data, buffer);
+				if (context.cipher.v13IsHandshaked()) {
+					RecordCoder.v13EncodeCiphertext(context.cipher, record, data, buffer);
 				} else {
 					RecordCoder.encodePlaintext(record, data, buffer);
 				}
@@ -200,7 +196,7 @@ public class TLSServerHandler implements ChainHandler {
 			// APPLICATION DATA
 			final DataBuffer data = handler.encode(chain, message);
 			final DataBuffer buffer = DataBuffer.instance();
-			RecordCoder.encodeCiphertext(context.cipher, ApplicationData.INSTANCE, data, buffer);
+			RecordCoder.v13EncodeCiphertext(context.cipher, ApplicationData.INSTANCE, data, buffer);
 			data.release();
 			return buffer;
 		}
@@ -210,19 +206,21 @@ public class TLSServerHandler implements ChainHandler {
 		if (handshake.msgType() == Handshake.FINISHED) {
 			// 握手完成消息编码之前构造验证码
 			final Finished finished = (Finished) handshake;
-			finished.setVerifyData(context.cipher.serverFinished());
-		} else//
-		if (handshake.msgType() == Handshake.ENCRYPTED_EXTENSIONS) {
+			finished.setVerifyData(context.cipher.v13ServerFinished());
+		} else if (handshake.msgType() == Handshake.ENCRYPTED_EXTENSIONS) {
 			// 这是最先加密的握手消息
 			// 导出密钥并重置握手加密和解密套件
-			context.cipher.encryptReset(context.cipher.serverHandshakeTraffic());
+			context.cipher.v13EncryptReset(context.cipher.v13ServerHandshakeTrafficSecret());
 			// 因早期数据还须解密，此时不能重置解密套件
-			context.cipher.clientHandshakeTraffic();
-		} else//
-		if (handshake.msgType() == Handshake.CERTIFICATE_VERIFY) {
+			context.cipher.v13ClientHandshakeTrafficSecret();
+		} else if (handshake.msgType() == Handshake.CERTIFICATE_VERIFY) {
 			// 生成服务端证书消息签名
 			final CertificateVerify verify = (CertificateVerify) handshake;
 			verify.setSignature(context.signaturer.singServer(context.cipher.hash()));
+		} else if (handshake.msgType() == Handshake.HELLO_REQUEST) {
+			// 此消息不包含在握手验证摘要中
+			HandshakeCoder.encode(handshake, buffer);
+			return;
 		}
 		HandshakeCoder.encode(handshake, buffer);
 		context.cipher.hash(buffer);
@@ -232,7 +230,7 @@ public class TLSServerHandler implements ChainHandler {
 	public void received(ChainChannel chain, Object message) throws Exception {
 		final TLSContext context = chain.getContext(TLSContext.class);
 		if (message == null) {
-			if (context.cipher.application()) {
+			if (context.cipher.v13IsApplication()) {
 				handler.received(chain, message);
 			} else {
 				chain.close();
@@ -276,13 +274,13 @@ public class TLSServerHandler implements ChainHandler {
 				return;
 			} else if (message instanceof Handshakes handshakes) {
 				if (handshakes.last().msgType() == Handshake.FINISHED) {
-					if (context.cipher.handshaked()) {
+					if (context.cipher.v13IsHandshaked()) {
 						// 重置握手数据解密套件
-						context.cipher.decryptReset(context.cipher.clientHandshakeTraffic());
+						context.cipher.v13DecryptReset(context.cipher.v13ClientHandshakeTrafficSecret());
 						// 导出应用数据加密密钥并重置加密套件
-						context.cipher.encryptReset(context.cipher.serverApplicationTraffic());
+						context.cipher.v13EncryptReset(context.cipher.v13ServerApplicationTrafficSecret());
 						// 应用数据解密密钥导出，等待客户端完成消息后重置解密套件
-						context.cipher.clientApplicationTraffic();
+						context.cipher.v13ClientApplicationTrafficSecret();
 						// context.cipher.exporterMaster();
 						handler.connected(chain);
 					}
@@ -291,11 +289,10 @@ public class TLSServerHandler implements ChainHandler {
 				final KeyUpdate update = (KeyUpdate) message;
 				if (update.get() == KeyUpdate.UPDATE_NOT_REQUESTED) {
 					// 响应密钥更新，重置加解密套件
-					context.cipher.encryptReset(context.cipher.serverApplicationTraffic());
-					context.cipher.decryptReset(context.cipher.clientApplicationTraffic());
+					context.cipher.v13EncryptReset(context.cipher.v13ServerApplicationTrafficSecret());
+					context.cipher.v13DecryptReset(context.cipher.v13ClientApplicationTrafficSecret());
 				}
 			}
-			chain.receive();
 		} else {
 			if (context.cipher.encryptLimit()) {
 				chain.send(new KeyUpdate());
@@ -321,22 +318,21 @@ public class TLSServerHandler implements ChainHandler {
 				// 已禁止0x0300或更低版本
 				return new Alert(Alert.PROTOCOL_VERSION);
 			}
-			final short version;
 			final SupportedVersions sv = hello.getExtension(Extension.SUPPORTED_VERSIONS);
 			if (sv != null && sv.size() > 0) {
-				version = sv.match(versions);
+				context.version = sv.match(versions());
 			} else {
-				version = hello.matchVersion(versions);
+				context.version = hello.matchVersion(versions());
 			}
-			if (version == 0) {
+			if (context.version == 0) {
 				// 未能匹配TLS版本
 				return new Alert(Alert.PROTOCOL_VERSION);
 			}
 
 			// TLS 1.3
-			if (version == TLS.V13) {
+			if (context.version == TLS.V13) {
 				// 严禁重协商
-				if (context.cipher.handshaked()) {
+				if (context.cipher.v13IsHandshaked()) {
 					return new Alert(Alert.UNEXPECTED_MESSAGE);
 				}
 				// 压缩模式
@@ -353,7 +349,7 @@ public class TLSServerHandler implements ChainHandler {
 				// 加密套件
 				final short suite;
 				if (hello.hasCipherSuites()) {
-					suite = CipherSuite.match(version, hello.getCipherSuites());
+					suite = CipherSuite.match(context.version, hello.getCipherSuites());
 					if (suite > 0) {
 						// 设置加密套件
 						context.cipher.suite(suite);
@@ -371,7 +367,7 @@ public class TLSServerHandler implements ChainHandler {
 				server.setSessionId(hello.getSessionId());
 				server.setCipherSuite(suite);
 				// selected_versions
-				server.addExtension(new SelectedVersion(version));
+				server.addExtension(new SelectedVersion(context.version));
 
 				// 密钥交换
 				final SupportedGroups groups = hello.getExtension(Extension.SUPPORTED_GROUPS);
@@ -440,19 +436,19 @@ public class TLSServerHandler implements ChainHandler {
 							int length = psks.bindersLength() + 2;
 							length = context.length - length;
 							context.cipher.suite(ticket.getSuite());
-							context.cipher.reset(ticket.getResumption());
+							context.cipher.v13Reset(ticket.getResumption());
 							context.cipher.hash(context.data, length);
 							// 丢弃已计算的数据
 							context.data.skipBytes(length);
 							length = context.length -= length;
-							if (identity.check(context.cipher.resumptionBinderKey())) {
+							if (identity.check(context.cipher.v13ResumptionBinderKey())) {
 								// 3 0-RTT
 								// 补充消息哈希，导出早期流量密钥
 								context.cipher.hash(context.data, length);
 								context.data.skipBytes(length);
 								context.length = 0;
 								if (earlyData != null) {
-									context.cipher.decryptReset(context.cipher.clientEarlyTraffic());
+									context.cipher.v13DecryptReset(context.cipher.v13ClientEarlyTrafficSecret());
 									// context.cipher.earlyExporterMaster();
 								} else {
 									// 未有早期数据
@@ -485,7 +481,7 @@ public class TLSServerHandler implements ChainHandler {
 							for (i = 0; i < shares.size(); i++) {
 								entry = shares.get(i);
 								if (groups.check(entry.getGroup())) {
-									if (NamedGroup.check(entry.getGroup(), namedGroups)) {
+									if (NamedGroup.check(entry.getGroup(), namedGroups())) {
 										break;
 									} else {
 										continue;
@@ -501,7 +497,7 @@ public class TLSServerHandler implements ChainHandler {
 								// 设置密钥算法
 								context.key.initialize(entry.getGroup());
 								// 设置对端共享密钥（公钥）
-								context.cipher.sharedKey(context.key.sharedKey(entry.getKeyExchange()));
+								context.cipher.v13SharedKey(context.key.sharedKey(entry.getKeyExchange()));
 								// TranscriptHash:client_hello
 								if (context.length > 0) {
 									context.cipher.hash(context.data, context.length);
@@ -515,7 +511,7 @@ public class TLSServerHandler implements ChainHandler {
 								return new Alert(Alert.ILLEGAL_PARAMETER);
 							}
 						} else {
-							final short group = groups.match(namedGroups);
+							final short group = groups.match(namedGroups());
 							if (group > 0) {
 								// Hello Retry Request
 								// 请求客户端提供对应算法的密钥后重试
@@ -536,7 +532,7 @@ public class TLSServerHandler implements ChainHandler {
 				}
 
 				final Handshakes records = new Handshakes();
-				server.makeRandom(version);
+				server.makeRandom(context.version);
 				records.add(server);
 
 				// encrypted_extensions
@@ -547,7 +543,7 @@ public class TLSServerHandler implements ChainHandler {
 				// 应用协议
 				final ApplicationLayerProtocolNegotiation alpn = hello.getExtension(Extension.APPLICATION_LAYER_PROTOCOL_NEGOTIATION);
 				if (alpn != null) {
-					if (alpn.select(protocols)) {
+					if (alpn.select(alpns())) {
 						extensions.addExtension(alpn);
 					} else {
 						// 没有匹配的应用协议
@@ -652,9 +648,18 @@ public class TLSServerHandler implements ChainHandler {
 				return records;
 			} else
 			// TLS 1.2
-			if (version == TLS.V12) {
+			if (context.version == TLS.V12) {
 				// trusted_ca_keys
 				// CertificateStatusRequest
+
+				final RenegotiationInfo ri = hello.getExtension(Extension.RENEGOTIATION_INFO);
+				if (ri != null) {
+					if (ri.isEmpty() || ri.isSCSV()) {
+						// OK
+					} else {
+						return new Alert(Alert.HANDSHAKE_FAILURE);
+					}
+				}
 			}
 			return new Alert(Alert.PROTOCOL_VERSION);
 		} else
@@ -662,7 +667,7 @@ public class TLSServerHandler implements ChainHandler {
 		if (record.msgType() == Handshake.END_OF_EARLY_DATA) {
 			// ClientHello + PSK -> decryptReset(client_early_traffic_secret)
 			// Early Application Data - EndOfEarlyData
-			context.cipher.decryptReset(context.cipher.clientHandshakeTraffic());
+			context.cipher.v13DecryptReset(context.cipher.v13ClientHandshakeTrafficSecret());
 			return null;
 		} else
 
@@ -671,13 +676,13 @@ public class TLSServerHandler implements ChainHandler {
 			if (update.get() == KeyUpdate.UPDATE_REQUESTED) {
 				// 来自对方请求，发送后重置密钥
 				update.set(KeyUpdate.UPDATE_NOT_REQUESTED);
-				context.cipher.nextApplicationTraffic();
+				context.cipher.v13NextApplicationTrafficSecret();
 				return update;
 			} else if (update.get() == KeyUpdate.UPDATE_NOT_REQUESTED) {
 				// 来自对方响应，立即重置密钥
-				context.cipher.nextApplicationTraffic();
-				context.cipher.encryptReset(context.cipher.serverApplicationTraffic());
-				context.cipher.decryptReset(context.cipher.clientApplicationTraffic());
+				context.cipher.v13NextApplicationTrafficSecret();
+				context.cipher.v13EncryptReset(context.cipher.v13ServerApplicationTrafficSecret());
+				context.cipher.v13DecryptReset(context.cipher.v13ClientApplicationTrafficSecret());
 				return null;
 			} else {
 				return new Alert(Alert.ILLEGAL_PARAMETER);
@@ -689,15 +694,15 @@ public class TLSServerHandler implements ChainHandler {
 			if (finished.validate()) {
 				// 客户端握手完成
 				// 重置应用数据解密套件
-				context.cipher.decryptReset(context.cipher.clientApplicationTraffic());
-				context.cipher.resumptionMaster();
+				context.cipher.v13DecryptReset(context.cipher.v13ClientApplicationTrafficSecret());
+				context.cipher.v13ResumptionMasterSecret();
 				if (context.mode >= 0) {
 					// NewSessionTicket
 					final Handshakes records = new Handshakes();
 					final NewSessionTicket ticket1 = ServerSessionTickets.make((byte) 0);
 					final NewSessionTicket ticket2 = ServerSessionTickets.make((byte) 1);
-					ticket1.setResumption(context.cipher.resumption(ticket1.getNonce()));
-					ticket2.setResumption(context.cipher.resumption(ticket2.getNonce()));
+					ticket1.setResumption(context.cipher.v13ResumptionSecret(ticket1.getNonce()));
+					ticket2.setResumption(context.cipher.v13ResumptionSecret(ticket2.getNonce()));
 					ticket1.setSuite(context.cipher.suite());
 					ticket2.setSuite(context.cipher.suite());
 					ticket1.setGroup(context.key.group());
@@ -730,7 +735,11 @@ public class TLSServerHandler implements ChainHandler {
 		final Signaturer signaturer;
 		final CipherSuiter cipher;
 		final KeyExchange key;
+		short version;
 		byte mode;
+
+		private byte[] clientVerifyData, serverVerifyData;
+		private byte[] sessionId;
 
 		public TLSContext() {
 			signaturer = new Signaturer();

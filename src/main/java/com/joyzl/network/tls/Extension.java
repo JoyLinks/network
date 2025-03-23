@@ -66,6 +66,8 @@ abstract class Extension extends TLS {
 	public final static short HEARTBEAT = 15;
 	/** RFC 7301 */
 	public final static short APPLICATION_LAYER_PROTOCOL_NEGOTIATION = 16;
+	/** RFC 6961 */
+	public final static short STATUS_REQUEST_V2 = 17;
 	/** RFC 6962 */
 	public final static short SIGNED_CERTIFICATE_TIMESTAMP = 18;
 	/** RFC 7250 */
@@ -152,6 +154,8 @@ abstract class Extension extends TLS {
 				return "heartbeat";
 			case APPLICATION_LAYER_PROTOCOL_NEGOTIATION:
 				return "application_layer_protocol_negotiation";
+			case STATUS_REQUEST_V2:
+				return "status_request_v2";
 			case SIGNED_CERTIFICATE_TIMESTAMP:
 				return "signed_certificate_timestamp";
 			case CLIENT_CERTIFICATE_TYPE:

@@ -7,6 +7,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
@@ -41,19 +43,27 @@ public class PEM {
 	/**
 	 * 读取符合RFC7468规范的文件
 	 */
-	public static PEM load(String file) throws IOException {
-		return load(new File(file));
+	public static PEM loadFile(String file) throws IOException {
+		return loadFile(new File(file));
 	}
 
 	/**
 	 * 读取符合RFC7468规范的文件
 	 */
-	public static PEM load(File file) throws IOException {
-		final Base64.Decoder decoder = Base64.getDecoder();
+	public static PEM loadFile(File file) throws IOException {
+		return read(new InputStreamReader(new FileInputStream(file)));
+	}
+
+	public static PEM loadText(String text) throws IOException {
+		return read(new StringReader(text));
+	}
+
+	private static PEM read(Reader input) throws IOException {
 		final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		final Base64.Decoder decoder = Base64.getDecoder();
 		boolean inContent = false;
 		String label = null;
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)))) {
+		try (BufferedReader reader = new BufferedReader(input)) {
 			String line;
 			while ((line = reader.readLine()) != null) {
 				if (line.startsWith(BEGIN_PREFIX)) {
@@ -88,14 +98,14 @@ public class PEM {
 	/**
 	 * 将PEM编码为符合RFC7468规范的文件
 	 */
-	public void save(String file) throws IOException {
-		save(new File(file));
+	public void saveFile(String file) throws IOException {
+		saveFile(new File(file));
 	}
 
 	/**
 	 * 将PEM编码为符合RFC7468规范的文件
 	 */
-	public void save(File file) throws IOException {
+	public void saveFile(File file) throws IOException {
 		final Base64.Encoder encoder = Base64.getMimeEncoder(64, LINE.getBytes(StandardCharsets.US_ASCII));
 		try (FileOutputStream output = new FileOutputStream(file)) {
 			// BEGIN

@@ -139,11 +139,6 @@ public class TCPSlave extends Slave {
 					receiveMessage = handler().decode(this, read);
 					if (receiveMessage == null) {
 						// 数据未能解析消息对象,继续接收数据
-						socketChannel.read(//
-							read.write(), // ByteBuffer
-							handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
-							this, SlaveReceiveHandler.INSTANCE // Handler
-						);
 						break;
 					} else {
 						// 已解析消息对象
@@ -151,19 +146,22 @@ public class TCPSlave extends Slave {
 							throw new IllegalStateException("TCPSlave:已解析消息但数据未减少");
 						}
 						if (read.readable() > 0) {
-							// 注意:handler().received()方法中可能会调用receive()
 							handler().received(this, receiveMessage);
 							// 有剩余数据,继续尝试解包
 							continue;
 						} else {
-							final Object message = receiveMessage;
-							receiveMessage = null;
-							handler().received(this, message);
+							handler().received(this, receiveMessage);
 							// 没有剩余数据,停止尝试解包
 							break;
 						}
 					}
 				}
+				// 继续接收数据
+				socketChannel.read(//
+					read.write(), // ByteBuffer
+					handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
+					this, SlaveReceiveHandler.INSTANCE // Handler
+				);
 			} catch (Exception e) {
 				read.release();
 				read = null;

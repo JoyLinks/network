@@ -109,7 +109,7 @@ class ClientHello extends HandshakeExtensions {
 	}
 
 	public void makeRandom() {
-		TLS.RANDOM.nextBytes(random = new byte[32]);
+		random = V2DeriveSecret.helloRandom();
 	}
 
 	public boolean hasSessionId() {
@@ -186,7 +186,7 @@ class ClientHello extends HandshakeExtensions {
 			if (index > 0) {
 				b.append(' ');
 			}
-			b.append(CipherSuite.named(cipher_suites[index]));
+			b.append(CipherSuite.name(cipher_suites[index]));
 		}
 		b.append(",compression_methods=");
 		for (int index = 0; index < compression_methods.length; index++) {

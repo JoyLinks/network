@@ -181,16 +181,15 @@ public class TCPLink extends Client {
 	public void receive() {
 		if (connected) {
 			if (receiveMessage == null) {
-				receiveMessage = BUSY;
 				if (read == null) {
 					read = DataBuffer.instance();
+					// SocketChannel不能投递多个接收操作，否则会收到ReadPendingException异常
+					socket_channel.read(//
+						read.write(), // ByteBuffer
+						handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
+						this, ClientReceiveHandler.INSTANCE // Handler
+					);
 				}
-				// SocketChannel不能投递多个接收操作，否则会收到ReadPendingException异常
-				socket_channel.read(//
-					read.write(), // ByteBuffer
-					handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
-					this, ClientReceiveHandler.INSTANCE // Handler
-				);
 			}
 		}
 	}
@@ -208,11 +207,6 @@ public class TCPLink extends Client {
 					receiveMessage = handler().decode(this, read);
 					if (receiveMessage == null) {
 						// 数据未能解析消息对象,继续接收数据
-						socket_channel.read(//
-							read.write(), // ByteBuffer
-							handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
-							this, ClientReceiveHandler.INSTANCE // Handler
-						);
 						break;
 					} else {
 						// 已解析消息对象
@@ -221,18 +215,22 @@ public class TCPLink extends Client {
 						}
 						if (read.readable() > 0) {
 							handler().received(this, receiveMessage);
-							// 注意:handler().received()方法中可能会调用receive()
 							// 有剩余数据,继续尝试解包
 							continue;
 						} else {
-							final Object message = receiveMessage;
-							// 注意:handler().received()方法中可能会调用receive()
-							receiveMessage = null;
-							handler().received(this, message);
+							handler().received(this, receiveMessage);
 							// 没有剩余数据,停止尝试解包
 							break;
 						}
 					}
+				}
+				if (connected) {
+					// 继续接收数据
+					socket_channel.read(//
+						read.write(), // ByteBuffer
+						handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
+						this, ClientReceiveHandler.INSTANCE // Handler
+					);
 				}
 			} catch (Exception e) {
 				read.release();

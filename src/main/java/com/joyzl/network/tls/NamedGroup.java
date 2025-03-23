@@ -78,6 +78,33 @@ public interface NamedGroup {
 		}
 	}
 
+	public static short name(String name) {
+		switch (name.toUpperCase()) {
+			case "X25519":
+				return X25519;
+			case "X448":
+				return X448;
+			case "SECP256R1":
+				return SECP256R1;
+			case "SECP384R1":
+				return SECP384R1;
+			case "SECP521R1":
+				return SECP521R1;
+			case "FFDHE2048":
+				return FFDHE2048;
+			case "FFDHE3072":
+				return FFDHE3072;
+			case "FFDHE4096":
+				return FFDHE4096;
+			case "FFDHE6144":
+				return FFDHE6144;
+			case "FFDHE8192":
+				return FFDHE8192;
+			default:
+				return 0;
+		}
+	}
+
 	public static boolean check(short value, short[] items) {
 		for (int i = 0; i < items.length; i++) {
 			if (items[i] == value) {

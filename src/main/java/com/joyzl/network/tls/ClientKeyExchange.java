@@ -56,6 +56,15 @@ class ClientKeyExchange extends Handshake {
 	}
 
 	public void set(byte[] value) {
-		exchangeKeys = value;
+		if (value == null) {
+			exchangeKeys = TLS.EMPTY_BYTES;
+		} else {
+			exchangeKeys = value;
+		}
+	}
+
+	@Override
+	public String toString() {
+		return name() + ":" + exchangeKeys.length + "byte";
 	}
 }

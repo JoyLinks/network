@@ -3,6 +3,12 @@ package com.joyzl.network.tls;
 /**
  * 兼容（明文）
  * 
+ * <pre>
+ * struct {
+ *       enum { change_cipher_spec(1), (255) } type;
+ * } ChangeCipherSpec;
+ * </pre>
+ * 
  * @author ZhangXi 2025年2月10日
  */
 class ChangeCipherSpec extends Record {

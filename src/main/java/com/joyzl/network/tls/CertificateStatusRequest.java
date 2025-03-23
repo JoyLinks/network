@@ -38,12 +38,20 @@ abstract class CertificateStatusRequest extends Extension {
 
 	////////////////////////////////////////////////////////////////////////////////
 
+	private byte statusType = OCSP;
+
 	@Override
 	public short type() {
 		return STATUS_REQUEST;
 	}
 
-	public abstract byte getType();
+	public byte getStatusType() {
+		return statusType;
+	}
+
+	public void setStatusType(byte value) {
+		statusType = value;
+	}
 
 	static class OCSPStatusRequest extends CertificateStatusRequest {
 
@@ -51,11 +59,6 @@ abstract class CertificateStatusRequest extends Extension {
 		private byte[][] responderIDs = TLS.EMPTY_STRINGS;
 		/** DER-encoded ASN.1 */
 		private byte[] requestExtensions = TLS.EMPTY_BYTES;
-
-		@Override
-		public byte getType() {
-			return OCSP;
-		}
 
 		public byte[][] getResponderIDs() {
 			return responderIDs;
@@ -104,10 +107,24 @@ abstract class CertificateStatusRequest extends Extension {
 		}
 	}
 
-	final static CertificateStatusRequest UNKNOWN = new CertificateStatusRequest() {
-		@Override
-		public byte getType() {
-			return 0;
+	/**
+	 * 特殊情况1.3结构为 CertificateStatus RFC6066
+	 */
+	static class OCSPResponse extends CertificateStatusRequest {
+
+		private byte[] response;
+
+		public byte[] get() {
+			return response;
 		}
-	};
+
+		public void set(byte[] value) {
+			response = value;
+		}
+
+		@Override
+		public String toString() {
+			return "status_response:OSCP";
+		}
+	}
 }

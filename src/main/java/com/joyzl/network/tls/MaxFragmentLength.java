@@ -1,9 +1,12 @@
 package com.joyzl.network.tls;
 
 /**
- * RFC8449
+ * 扩展：最大分块长度；
  * 
  * <pre>
+ * RFC 6066
+ * RFC 8449 Record Size Limit Extension for TLS
+ * 
  * enum{
  *        2^9(1), 2^10(2), 2^11(3), 2^12(4), (255)
  * } MaxFragmentType;

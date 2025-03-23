@@ -93,7 +93,7 @@ class SignatureAlgorithms extends Extension implements SignatureScheme {
 				if (i > 0) {
 					b.append(',');
 				}
-				b.append(SignatureScheme.named(get(i)));
+				b.append(SignatureScheme.name(get(i)));
 			}
 			return b.toString();
 		} else {

@@ -9,6 +9,8 @@ import java.util.Arrays;
  * struct {
  *     NamedGroup named_group_list<2..2^16-1>;
  * } NamedGroupList;
+ * 
+ * 旧时名为:elliptic_curves
  * </pre>
  * 
  * @see NamedGroup

@@ -5,7 +5,7 @@ package com.joyzl.network.tls;
  * 
  * @author ZhangXi 2024年12月30日
  */
-class SecretCache extends DeriveSecret {
+class V3SecretCache extends V3DeriveSecret {
 
 	/*-
 	 * TLS 1.3 握手过程与加解密切换
@@ -81,10 +81,10 @@ class SecretCache extends DeriveSecret {
 	private byte[] clientHandshakeTraffic, clientApplicationTraffic;
 	private byte[] serverHandshakeTraffic, serverApplicationTraffic;
 
-	public SecretCache() {
+	public V3SecretCache() {
 	}
 
-	public SecretCache(String digest, String hmac) throws Exception {
+	public V3SecretCache(String digest, String hmac) throws Exception {
 		digest(digest);
 		hmac(hmac);
 	}
@@ -197,135 +197,5 @@ class SecretCache extends DeriveSecret {
 
 	public byte[] v13EarlyExporterMasterSecret() throws Exception {
 		return v13EarlyExporterMasterSecret(early, hash());
-	}
-
-	/*-
-	 * TLS 1.2 握手与加解密切换
-	 * 
-	 * Client-----------------------------------------------Server
-	 * ClientHello               -------->
-	 *                                                 ServerHello
-	 *                                                Certificate*
-	 *                                          ServerKeyExchange*
-	 *                                         CertificateRequest*
-	 *                           <--------         ServerHelloDone
-	 * Certificate*
-	 * ClientKeyExchange
-	 * CertificateVerify*
-	 * [ChangeCipherSpec]
-	 * Finished                  -------->
-	 *                                          [ChangeCipherSpec]
-	 *                           <--------                Finished
-	 * Application Data          <------->        Application Data
-	 * 
-	 * -------------------------Session ID------------------------
-	 * ClientHello                ------->
-	 *                                                 ServerHello
-	 *                                          [ChangeCipherSpec]
-	 *                           <--------                Finished
-	 * [ChangeCipherSpec]
-	 * Finished                  -------->
-	 * Application Data          <------->        Application Data
-	 */
-
-	private byte[] pms;
-	// private byte[] master;
-	private byte[] block;
-
-	public byte[] v12PMS() {
-		return pms;
-	}
-
-	public void v12PMS(byte[] value) {
-		pms = value;
-	}
-
-	public byte[] v12Master() {
-		return master;
-	}
-
-	/** RSA(pms) / Diffie-Hellman(key) */
-	public byte[] v12MasterSecret(byte[] clientRandom, byte[] serverRandom) throws Exception {
-		return master = super.v12MasterSecret(pms, clientRandom, serverRandom);
-	}
-
-	/** RSA(pms) / Diffie-Hellman(key) */
-	public byte[] v12MasterSecret() throws Exception {
-		return master = super.v12MasterSecret(pms, hash());
-	}
-
-	public boolean v12HasBlock() {
-		return block != null;
-	}
-
-	/** key_block */
-	public byte[] v12KeyBlock(byte[] clientRandom, byte[] serverRandom) throws Exception {
-		return block = v12KeyBlock(master, serverRandom, clientRandom, v12KeyBlockLength());
-	}
-
-	public int v12KeyBlockLength() {
-		// client_write_MAC_key [SecurityParameters.mac_key_length]
-		// server_write_MAC_key [SecurityParameters.mac_key_length]
-		// client_write_key [SecurityParameters.enc_key_length]
-		// server_write_key [SecurityParameters.enc_key_length]
-		// client_write_IV [SecurityParameters.fixed_iv_length]
-		// server_write_IV [SecurityParameters.fixed_iv_length]
-		return keyLength() * 2 + ivLength() * 2 + hmacLength() * 2;
-	}
-
-	/** client_write_MAC_key */
-	public byte[] v12ClientWriteMACkey() {
-		return v12ClientWriteMACkey(block, hmacLength());
-	}
-
-	/** server_write_MAC_key */
-	public byte[] v12ServerWriteMACkey() {
-		return v12ServerWriteMACkey(block, hmacLength());
-	}
-
-	/** client_write_key */
-	public byte[] v12ClientWriteKey() {
-		return v12ClientWriteKey(block, hmacLength(), keyLength());
-	}
-
-	/** server_write_key */
-	public byte[] v12ServerWriteKey() {
-		return v12ServerWriteKey(block, hmacLength(), keyLength());
-	}
-
-	/** client_write_IV */
-	public byte[] v12ClientWriteIV() {
-		return v12ClientWriteIV(block, hmacLength(), keyLength(), ivLength());
-	}
-
-	/** server_write_IV */
-	public byte[] v12ServerWriteIV() {
-		return v12ServerWriteIV(block, hmacLength(), keyLength(), ivLength());
-	}
-
-	/** master_secret -> verify_data */
-	protected byte[] v12ServerFinished() throws Exception {
-		return v12ServerFinished(master, hash());
-	}
-
-	/** master_secret -> verify_data */
-	protected byte[] v12ClientFinished() throws Exception {
-		return v12ClientFinished(master, hash());
-	}
-
-	public int blockLength() {
-		return 0;
-	}
-
-	public int tagLength() {
-		return 0;
-	}
-
-	public int keyLength() {
-		return 0;
-	}
-
-	public int ivLength() {
-		return 0;
 	}
 }

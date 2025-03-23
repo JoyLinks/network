@@ -15,6 +15,7 @@ public class TestTranscriptHash {
 		final TranscriptHash t = new TranscriptHash();
 		t.digest("SHA-256");
 
+		assertEquals(32, t.hashLength());
 		assertArrayEquals(Utility.hex("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"), t.hashEmpty());
 		assertArrayEquals(Utility.hex("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"), t.hash());
 
@@ -37,5 +38,7 @@ public class TestTranscriptHash {
 		assertArrayEquals(result1, result2);
 		buffer1.backByte();
 		assertEquals(buffer1, buffer2);
+
+		assertEquals(32, t.hashLength());
 	}
 }

@@ -6,6 +6,9 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.util.Arrays;
 
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+
 /**
  * 签名算法，执行签名与验证
  * 
@@ -25,7 +28,7 @@ class Signaturer implements SignatureScheme {
 				items[items.length - 1] = scheme;
 			} catch (Exception e) {
 				// 忽略此异常
-				e.printStackTrace();
+				System.out.println(e.getMessage());
 			}
 		}
 		AVAILABLES = items;
@@ -37,6 +40,13 @@ class Signaturer implements SignatureScheme {
 	private Signature signature;
 	private PrivateKey privateKey;
 	private PublicKey publicKey;
+
+	public Signaturer() {
+	}
+
+	public Signaturer(short code) throws Exception {
+		scheme(code);
+	}
 
 	public void scheme(short value) throws Exception {
 		scheme = value;
@@ -122,19 +132,19 @@ class Signaturer implements SignatureScheme {
 				// factory = KeyFactory.getInstance("EC");
 				signature = Signature.getInstance("SHA1withECDSA");
 				break;
-			case DSA_SHA1_RESERVED:
+			case DSA_SHA1:
 				// factory = KeyFactory.getInstance("DSA");
 				signature = Signature.getInstance("SHA1withDSA");
 				break;
-			case DSA_SHA256_RESERVED:
+			case DSA_SHA256:
 				// factory = KeyFactory.getInstance("DSA");
 				signature = Signature.getInstance("SHA256withDSA");
 				break;
-			case DSA_SHA384_RESERVED:
+			case DSA_SHA384:
 				// factory = KeyFactory.getInstance("DSA");
 				signature = Signature.getInstance("SHA384withDSA");
 				break;
-			case DSA_SHA512_RESERVED:
+			case DSA_SHA512:
 				// factory = KeyFactory.getInstance("DSA");
 				signature = Signature.getInstance("SHA512withDSA");
 				break;
@@ -189,13 +199,13 @@ class Signaturer implements SignatureScheme {
 			case "SHA1withECDSA":
 				return ECDSA_SHA1;
 			case "SHA1withDSA":
-				return DSA_SHA1_RESERVED;
+				return DSA_SHA1;
 			case "SHA256withDSA":
-				return DSA_SHA256_RESERVED;
+				return DSA_SHA256;
 			case "SHA384withDSA":
-				return DSA_SHA384_RESERVED;
+				return DSA_SHA384;
 			case "SHA512withDSA":
-				return DSA_SHA512_RESERVED;
+				return DSA_SHA512;
 			default:
 				throw new IllegalArgumentException("TLS:UNKNOWN signature algorithm");
 		}
@@ -354,5 +364,58 @@ class Signaturer implements SignatureScheme {
 		}
 		hash = null;
 		return false;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
+	// 使用证书公钥加密PMS，因证书签名类持有证书公钥，因此由此类提供以下方法
+
+	/** RSAES-PKCS1-v1_5 */
+	public byte[] encryptPKCS1(byte[] pms) throws Exception {
+		// Cipher cipher = Cipher.getInstance("RSA/NONE/PKCS1Padding");
+		Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+		try {
+			cipher.init(Cipher.WRAP_MODE, publicKey, TLS.RANDOM);
+			return cipher.wrap(new SecretKeySpec(pms, "TLS"));
+		} catch (Exception e) {
+			cipher.init(Cipher.ENCRYPT_MODE, publicKey, TLS.RANDOM);
+			return cipher.doFinal(pms);
+		}
+	}
+
+	/** RSAES-PKCS1-v1_5 */
+	public byte[] decryptPKCS1(byte[] value) throws Exception {
+		// Cipher cipher = Cipher.getInstance("RSA/NONE/PKCS1Padding");
+		Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+		try {
+			cipher.init(Cipher.UNWRAP_MODE, privateKey, TLS.RANDOM);
+			return cipher.unwrap(value, "TLS", Cipher.SECRET_KEY).getEncoded();
+		} catch (Exception e) {
+			cipher.init(Cipher.DECRYPT_MODE, privateKey, TLS.RANDOM);
+			return cipher.doFinal(value);
+		}
+	}
+
+	/** RSAES-OAEP */
+	public byte[] encryptOAEP(byte[] pms) throws Exception {
+		Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+		try {
+			cipher.init(Cipher.WRAP_MODE, publicKey, TLS.RANDOM);
+			return cipher.wrap(new SecretKeySpec(pms, "TLS"));
+		} catch (Exception e) {
+			cipher.init(Cipher.ENCRYPT_MODE, publicKey, TLS.RANDOM);
+			return cipher.doFinal(pms);
+		}
+	}
+
+	/** RSAES-OAEP */
+	public byte[] decryptOAEP(byte[] value) throws Exception {
+		Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+		try {
+			cipher.init(Cipher.UNWRAP_MODE, privateKey, TLS.RANDOM);
+			return cipher.unwrap(value, "TLS", Cipher.SECRET_KEY).getEncoded();
+		} catch (Exception e) {
+			cipher.init(Cipher.DECRYPT_MODE, privateKey, TLS.RANDOM);
+			return cipher.doFinal(value);
+		}
 	}
 }

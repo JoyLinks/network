@@ -27,6 +27,9 @@ class TranscriptHash {
 	/** 最后获取的哈希值 */
 	private byte[] current = TLS.EMPTY_BYTES;
 
+	public TranscriptHash() {
+	}
+
 	/** 指定哈希算法 */
 	public void digest(String name) throws Exception {
 		digest = MessageDigest.getInstance(name);
@@ -93,7 +96,7 @@ class TranscriptHash {
 		return current;
 	}
 
-	/** HelloRetryRequest */
+	/** TLS 1.3 HelloRetryRequest */
 	public void retry() throws Exception {
 		/*-
 		 * Transcript-Hash(ClientHello1, HelloRetryRequest, ... Mn) =
@@ -117,6 +120,11 @@ class TranscriptHash {
 		digest.update(messageHash0000Hashlength);
 		digest.update(hashClientHello1);
 		current = TLS.EMPTY_BYTES;
+	}
+
+	/** HASH.length */
+	public int hashLength() {
+		return digest.getDigestLength();
 	}
 
 	/** Transcript-Hash("") */

@@ -16,19 +16,31 @@ import java.util.Arrays;
  */
 public class ApplicationLayerProtocolNegotiation extends Extension {
 
-	/** http/1.1 */
-	public final static byte[] HTTP_1_1 = new byte[] { 0x68, 0x74, 0x74, 0x70, 0x2f, 0x31, 0x2e, 0x31 };
-	/** spdy/1 */
-	public final static byte[] SPDY_1 = new byte[] { 0x73, 0x70, 0x64, 0x79, 0x2f, 0x31 };
-	/** spdy/2 */
-	public final static byte[] SPDY_2 = new byte[] { 0x73, 0x70, 0x64, 0x79, 0x2f, 0x32 };
-	/** spdy/3 */
-	public final static byte[] SPDY_3 = new byte[] { 0x73, 0x70, 0x64, 0x79, 0x2f, 0x33 };
-	/** h2 */
-	public final static byte[] H2 = new byte[] { 0x68, 0x32 };
-
-	/** ALL */
-	public final static byte[][] ALL = new byte[][] { H2, HTTP_1_1 };
+	public final static String HTTP_0_9 = "http/0.9";
+	public final static String HTTP_1_0 = "http/1.0";
+	public final static String HTTP_1_1 = "http/1.1";
+	public final static String SPDY_1 = "spdy/1";
+	public final static String SPDY_2 = "spdy/2";
+	public final static String SPDY_3 = "spdy/3";
+	/** Traversal Using Relays around NAT (TURN) */
+	public final static String STUN_TURN = "stun.turn";
+	/** NAT discovery using Session Traversal Utilities for NAT (STUN) */
+	public final static String STUN_TURN_DISCOVERY = "stun.nat-discovery";
+	/** HTTP/2 over TLS */
+	public final static String H2 = "h2";
+	/** HTTP/2 over TCP */
+	public final static String H2C = "h2c";
+	/** WebRTC Media and Data */
+	public final static String WEBRTC = "webrtc";
+	/** Confidential WebRTC Media and Data */
+	public final static String C_WEBRTC = "c-webrtc";
+	/** Confidential WebRTC Media and Data */
+	public final static String FTP = "ftp";
+	public final static String IMAP = "imap";
+	public final static String POP3 = "pop3";
+	public final static String MANAGE_SIEVE = "managesieve";
+	public final static String XMPP_CLIENT = "xmpp-client";
+	public final static String XMPP_SERVER = "xmpp-server";
 
 	////////////////////////////////////////////////////////////////////////////////
 

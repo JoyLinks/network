@@ -3,7 +3,10 @@ package com.joyzl.network.tls;
 import java.io.IOException;
 
 import com.joyzl.network.buffer.DataBuffer;
+import com.joyzl.network.tls.Certificate.CertificateEntry;
+import com.joyzl.network.tls.CertificateStatusRequest.OCSPResponse;
 import com.joyzl.network.tls.CertificateStatusRequest.OCSPStatusRequest;
+import com.joyzl.network.tls.CertificateStatusRequestListV2.CertificateStatusRequestItemV2;
 import com.joyzl.network.tls.CertificateType.ClientCertificateType;
 import com.joyzl.network.tls.CertificateType.ServerCertificateType;
 import com.joyzl.network.tls.CertificateTypes.ClientCertificateTypes;
@@ -23,7 +26,7 @@ import com.joyzl.network.tls.TrustedAuthorities.TrustedAuthority;
  */
 class ExtensionCoder {
 
-	static void encode(Extensions extensions, DataBuffer buffer) throws IOException {
+	static void encode(HandshakeExtensions extensions, DataBuffer buffer) throws IOException {
 		int p1, p2, length;
 
 		// Length 2Byte
@@ -54,7 +57,9 @@ class ExtensionCoder {
 			} else if (extension.type() == Extension.TRUNCATED_HMAC) {
 				// EMPTY
 			} else if (extension.type() == Extension.STATUS_REQUEST) {
-				encode((CertificateStatusRequest) extension, buffer);
+				encode((OCSPStatusRequest) extension, buffer);
+			} else if (extension.type() == Extension.STATUS_REQUEST_V2) {
+				encode((CertificateStatusRequestListV2) extension, buffer);
 			} else if (extension.type() == Extension.SUPPORTED_GROUPS) {
 				encode((SupportedGroups) extension, buffer);
 			} else if (extension.type() == Extension.EC_POINT_FORMATS) {
@@ -176,7 +181,7 @@ class ExtensionCoder {
 		buffer.set(p1, (byte) length);
 	}
 
-	static void decode(Extensions extensions, DataBuffer buffer) throws IOException {
+	static void decode(HandshakeExtensions extensions, DataBuffer buffer) throws IOException {
 		// Length 2Byte
 		int length = buffer.readUnsignedShort();
 		// 计算扩展字段全部解码后的剩余字节
@@ -202,7 +207,9 @@ class ExtensionCoder {
 			} else if (type == Extension.TRUNCATED_HMAC) {
 				extension = TruncatedHMAC.INSTANCE;
 			} else if (type == Extension.STATUS_REQUEST) {
-				extension = decodeCertificateStatusRequest(buffer, size);
+				extension = decodeOCSPStatusRequest(buffer, size);
+			} else if (type == Extension.STATUS_REQUEST_V2) {
+				extension = decodeCertificateStatusRequestListV2(buffer, size);
 			} else if (type == Extension.SUPPORTED_GROUPS) {
 				extension = decodeSupportedGroups(buffer, size);
 			} else if (type == Extension.EC_POINT_FORMATS) {
@@ -292,6 +299,100 @@ class ExtensionCoder {
 				extension = decodeApplicationSettings(buffer, size);
 			} else if (type == Extension.ENCRYPTED_CLIENT_HELLO) {
 				extension = decodeEncryptedClientHello(buffer, size);
+			} else {
+				buffer.skipBytes(size);
+				continue;
+			}
+			extensions.addExtension(extension);
+		}
+	}
+
+	static void encode(CertificateEntry extensions, DataBuffer buffer) throws IOException {
+		int p1, p2, length;
+
+		// Length 2Byte
+		p1 = buffer.readable();
+		buffer.writeShort(0);
+
+		// SUB Extensions
+		Extension extension;
+		for (int index = 0; index < extensions.extensionSize(); index++) {
+			extension = extensions.getExtension(index);
+
+			// Type 2Byte
+			buffer.writeShort(extension.type());
+
+			// opaque extension_data<0..2^16-1>;
+			p2 = buffer.readable();
+			buffer.writeShort(0);
+
+			// SUB Extensions
+			if (extension.type() == Extension.CLIENT_CERTIFICATE_URL) {
+				// EMPTY
+			} else if (extension.type() == Extension.TRUSTED_CA_KEYS) {
+				encode((TrustedAuthorities) extension, buffer);
+			} else if (extension.type() == Extension.STATUS_REQUEST) {
+				encode((OCSPResponse) extension, buffer);
+			} else if (extension.type() == Extension.STATUS_REQUEST_V2) {
+				encode((CertificateStatusRequestListV2) extension, buffer);
+			} else if (extension.type() == Extension.SIGNED_CERTIFICATE_TIMESTAMP) {
+				encode((SignedCertificateTimestamp) extension, buffer);
+			} else if (extension.type() == Extension.COMPRESS_CERTIFICATE) {
+				encode((CompressCertificate) extension, buffer);
+			} else if (extension.type() == Extension.CERTIFICATE_AUTHORITIES) {
+				encode((CertificateAuthorities) extension, buffer);
+			} else if (extension.type() == Extension.SIGNATURE_ALGORITHMS_CERT) {
+				encode((SignatureAlgorithmsCert) extension, buffer);
+			} else {
+				throw new IOException("TLS:混乱的扩展");
+			}
+			// SET Length
+			length = buffer.readable() - p2 - 2;
+			buffer.set(p2++, (byte) (length >>> 8));
+			buffer.set(p2, (byte) length);
+		}
+
+		// SET Length
+		length = buffer.readable() - p1 - 2;
+		buffer.set(p1++, (byte) (length >>> 8));
+		buffer.set(p1, (byte) length);
+	}
+
+	static void decode(CertificateEntry extensions, DataBuffer buffer) throws IOException {
+		// Length 2Byte
+		int length = buffer.readUnsignedShort();
+		// 计算扩展字段全部解码后的剩余字节
+		length = buffer.readable() - length;
+
+		int size;
+		short type;
+		Extension extension;
+		while (buffer.readable() > length) {
+			// Type 2Byte
+			type = buffer.readShort();
+			// opaque extension_data<0..2^16-1>;
+			size = buffer.readUnsignedShort();
+			// SUB Extension
+			if (type == Extension.CLIENT_CERTIFICATE_URL) {
+				extension = ClientCertificateURL.INSTANCE;
+			} else if (type == Extension.TRUSTED_CA_KEYS) {
+				extension = decodeTrustedCAKeys(buffer, size);
+			} else if (type == Extension.STATUS_REQUEST) {
+				extension = decodeOCSPResponse(buffer, size);
+			} else if (type == Extension.STATUS_REQUEST_V2) {
+				extension = decodeCertificateStatusRequestListV2(buffer, size);
+			} else if (type == Extension.SIGNATURE_ALGORITHMS) {
+				extension = decodeSignatureAlgorithms(buffer, size);
+			} else if (type == Extension.SIGNED_CERTIFICATE_TIMESTAMP) {
+				extension = decodeSignedCertificateTimestamp(buffer, size);
+			} else if (type == Extension.COMPRESS_CERTIFICATE) {
+				extension = decodeCompressCertificate(buffer, size);
+			} else if (type == Extension.CERTIFICATE_AUTHORITIES) {
+				extension = decodeCertificateAuthorities(buffer, size);
+			} else if (type == Extension.OID_FILTERS) {
+				extension = decodeOIDFilters(buffer, size);
+			} else if (type == Extension.SIGNATURE_ALGORITHMS_CERT) {
+				extension = decodeSignatureAlgorithmsCert(buffer, size);
 			} else {
 				buffer.skipBytes(size);
 				continue;
@@ -432,10 +533,10 @@ class ExtensionCoder {
 	}
 
 	/** RFC 6066 */
-	static void encode(CertificateStatusRequest request, DataBuffer buffer) throws IOException {
+	static void encode(OCSPStatusRequest request, DataBuffer buffer) throws IOException {
 		// CertificateStatusType status_type;
-		buffer.writeByte(request.getType());
-		if (request.getType() == CertificateStatusRequest.OCSP) {
+		buffer.writeByte(request.getStatusType());
+		if (request.getStatusType() == CertificateStatusRequest.OCSP) {
 			final OCSPStatusRequest oscp = (OCSPStatusRequest) request;
 			// ResponderID responder_id_list<0..2^16-1>;
 			int position = buffer.readable();
@@ -463,29 +564,139 @@ class ExtensionCoder {
 	}
 
 	/** RFC 6066 */
-	static CertificateStatusRequest decodeCertificateStatusRequest(DataBuffer buffer, int length) throws IOException {
+	static OCSPStatusRequest decodeOCSPStatusRequest(DataBuffer buffer, int length) throws IOException {
+		final OCSPStatusRequest oscp = new OCSPStatusRequest();
 		if (length > 0) {
-			if (buffer.readByte() == CertificateStatusRequest.OCSP) {
-				final OCSPStatusRequest oscp = new OCSPStatusRequest();
+			// CertificateStatusType status_type;
+			oscp.setStatusType(buffer.readByte());
+			if (oscp.getStatusType() == CertificateStatusRequest.OCSP) {
 				// ResponderID responder_id_list<0..2^16-1>;
 				length = buffer.readUnsignedShort();
 				byte[] opaque;
 				while (length > 0) {
 					// opaque ResponderID<1..2^16-1>;
-					buffer.readFully(opaque = new byte[buffer.readShort()]);
+					buffer.readFully(opaque = new byte[buffer.readUnsignedShort()]);
 					oscp.addResponderID(opaque);
 					length -= opaque.length + 2;
 				}
 
 				// opaque Extensions<0..2^16-1>;
-				buffer.readFully(opaque = new byte[buffer.readShort()]);
+				buffer.readFully(opaque = new byte[buffer.readUnsignedShort()]);
 				oscp.setRequestExtensions(opaque);
-				return oscp;
 			} else {
 				buffer.skipBytes(length - 1);
 			}
 		}
-		return CertificateStatusRequest.UNKNOWN;
+		return oscp;
+	}
+
+	/** RFC 6066 特殊情况1.3结构为 CertificateStatus */
+	static void encode(OCSPResponse response, DataBuffer buffer) throws IOException {
+		// CertificateStatusType status_type;
+		buffer.writeByte(response.getStatusType());
+
+		// opaque OCSPResponse<1..2^24-1>;
+		buffer.writeMedium(response.get().length);
+		buffer.write(response.get());
+	}
+
+	/** RFC 6066 特殊情况1.3结构为 CertificateStatus */
+	static OCSPResponse decodeOCSPResponse(DataBuffer buffer, int length) throws IOException {
+		final OCSPResponse response = new OCSPResponse();
+		if (length > 0) {
+			// CertificateStatusType status_type;
+			response.setStatusType(buffer.readByte());
+			if (response.getStatusType() == CertificateStatusRequest.OCSP) {
+				// opaque OCSPResponse<1..2^24-1>;
+				response.set(new byte[buffer.readUnsignedMedium()]);
+				buffer.readFully(response.get());
+			}
+		}
+		return response;
+	}
+
+	/** RFC 6961 */
+	static void encode(CertificateStatusRequestListV2 request, DataBuffer buffer) throws IOException {
+		// certificate_status_req_list<1..2^16-1>;
+		int p1 = buffer.readable();
+		buffer.writeShort(0);
+
+		CertificateStatusRequestItemV2 item;
+		for (int i = 0; i < request.size(); i++) {
+			item = request.get(i);
+
+			// CertificateStatusType status_type;
+			buffer.writeByte(item.getStatusType());
+
+			// uint16 request_length;
+			int p2 = buffer.readable();
+			buffer.writeShort(0);
+			{
+				// ResponderID responder_id_list<0..2^16-1>;
+				int p3 = buffer.readable();
+				buffer.writeShort(0);
+
+				for (int r = 0; r < item.size(); r++) {
+					// opaque ResponderID<1..2^16-1>;
+					buffer.writeShort(item.getResponderID(r).length);
+					buffer.write(item.getResponderID(r));
+				}
+
+				// SET Length
+				int length = buffer.readable() - p3 - 2;
+				buffer.set(p3++, (byte) (length >>> 8));
+				buffer.set(p3, (byte) length);
+
+				// Extensions request_extensions;
+				// opaque Extensions<0..2^16-1>;
+				buffer.writeShort(item.getRequestExtensions().length);
+				buffer.write(item.getRequestExtensions());
+			}
+			// SET Length
+			int length = buffer.readable() - p2 - 2;
+			buffer.set(p2++, (byte) (length >>> 8));
+			buffer.set(p2, (byte) length);
+		}
+
+		// SET Length
+		int length = buffer.readable() - p1 - 2;
+		buffer.set(p1++, (byte) (length >>> 8));
+		buffer.set(p1, (byte) length);
+	}
+
+	/** RFC 6961 */
+	static CertificateStatusRequestListV2 decodeCertificateStatusRequestListV2(DataBuffer buffer, int length) throws IOException {
+		final CertificateStatusRequestListV2 request = new CertificateStatusRequestListV2();
+		if (length > 0) {
+			// certificate_status_req_list<1..2^16-1>;
+			length = buffer.readUnsignedShort();
+			while (length > 0) {
+				final CertificateStatusRequestItemV2 item = new CertificateStatusRequestItemV2();
+
+				// CertificateStatusType status_type;
+				item.setStatusType(buffer.readByte());
+
+				// uint16 request_length;
+				int length2 = buffer.readUnsignedShort();
+				if (length2 > 0) {
+
+					// ResponderID responder_id_list<0..2^16-1>;
+					int length3 = buffer.readUnsignedShort();
+					byte[] opaque;
+					while (length3 > 0) {
+						// opaque ResponderID<1..2^16-1>;
+						buffer.readFully(opaque = new byte[buffer.readUnsignedShort()]);
+						item.addResponderID(opaque);
+						length3 -= opaque.length + 2;
+					}
+
+					// opaque Extensions<0..2^16-1>;
+					buffer.readFully(opaque = new byte[buffer.readUnsignedShort()]);
+					item.setRequestExtensions(opaque);
+				}
+			}
+		}
+		return request;
 	}
 
 	/** RFC 7919 */
@@ -620,13 +831,16 @@ class ExtensionCoder {
 
 	/** RFC 6962 */
 	static void encode(SignedCertificateTimestamp timestamp, DataBuffer buffer) throws IOException {
-		// Length 2Byte
+		// SerializedSCT sct_list <1..2^16-1>;
 		int position = buffer.readable();
 		buffer.writeShort(0);
+
 		for (int index = 0; index < timestamp.size(); index++) {
+			// opaque SerializedSCT<1..2^16-1>;
 			buffer.writeShort(timestamp.get(index).length);
 			buffer.write(timestamp.get(index));
 		}
+
 		// SET Length
 		int length = buffer.readable() - position - 2;
 		buffer.set(position++, (byte) (length >>> 8));
@@ -1100,8 +1314,8 @@ class ExtensionCoder {
 
 	/** RFC 5746 */
 	static void encode(RenegotiationInfo extension, DataBuffer buffer) throws IOException {
-		buffer.writeByte(extension.getValue().length);
-		buffer.write(extension.getValue());
+		buffer.writeByte(extension.get().length);
+		buffer.write(extension.get());
 	}
 
 	/** RFC 5746 */
@@ -1109,8 +1323,8 @@ class ExtensionCoder {
 		final RenegotiationInfo info = new RenegotiationInfo();
 		if (length > 0) {
 			// opaque renegotiated_connection<0..255>;
-			info.setValue(new byte[buffer.readUnsignedByte()]);
-			buffer.readFully(info.getValue());
+			info.set(new byte[buffer.readUnsignedByte()]);
+			buffer.readFully(info.get());
 		}
 		return info;
 	}

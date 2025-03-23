@@ -56,6 +56,6 @@ class CertificateVerify extends Handshake implements SignatureScheme {
 
 	@Override
 	public String toString() {
-		return name() + ':' + SignatureScheme.named(algorithm) + ",signature=" + signature.length + "byte";
+		return name() + ':' + SignatureScheme.name(algorithm) + ",signature=" + signature.length + "byte";
 	}
 }
