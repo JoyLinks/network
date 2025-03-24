@@ -1,5 +1,7 @@
 package com.joyzl.network.tls;
 
+import java.util.Arrays;
+
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.chain.ChainHandler;
@@ -61,8 +63,7 @@ public class V2ClientHandler extends TLSParameters implements ChainHandler {
 		// 构建握手请求消息
 		final ClientHello hello = new ClientHello();
 		clientHello(hello);
-		// SESSION ID
-		hello.setSessionId(sessionId);
+
 		// SESSION TICKET
 		final NewSessionTicket nst = ClientSessionTickets.get(sn);
 		if (nst != null) {
@@ -71,8 +72,15 @@ public class V2ClientHandler extends TLSParameters implements ChainHandler {
 			cipher.suite(nst.getSuite());
 			cipher.master(nst.getResumption());
 		} else {
-			cipher.suite(CipherSuiter.TLS_NULL_WITH_NULL_NULL);
-			cipher.pms(null);
+			// SESSION ID
+			hello.setSessionId(sessionId);
+			if (hello.hasSessionId()) {
+				cipher.suite(cipher.suite());
+				cipher.master(cipher.master());
+			} else {
+				cipher.suite(CipherSuiter.TLS_NULL_WITH_NULL_NULL);
+				cipher.pms(null);
+			}
 		}
 		clientVerify = hello.getRandom();
 
@@ -362,10 +370,6 @@ public class V2ClientHandler extends TLSParameters implements ChainHandler {
 			if (version == TLS.V12) {
 				cipher.suite(hello.getCipherSuite());
 				serverVerify = hello.getRandom();
-				sessionId = hello.getSessionId();
-
-				// DOWNGRD
-				// TODO
 
 				if (clientHello != null) {
 					cipher.hash(clientHello);
@@ -378,9 +382,6 @@ public class V2ClientHandler extends TLSParameters implements ChainHandler {
 					serverHello = null;
 				}
 
-				final ExtendedMasterSecret ems = hello.getExtension(Extension.EXTENDED_MASTER_SECRET);
-				extendedMasterSecret = ems != null;
-
 				final RenegotiationInfo ri = hello.getExtension(Extension.RENEGOTIATION_INFO);
 				if (ri != null) {
 					if (ri.isEmpty()) {
@@ -390,33 +391,52 @@ public class V2ClientHandler extends TLSParameters implements ChainHandler {
 					}
 				}
 
-				final SessionTicket st = hello.getExtension(Extension.SESSION_TICKET);
-				if (st != null) {
-					if (cipher.pms() != null) {
-						// 执行票据恢复
-						// developer.mozilla.org
-						// 未发送此扩展也未发送NewSessionTicket
-						// return null;
+				// 使用增强型主密钥
+				final ExtendedMasterSecret ems = hello.getExtension(Extension.EXTENDED_MASTER_SECRET);
+				extendedMasterSecret = ems != null;
+
+				if (hello.hasSessionId()) {
+					if (Arrays.equals(sessionId, hello.getSessionId())) {
+						// 通过会话标识恢复
+						if (cipher.master() != null) {
+							// 导出客户端密钥
+							cipher.keyBlock(serverVerify, clientVerify);
+							return null;
+						} else {
+							// 继续常规握手
+						}
 					} else {
+						// 缓存会话标识
+						sessionId = hello.getSessionId();
 						// 继续常规握手
 					}
 				} else {
-					// 继续常规握手
+					// 服务端未提供会话标识
+					// 通常有会话票据扩展
+
+					final SessionTicket st = hello.getExtension(Extension.SESSION_TICKET);
+					if (st != null) {
+						if (st.hasTicket()) {
+							return new Alert(Alert.ILLEGAL_PARAMETER);
+						} else {
+							// 继续常规握手
+						}
+					} else {
+						// 执行票据恢复
+						if (cipher.master() != null) {
+							// 导出客户端密钥
+							cipher.keyBlock(serverVerify, clientVerify);
+							return null;
+						} else {
+							// 继续常规握手
+						}
+					}
 				}
 
-				if (cipher.master() != null) {
-					// 执行票据恢复
-					// 导出客户端密钥
-					if (extendedMasterSecret) {
-						cipher.keyBlock(serverVerify, clientVerify);
-					} else {
-						cipher.keyBlock(serverVerify, clientVerify);
-					}
-				} else {
-					// RSA
-					cipher.pms(V2DeriveSecret.preMasterSecret(hello.getVersion()));
-					// Diffie-Hellman
-				}
+				// 生成密钥
+				// RSA
+				cipher.pms(V2DeriveSecret.preMasterSecret(hello.getVersion()));
+				// Diffie-Hellman
 			}
 		} else if (record.msgType() == Handshake.HELLO_REQUEST) {
 			// 服务端要求重新协商
@@ -494,7 +514,7 @@ public class V2ClientHandler extends TLSParameters implements ChainHandler {
 			return handshakes;
 		} else if (record.msgType() == Handshake.NEW_SESSION_TICKET) {
 			final NewSessionTicket ticket = (NewSessionTicket) record;
-			// 将预备主密钥和密码套件关联到会话恢复票据
+			// 将主密钥和密码套件关联到会话恢复票据
 			ticket.setResumption(cipher.master());
 			ticket.setSuite(cipher.suite());
 			ClientSessionTickets.put(sn, ticket);

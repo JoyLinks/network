@@ -231,6 +231,9 @@ public class TCPLink extends Client {
 						handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
 						this, ClientReceiveHandler.INSTANCE // Handler
 					);
+				} else {
+					read.release();
+					read = null;
 				}
 			} catch (Exception e) {
 				read.release();

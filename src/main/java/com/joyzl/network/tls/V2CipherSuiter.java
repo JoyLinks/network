@@ -461,6 +461,16 @@ class V2CipherSuiter extends V2SecretCache implements CipherSuite {
 	}
 
 	/**
+	 * 重置加解密钥
+	 */
+	public void resetKeys() {
+		encryptKey = null;
+		decryptKey = null;
+		encryptIV = null;
+		decryptIV = null;
+	}
+
+	/**
 	 * 加密是否已就绪
 	 */
 	public boolean encryptReady() {

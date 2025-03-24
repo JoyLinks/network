@@ -26,6 +26,10 @@ class SessionTicket extends Extension {
 		return SESSION_TICKET;
 	}
 
+	public boolean hasTicket() {
+		return ticket.length > 0;
+	}
+
 	public byte[] getTicket() {
 		return ticket;
 	}
