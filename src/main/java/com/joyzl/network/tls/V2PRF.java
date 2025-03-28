@@ -1,36 +1,27 @@
 package com.joyzl.network.tls;
 
+import java.security.NoSuchAlgorithmException;
+
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * 密钥提取与展开方法<br>
- * 
- * RFC 5869 HMAC-based Extract-and-Expand Key Derivation Function (HKDF)<br>
- * RFC 2104 HMAC: Keyed-Hashing for Message Authentication
+ * TLS 1.2 密钥提取与展开方法
  * 
  * @author ZhangXi 2024年12月22日
  */
-class PRF extends TranscriptHash {
+class V2PRF extends V2TranscriptHash {
 
 	/** HMAC */
 	private Mac hmac;
 
-	public PRF() {
-	}
-
-	public PRF(String name) throws Exception {
-		hmac(name);
-	}
-
-	/** 指定认证算法 */
-	public void hmac(String name) throws Exception {
-		hmac = Mac.getInstance(name);
-	}
-
-	/** HMAC.length */
-	public int hmacLength() {
-		return hmac.getMacLength();
+	public void initialize(String mac, String digest) throws NoSuchAlgorithmException {
+		super.initialize(digest);
+		if (hmac == null || !mac.equals(hmac.getAlgorithm())) {
+			hmac = Mac.getInstance(mac);
+		} else {
+			hmac.reset();
+		}
 	}
 
 	/*-

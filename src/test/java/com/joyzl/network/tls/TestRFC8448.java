@@ -64,11 +64,14 @@ class TestRFC8448 {
 		final int keyLength = 16;
 		final int ivLength = 12;
 
-		final DeriveSecret client = new DeriveSecret("SHA-256", "HmacSHA256");
-		final DeriveSecret server = new DeriveSecret("SHA-256", "HmacSHA256");
+		final V3DeriveSecret client = new V3DeriveSecret();
+		final V3DeriveSecret server = new V3DeriveSecret();
 
-		final KeyExchange clientKeyExchange = new KeyExchange(NamedGroup.X25519);
-		final KeyExchange serverKeyExchange = new KeyExchange(NamedGroup.X25519);
+		client.initialize("HmacSHA256", "SHA-256");
+		server.initialize("HmacSHA256", "SHA-256");
+
+		final V3KeyExchange clientKeyExchange = new V3KeyExchange(NamedGroup.X25519);
+		final V3KeyExchange serverKeyExchange = new V3KeyExchange(NamedGroup.X25519);
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Simple 1-RTT Handshake
@@ -84,7 +87,7 @@ class TestRFC8448 {
 
 		// {server} extract secret "early"
 		// salt: 0(all zero octets),IKM: 0(32)
-		byte[] early = server.v13EarlySecret(null);
+		byte[] early = server.earlySecret(null);
 		assertArrayEquals(Utility.hex("33ad0a1c607ec03b09e6cd9893680ce210adf300aa1f2660e1b22e10f170f92a"), early);
 
 		// {server} create an ephemeral x25519 key pair
@@ -95,13 +98,13 @@ class TestRFC8448 {
 		// {server} construct a ServerHello handshake message
 
 		// {server} derive secret for handshake "tls13 derived"
-		byte[] derived = server.v13DeriveSecret(early);
+		byte[] derived = server.deriveSecret(early);
 		assertArrayEquals(Utility.hex("6f2615a108c702c5678f54fc9dbab69716c076189c48250cebeac3576c3611ba"), derived);
 
 		// {server} extract secret "handshake":
 		byte[] sharedECDHKey = serverKeyExchange.sharedKey(clientKeyExchange.publicKey());
 		assertArrayEquals(Utility.hex("8bd4054fb55b9d63fdfbacf9f04b9f0d35e6d63f537563efd46272900f89492d"), sharedECDHKey);
-		byte[] handshake = server.v13HandshakeSecret(early, sharedECDHKey);
+		byte[] handshake = server.handshakeSecret(early, sharedECDHKey);
 		assertArrayEquals(Utility.hex("1dc826e93606aa6fdc0aadc12f741b01046aa6b99f691ed221a9f0ca043fbeac"), handshake);
 
 		// MESSAGE HASH
@@ -112,26 +115,26 @@ class TestRFC8448 {
 		// 860c06edc07858ee8e78f0e7428c58edd6b43f2ca3e6e95f02ed063cf0e1cad8
 
 		// {server} derive secret "tls13 c hs traffic":
-		byte[] sClientHandshakeTraffic = server.v13ClientHandshakeTrafficSecret(handshake, server.hash());
+		byte[] sClientHandshakeTraffic = server.clientHandshakeTrafficSecret(handshake, server.hash());
 		assertArrayEquals(Utility.hex("b3eddb126e067f35a780b3abf45e2d8f3b1a950738f52e9600746a0e27a55a21"), sClientHandshakeTraffic);
 
 		// {server} derive secret "tls13 s hs traffic":
-		byte[] sServerHandshakeTraffic = server.v13ServerHandshakeTrafficSecret(handshake, server.hash());
+		byte[] sServerHandshakeTraffic = server.serverHandshakeTrafficSecret(handshake, server.hash());
 		assertArrayEquals(Utility.hex("b67b7d690cc16c4e75e54213cb2d37b4e9c912bcded9105d42befd59d391ad38"), sServerHandshakeTraffic);
 
 		// {server} derive secret for master "tls13 derived":
-		derived = server.v13DeriveSecret(handshake);
+		derived = server.deriveSecret(handshake);
 		assertArrayEquals(Utility.hex("43de77e0c77713859a944db9db2590b53190a65b3ee2e4f12dd7a0bb7ce254b4"), derived);
 
 		// {server} extract secret "master":
-		byte[] sMaster = server.v13MasterSecret(handshake);
+		byte[] sMaster = server.masterSecret(handshake);
 		assertArrayEquals(Utility.hex("18df06843d13a08bf2a449844c5f8a478001bc4d4c627984d5a41da8d0402919"), sMaster);
 
 		// {server} send handshake record (TLSCiphertext)
 
 		// {server} derive write traffic keys for handshake data:
-		byte[] key = server.v13WriteKey(sServerHandshakeTraffic, keyLength);
-		byte[] iv = server.v13WriteIV(sServerHandshakeTraffic, ivLength);
+		byte[] key = server.writeKey(sServerHandshakeTraffic, keyLength);
+		byte[] iv = server.writeIV(sServerHandshakeTraffic, ivLength);
 		assertArrayEquals(Utility.hex("3fce516009c21727d0f2e4e86ee403bc"), key);
 		assertArrayEquals(Utility.hex("5d313eb2671276ee13000b30"), iv);
 
@@ -143,7 +146,7 @@ class TestRFC8448 {
 		server.hash(Utility.hex(ServerCertificateVerify));
 
 		// {server} calculate finished "tls13 finished":
-		byte[] finished = server.v13FinishedVerifyData(sServerHandshakeTraffic, server.hash());
+		byte[] finished = server.finishedVerifyData(sServerHandshakeTraffic, server.hash());
 		assertArrayEquals(Utility.hex("9b9b141d906337fbd2cbdce71df4deda4ab42c309572cb7fffee5454b78f0718"), finished);
 
 		// {server} construct a Finished handshake message:
@@ -152,43 +155,43 @@ class TestRFC8448 {
 		// {server} send handshake record (TLSCiphertext)
 
 		// {server} derive secret "tls13 c ap traffic":
-		byte[] sClientApplicationTraffic = server.v13ClientApplicationTrafficSecret(sMaster, server.hash());
+		byte[] sClientApplicationTraffic = server.clientApplicationTrafficSecret(sMaster, server.hash());
 		assertArrayEquals(Utility.hex("9e40646ce79a7f9dc05af8889bce6552875afa0b06df0087f792ebb7c17504a5"), sClientApplicationTraffic);
 
 		// {server} derive secret "tls13 s ap traffic":
-		byte[] sServerApplicationTraffic = server.v13ServerApplicationTrafficSecret(sMaster, server.hash());
+		byte[] sServerApplicationTraffic = server.serverApplicationTrafficSecret(sMaster, server.hash());
 		assertArrayEquals(Utility.hex("a11af9f05531f856ad47116b45a950328204b4f44bfb6b3a4b4f1f3fcb631643"), sServerApplicationTraffic);
 
 		// {server} derive secret "tls13 exp master":
-		byte[] exporter = server.v13ExporterMasterSecret(sMaster, server.hash());
+		byte[] exporter = server.exporterMasterSecret(sMaster, server.hash());
 		assertArrayEquals(Utility.hex("fe22f881176eda18eb8f44529e6792c50c9a3f89452f68d8ae311b4309d3cf50"), exporter);
 
 		// {server} derive write traffic keys for application data:
-		key = server.v13WriteKey(sServerApplicationTraffic, keyLength);
-		iv = server.v13WriteIV(sServerApplicationTraffic, ivLength);
+		key = server.writeKey(sServerApplicationTraffic, keyLength);
+		iv = server.writeIV(sServerApplicationTraffic, ivLength);
 		assertArrayEquals(Utility.hex("9f02283b6c9c07efc26bb9f2ac92e356"), key);
 		assertArrayEquals(Utility.hex("cf782b88dd83549aadf1e984"), iv);
 
 		// {server} derive read traffic keys for handshake data:
-		key = server.v13WriteKey(sClientHandshakeTraffic, keyLength);
-		iv = server.v13WriteIV(sClientHandshakeTraffic, ivLength);
+		key = server.writeKey(sClientHandshakeTraffic, keyLength);
+		iv = server.writeIV(sClientHandshakeTraffic, ivLength);
 		assertArrayEquals(Utility.hex("dbfaa693d1762c5b666af5d950258d01"), key);
 		assertArrayEquals(Utility.hex("5bd3c71b836e0b76bb73265f"), iv);
 
 		// {client} extract secret "early"
 		// (same as server early secret)
-		early = client.v13EarlySecret(null);
+		early = client.earlySecret(null);
 		assertArrayEquals(Utility.hex("33ad0a1c607ec03b09e6cd9893680ce210adf300aa1f2660e1b22e10f170f92a"), early);
 
 		// {client} derive secret for handshake "tls13 derived"
-		derived = client.v13DeriveSecret(early);
+		derived = client.deriveSecret(early);
 		assertArrayEquals(Utility.hex("6f2615a108c702c5678f54fc9dbab69716c076189c48250cebeac3576c3611ba"), derived);
 
 		// {client} extract secret "handshake"
 		// (same as server handshake secret)
 		sharedECDHKey = clientKeyExchange.sharedKey(serverKeyExchange.publicKey());
 		assertArrayEquals(Utility.hex("8bd4054fb55b9d63fdfbacf9f04b9f0d35e6d63f537563efd46272900f89492d"), sharedECDHKey);
-		handshake = client.v13HandshakeSecret(early, sharedECDHKey);
+		handshake = client.handshakeSecret(early, sharedECDHKey);
 		assertArrayEquals(Utility.hex("1dc826e93606aa6fdc0aadc12f741b01046aa6b99f691ed221a9f0ca043fbeac"), handshake);
 
 		client.hash(Utility.hex(ClientHello));
@@ -196,28 +199,28 @@ class TestRFC8448 {
 
 		// {client} derive secret "tls13 c hs traffic"
 		// (same as server)
-		byte[] cClientHandshakeTraffic = client.v13ClientHandshakeTrafficSecret(handshake, client.hash());
+		byte[] cClientHandshakeTraffic = client.clientHandshakeTrafficSecret(handshake, client.hash());
 		assertArrayEquals(Utility.hex("b3eddb126e067f35a780b3abf45e2d8f3b1a950738f52e9600746a0e27a55a21"), cClientHandshakeTraffic);
 
 		// {client} derive secret "tls13 s hs traffic"
 		// (same as server)
-		byte[] cServerHandshakeTraffic = client.v13ServerHandshakeTrafficSecret(handshake, client.hash());
+		byte[] cServerHandshakeTraffic = client.serverHandshakeTrafficSecret(handshake, client.hash());
 		assertArrayEquals(Utility.hex("b67b7d690cc16c4e75e54213cb2d37b4e9c912bcded9105d42befd59d391ad38"), cServerHandshakeTraffic);
 
 		// {client} derive secret for master "tls13 derived"
 		// (same as server)
-		derived = client.v13DeriveSecret(handshake);
+		derived = client.deriveSecret(handshake);
 		assertArrayEquals(Utility.hex("43de77e0c77713859a944db9db2590b53190a65b3ee2e4f12dd7a0bb7ce254b4"), derived);
 
 		// {client} extract secret "master"
 		// (same as server master secret)
-		byte[] cMaster = client.v13MasterSecret(handshake);
+		byte[] cMaster = client.masterSecret(handshake);
 		assertArrayEquals(Utility.hex("18df06843d13a08bf2a449844c5f8a478001bc4d4c627984d5a41da8d0402919"), cMaster);
 
 		// {client} derive read traffic keys for handshake data
 		// (same as server handshake data write traffic keys)
-		key = client.v13WriteKey(cServerHandshakeTraffic, keyLength);
-		iv = client.v13WriteIV(cServerHandshakeTraffic, ivLength);
+		key = client.writeKey(cServerHandshakeTraffic, keyLength);
+		iv = client.writeIV(cServerHandshakeTraffic, ivLength);
 		assertArrayEquals(Utility.hex("3fce516009c21727d0f2e4e86ee403bc"), key);
 		assertArrayEquals(Utility.hex("5d313eb2671276ee13000b30"), iv);
 
@@ -227,41 +230,41 @@ class TestRFC8448 {
 
 		// {client} calculate finished "tls13 finished"
 		// (same as server)
-		finished = client.v13FinishedVerifyData(cServerHandshakeTraffic, client.hash());
+		finished = client.finishedVerifyData(cServerHandshakeTraffic, client.hash());
 		assertArrayEquals(Utility.hex("9b9b141d906337fbd2cbdce71df4deda4ab42c309572cb7fffee5454b78f0718"), finished);
 
 		// {client} derive secret "tls13 c ap traffic"
 		// (same as server)
-		byte[] cClientApplicationTraffic = client.v13ClientApplicationTrafficSecret(cMaster, server.hash());
+		byte[] cClientApplicationTraffic = client.clientApplicationTrafficSecret(cMaster, server.hash());
 		assertArrayEquals(Utility.hex("9e40646ce79a7f9dc05af8889bce6552875afa0b06df0087f792ebb7c17504a5"), cClientApplicationTraffic);
 
 		// {client} derive secret "tls13 s ap traffic"
 		// (same as server)
-		byte[] cServerApplicationTraffic = client.v13ServerApplicationTrafficSecret(cMaster, server.hash());
+		byte[] cServerApplicationTraffic = client.serverApplicationTrafficSecret(cMaster, server.hash());
 		assertArrayEquals(Utility.hex("a11af9f05531f856ad47116b45a950328204b4f44bfb6b3a4b4f1f3fcb631643"), cServerApplicationTraffic);
 
 		client.hash(Utility.hex(ServerFinished));
 
 		// {client} derive secret "tls13 exp master" (same as server)
-		exporter = client.v13ExporterMasterSecret(cMaster, client.hash());
+		exporter = client.exporterMasterSecret(cMaster, client.hash());
 		assertArrayEquals(Utility.hex("fe22f881176eda18eb8f44529e6792c50c9a3f89452f68d8ae311b4309d3cf50"), exporter);
 
 		// {client} derive write traffic keys for handshake data
 		// (same as server handshake data read traffic keys)
-		key = client.v13WriteKey(cClientHandshakeTraffic, keyLength);
-		iv = client.v13WriteIV(cClientHandshakeTraffic, ivLength);
+		key = client.writeKey(cClientHandshakeTraffic, keyLength);
+		iv = client.writeIV(cClientHandshakeTraffic, ivLength);
 		assertArrayEquals(Utility.hex("dbfaa693d1762c5b666af5d950258d01"), key);
 		assertArrayEquals(Utility.hex("5bd3c71b836e0b76bb73265f"), iv);
 
 		// {client} derive read traffic keys for application data
 		// (same as server application data write traffic keys)
-		key = client.v13WriteKey(cServerApplicationTraffic, keyLength);
-		iv = client.v13WriteIV(cServerApplicationTraffic, ivLength);
+		key = client.writeKey(cServerApplicationTraffic, keyLength);
+		iv = client.writeIV(cServerApplicationTraffic, ivLength);
 		assertArrayEquals(Utility.hex("9f02283b6c9c07efc26bb9f2ac92e356"), key);
 		assertArrayEquals(Utility.hex("cf782b88dd83549aadf1e984"), iv);
 
 		// {client} calculate finished "tls13 finished":
-		finished = client.v13FinishedVerifyData(cClientHandshakeTraffic, client.hash());
+		finished = client.finishedVerifyData(cClientHandshakeTraffic, client.hash());
 		assertArrayEquals(Utility.hex("a8ec436d677634ae525ac1fcebe11a039ec17694fac6e98527b642f2edd5ce61"), finished);
 
 		// {client} construct a Finished handshake message
@@ -269,23 +272,23 @@ class TestRFC8448 {
 		client.hash(Utility.hex(ClientFinished));
 
 		// {client} derive write traffic keys for application data
-		key = client.v13WriteKey(cClientApplicationTraffic, keyLength);
-		iv = client.v13WriteIV(cClientApplicationTraffic, ivLength);
+		key = client.writeKey(cClientApplicationTraffic, keyLength);
+		iv = client.writeIV(cClientApplicationTraffic, ivLength);
 		assertArrayEquals(Utility.hex("17422dda596ed5d9acd890e3c63f5051"), key);
 		assertArrayEquals(Utility.hex("5b78923dee08579033e523d9"), iv);
 
 		// {client} derive secret "tls13 res master"
-		byte[] cResumption = client.v13ResumptionMasterSecret(cMaster, client.hash());
+		byte[] cResumption = client.resumptionMasterSecret(cMaster, client.hash());
 		assertArrayEquals(Utility.hex("7df235f2031d2a051287d02b0241b0bfdaf86cc856231f2d5aba46c434ec196c"), cResumption);
 
 		// {server} calculate finished "tls13 finished" (same as client)
-		finished = server.v13FinishedVerifyData(sClientHandshakeTraffic, server.hash());
+		finished = server.finishedVerifyData(sClientHandshakeTraffic, server.hash());
 		assertArrayEquals(Utility.hex("a8ec436d677634ae525ac1fcebe11a039ec17694fac6e98527b642f2edd5ce61"), finished);
 
 		// {server} derive read traffic keys for application data
 		// (same as client application data write traffic keys)
-		key = client.v13WriteKey(sClientApplicationTraffic, keyLength);
-		iv = client.v13WriteIV(sClientApplicationTraffic, ivLength);
+		key = client.writeKey(sClientApplicationTraffic, keyLength);
+		iv = client.writeIV(sClientApplicationTraffic, ivLength);
 		assertArrayEquals(Utility.hex("17422dda596ed5d9acd890e3c63f5051"), key);
 		assertArrayEquals(Utility.hex("5b78923dee08579033e523d9"), iv);
 
@@ -293,11 +296,11 @@ class TestRFC8448 {
 
 		// {server} derive secret "tls13 res master"
 		// (same as client)
-		byte[] sResumption = server.v13ResumptionMasterSecret(sMaster, server.hash());
+		byte[] sResumption = server.resumptionMasterSecret(sMaster, server.hash());
 		assertArrayEquals(Utility.hex("7df235f2031d2a051287d02b0241b0bfdaf86cc856231f2d5aba46c434ec196c"), sResumption);
 
 		// {server} generate resumption secret "tls13 resumption"
-		sResumption = server.v13ResumptionSecret(sResumption, new byte[] { 0, 0 });
+		sResumption = server.resumptionSecret(sResumption, new byte[] { 0, 0 });
 		assertArrayEquals(Utility.hex("4ecd0eb6ec3b4d87f5d6028f922ca4c5851a277fd41311c9e62d2c9492e1c4f3"), sResumption);
 
 		// {server} construct a NewSessionTicket handshake message
@@ -305,7 +308,7 @@ class TestRFC8448 {
 
 		// {client} generate resumption secret "tls13 resumption"
 		// (same as server)
-		cResumption = client.v13ResumptionSecret(cResumption, new byte[] { 0, 0 });
+		cResumption = client.resumptionSecret(cResumption, new byte[] { 0, 0 });
 		assertArrayEquals(Utility.hex("4ecd0eb6ec3b4d87f5d6028f922ca4c5851a277fd41311c9e62d2c9492e1c4f3"), cResumption);
 
 		////////////////////////////////////////////////////////////////////////////////
@@ -317,7 +320,7 @@ class TestRFC8448 {
 		clientKeyExchange.setPublicKey(Utility.hex("e4ffb68ac05f8d96c99da26698346c6be16482badddafe051a66b4f18d668f0b"));
 
 		// {client} extract secret "early"
-		early = client.v13EarlySecret(cResumption);
+		early = client.earlySecret(cResumption);
 		assertArrayEquals(Utility.hex("9b2188e9b2fc6d64d71dc329900e20bb41915000f678aa839cbb797cb7d8332c"), early);
 
 		// {client} construct a ClientHello handshake message
@@ -329,13 +332,13 @@ class TestRFC8448 {
 		// binder hash
 		assertArrayEquals(Utility.hex("63224b2e4573f2d3454ca84b9d009a04f6be9e05711a8396473aefa01e924a14"), client.hash());
 		// PRK "tls13 res binder"
-		byte[] PRK = client.v13ResumptionBinderKey(early);
+		byte[] PRK = client.resumptionBinderKey(early);
 		assertArrayEquals(Utility.hex("69fe131a3bbad5d63c64eebcc30e395b9d8107726a13d074e389dbc8a4e47256"), PRK);
 		// expanded(PRK,info="tls13 finished")
-		byte[] expanded = client.v13ExpandLabel(PRK, "finished".getBytes(StandardCharsets.US_ASCII), null, client.hmacLength());
+		byte[] expanded = client.expandLabel(PRK, "finished".getBytes(StandardCharsets.US_ASCII), null, client.hmacLength());
 		assertArrayEquals(Utility.hex("5588673e72cb59c87d220caffe94f2dea9a3b1609f7d50e90a48227db9ed7eaa"), expanded);
 		// finished(resumptionBinderKey,hash(ClientHelloPrefix))
-		finished = client.v13FinishedVerifyData(PRK, client.hash());
+		finished = client.finishedVerifyData(PRK, client.hash());
 		assertArrayEquals(Utility.hex("3add4fb2d8fdf822a0ca3cf7678ef5e88dae990141c5924d57bb6fa31b9e5f9d"), finished);
 
 		// {client} send handshake record (TLSPlaintext)
@@ -358,16 +361,16 @@ class TestRFC8448 {
 		client.hash(Utility.hex("0021203add4fb2d8fdf822a0ca3cf7678ef5e88dae990141c5924d57bb6fa31b9e5f9d"));
 
 		// {client} derive secret "tls13 c e traffic"
-		byte[] clientEarlyTraffic = client.v13ClientEarlyTrafficSecret(early, client.hash());
+		byte[] clientEarlyTraffic = client.clientEarlyTrafficSecret(early, client.hash());
 		assertArrayEquals(Utility.hex("3fbbe6a60deb66c30a32795aba0eff7eaa10105586e7be5c09678d63b6caab62"), clientEarlyTraffic);
 
 		// {client} derive secret "tls13 e exp master"
-		byte[] earlyExporterMaster = client.v13EarlyExporterMasterSecret(early, client.hash());
+		byte[] earlyExporterMaster = client.earlyExporterMasterSecret(early, client.hash());
 		assertArrayEquals(Utility.hex("b2026866610937d7423e5be90862ccf24c0e6091186d34f812089ff5be2ef7df"), earlyExporterMaster);
 
 		// {client} derive write traffic keys for early application data
-		key = client.v13WriteKey(clientEarlyTraffic, keyLength);
-		iv = client.v13WriteIV(clientEarlyTraffic, ivLength);
+		key = client.writeKey(clientEarlyTraffic, keyLength);
+		iv = client.writeIV(clientEarlyTraffic, ivLength);
 		assertArrayEquals(Utility.hex("920205a5b7bf2115e6fc5c2942834f54"), key);
 		assertArrayEquals(Utility.hex("6d475f0993c8e564610db2b9"), iv);
 
@@ -375,15 +378,15 @@ class TestRFC8448 {
 
 		// {server} extract secret "early"
 		// (same as client early secret)
-		early = server.v13EarlySecret(sResumption);
+		early = server.earlySecret(sResumption);
 		assertArrayEquals(Utility.hex("9b2188e9b2fc6d64d71dc329900e20bb41915000f678aa839cbb797cb7d8332c"), early);
 
 		// {server} calculate PSK binder
 		// (same as client)
 		server.hashReset();
 		server.hash(Utility.hex(ClientHelloPrefix));
-		PRK = server.v13ResumptionBinderKey(early);
-		finished = server.v13FinishedVerifyData(PRK, server.hash());
+		PRK = server.resumptionBinderKey(early);
+		finished = server.finishedVerifyData(PRK, server.hash());
 		assertArrayEquals(Utility.hex("3add4fb2d8fdf822a0ca3cf7678ef5e88dae990141c5924d57bb6fa31b9e5f9d"), finished);
 
 		// {server} create an ephemeral x25519 key pair
@@ -394,48 +397,48 @@ class TestRFC8448 {
 		server.hash(Utility.hex("0021203add4fb2d8fdf822a0ca3cf7678ef5e88dae990141c5924d57bb6fa31b9e5f9d"));
 
 		// {server} derive secret "tls13 c e traffic" (same as client)
-		clientEarlyTraffic = server.v13ClientEarlyTrafficSecret(early, server.hash());
+		clientEarlyTraffic = server.clientEarlyTrafficSecret(early, server.hash());
 		assertArrayEquals(Utility.hex("3fbbe6a60deb66c30a32795aba0eff7eaa10105586e7be5c09678d63b6caab62"), clientEarlyTraffic);
 
 		// {server} derive secret "tls13 e exp master" (same as client)
-		earlyExporterMaster = server.v13EarlyExporterMasterSecret(early, server.hash());
+		earlyExporterMaster = server.earlyExporterMasterSecret(early, server.hash());
 		assertArrayEquals(Utility.hex("b2026866610937d7423e5be90862ccf24c0e6091186d34f812089ff5be2ef7df"), earlyExporterMaster);
 
 		// {server} construct a ServerHello handshake message
 		server.hash(Utility.hex(ServerHello1));
 
 		// {server} derive secret for handshake "tls13 derived"
-		derived = server.v13DeriveSecret(early);
+		derived = server.deriveSecret(early);
 		assertArrayEquals(Utility.hex("5f1790bbd82c5e7d376ed2e1e52f8e6038c9346db61b43be9a52f77ef3998e80"), derived);
 
 		// {server} extract secret "handshake"
 		sharedECDHKey = serverKeyExchange.sharedKey(clientKeyExchange.publicKey());
 		assertArrayEquals(Utility.hex("f44194756ff9ec9d25180635d66ea6824c6ab3bf179977be37f723570e7ccb2e"), sharedECDHKey);
-		handshake = server.v13HandshakeSecret(early, sharedECDHKey);
+		handshake = server.handshakeSecret(early, sharedECDHKey);
 		assertArrayEquals(Utility.hex("005cb112fd8eb4ccc623bb88a07c64b3ede1605363fc7d0df8c7ce4ff0fb4ae6"), handshake);
 
 		// {server} derive secret "tls13 c hs traffic"
-		sClientHandshakeTraffic = server.v13ClientHandshakeTrafficSecret(handshake, server.hash());
+		sClientHandshakeTraffic = server.clientHandshakeTrafficSecret(handshake, server.hash());
 		assertArrayEquals(Utility.hex("2faac08f851d35fea3604fcb4de82dc62c9b164a70974d0462e27f1ab278700f"), sClientHandshakeTraffic);
 
 		// {server} derive secret "tls13 s hs traffic"
-		sServerHandshakeTraffic = server.v13ServerHandshakeTrafficSecret(handshake, server.hash());
+		sServerHandshakeTraffic = server.serverHandshakeTrafficSecret(handshake, server.hash());
 		assertArrayEquals(Utility.hex("fe927ae271312e8bf0275b581c54eef020450dc4ecffaa05a1a35d27518e7803"), sServerHandshakeTraffic);
 
 		// {server} derive secret for master "tls13 derived"
-		derived = server.v13DeriveSecret(handshake);
+		derived = server.deriveSecret(handshake);
 		assertArrayEquals(Utility.hex("e2f16030251df0874ba19b9aba257610bc6d531c1dd206df0ca6e84ae2a26742"), derived);
 
 		// {server} extract secret "master":
-		sMaster = server.v13MasterSecret(handshake);
+		sMaster = server.masterSecret(handshake);
 		assertArrayEquals(Utility.hex("e2d32d4ed66dd37897a0e80c84107503ce58bf8aad4cb55a5002d77ecb890ece"), sMaster);
 
 		// {server} send handshake record (TLSPlaintext)
 		// payload:ServerHello1
 
 		// {server} derive write traffic keys for handshake data
-		key = client.v13WriteKey(sServerHandshakeTraffic, keyLength);
-		iv = client.v13WriteIV(sServerHandshakeTraffic, ivLength);
+		key = client.writeKey(sServerHandshakeTraffic, keyLength);
+		iv = client.writeIV(sServerHandshakeTraffic, ivLength);
 		assertArrayEquals(Utility.hex("27c6bdc0a3dcea39a47326d79bc9e4ee"), key);
 		assertArrayEquals(Utility.hex("9569ecdd4d0536705e9ef725"), iv);
 
@@ -443,7 +446,7 @@ class TestRFC8448 {
 		server.hash(Utility.hex(EncryptedExtensions1));
 
 		// {server} calculate finished "tls13 finished"
-		finished = server.v13FinishedVerifyData(sServerHandshakeTraffic, server.hash());
+		finished = server.finishedVerifyData(sServerHandshakeTraffic, server.hash());
 		assertArrayEquals(Utility.hex("48d3e0e1b3d907c6acff145e16090388c77b05c050b634ab1a88bbd0dd1a34b2"), finished);
 
 		// {server} construct a Finished handshake message
@@ -453,27 +456,27 @@ class TestRFC8448 {
 		// payload:EncryptedExtensions,Finished
 
 		// {server} derive secret "tls13 c ap traffic"
-		sClientApplicationTraffic = server.v13ClientApplicationTrafficSecret(sMaster, server.hash());
+		sClientApplicationTraffic = server.clientApplicationTrafficSecret(sMaster, server.hash());
 		assertArrayEquals(Utility.hex("2abbf2b8e381d23dbebe1dd2a7d16a8bf484cb4950d23fb7fb7fa8547062d9a1"), sClientApplicationTraffic);
 
 		// {server} derive secret "tls13 s ap traffic"
-		sServerApplicationTraffic = server.v13ServerApplicationTrafficSecret(sMaster, server.hash());
+		sServerApplicationTraffic = server.serverApplicationTrafficSecret(sMaster, server.hash());
 		assertArrayEquals(Utility.hex("cc21f1bf8feb7dd5fa505bd9c4b468a9984d554a993dc49e6d285598fb672691"), sServerApplicationTraffic);
 
 		// {server} derive secret "tls13 exp master"
-		exporter = server.v13ExporterMasterSecret(sMaster, server.hash());
+		exporter = server.exporterMasterSecret(sMaster, server.hash());
 		assertArrayEquals(Utility.hex("3fd93d4ffddc98e64b14dd107aedf8ee4add23f4510f58a4592d0b201bee56b4"), exporter);
 
 		// {server} derive write traffic keys for application data
-		key = server.v13WriteKey(sServerApplicationTraffic, keyLength);
-		iv = server.v13WriteIV(sServerApplicationTraffic, ivLength);
+		key = server.writeKey(sServerApplicationTraffic, keyLength);
+		iv = server.writeIV(sServerApplicationTraffic, ivLength);
 		assertArrayEquals(Utility.hex("e857c690a34c5a9129d833619684f95e"), key);
 		assertArrayEquals(Utility.hex("0685d6b561aab9ef1013faf9"), iv);
 
 		// {server} derive read traffic keys for early application data
 		// (same as client early application data write traffic keys)
-		key = server.v13WriteKey(clientEarlyTraffic, keyLength);
-		iv = server.v13WriteIV(clientEarlyTraffic, ivLength);
+		key = server.writeKey(clientEarlyTraffic, keyLength);
+		iv = server.writeIV(clientEarlyTraffic, ivLength);
 		assertArrayEquals(Utility.hex("920205a5b7bf2115e6fc5c2942834f54"), key);
 		assertArrayEquals(Utility.hex("6d475f0993c8e564610db2b9"), iv);
 
@@ -481,41 +484,41 @@ class TestRFC8448 {
 		client.hash(Utility.hex(ServerHello1));
 
 		// {client} derive secret for handshake "tls13 derived"
-		early = client.v13EarlySecret(cResumption);
-		derived = client.v13DeriveSecret(early);
+		early = client.earlySecret(cResumption);
+		derived = client.deriveSecret(early);
 		assertArrayEquals(Utility.hex("5f1790bbd82c5e7d376ed2e1e52f8e6038c9346db61b43be9a52f77ef3998e80"), derived);
 
 		// {client} extract secret "handshake"
 		// (same as server handshake secret)
 		sharedECDHKey = clientKeyExchange.sharedKey(serverKeyExchange.publicKey());
 		assertArrayEquals(Utility.hex("f44194756ff9ec9d25180635d66ea6824c6ab3bf179977be37f723570e7ccb2e"), sharedECDHKey);
-		handshake = client.v13HandshakeSecret(early, sharedECDHKey);
+		handshake = client.handshakeSecret(early, sharedECDHKey);
 		assertArrayEquals(Utility.hex("005cb112fd8eb4ccc623bb88a07c64b3ede1605363fc7d0df8c7ce4ff0fb4ae6"), handshake);
 
 		// {client} derive secret "tls13 c hs traffic"
 		// (same as server)
-		cClientHandshakeTraffic = client.v13ClientHandshakeTrafficSecret(handshake, client.hash());
+		cClientHandshakeTraffic = client.clientHandshakeTrafficSecret(handshake, client.hash());
 		assertArrayEquals(Utility.hex("2faac08f851d35fea3604fcb4de82dc62c9b164a70974d0462e27f1ab278700f"), cClientHandshakeTraffic);
 
 		// {client} derive secret "tls13 s hs traffic"
 		// (same as server)
-		cServerHandshakeTraffic = client.v13ServerHandshakeTrafficSecret(handshake, client.hash());
+		cServerHandshakeTraffic = client.serverHandshakeTrafficSecret(handshake, client.hash());
 		assertArrayEquals(Utility.hex("fe927ae271312e8bf0275b581c54eef020450dc4ecffaa05a1a35d27518e7803"), cServerHandshakeTraffic);
 
 		// {client} derive secret for master "tls13 derived"
 		// (same as server)
-		derived = client.v13DeriveSecret(handshake);
+		derived = client.deriveSecret(handshake);
 		assertArrayEquals(Utility.hex("e2f16030251df0874ba19b9aba257610bc6d531c1dd206df0ca6e84ae2a26742"), derived);
 
 		// {client} extract secret "master"
 		// (same as server master secret)
-		cMaster = client.v13MasterSecret(handshake);
+		cMaster = client.masterSecret(handshake);
 		assertArrayEquals(Utility.hex("e2d32d4ed66dd37897a0e80c84107503ce58bf8aad4cb55a5002d77ecb890ece"), cMaster);
 
 		// {client} derive read traffic keys for handshake data
 		// (same as server handshake data write traffic keys)
-		key = client.v13WriteKey(cServerHandshakeTraffic, keyLength);
-		iv = client.v13WriteIV(cServerHandshakeTraffic, ivLength);
+		key = client.writeKey(cServerHandshakeTraffic, keyLength);
+		iv = client.writeIV(cServerHandshakeTraffic, ivLength);
 		assertArrayEquals(Utility.hex("27c6bdc0a3dcea39a47326d79bc9e4ee"), key);
 		assertArrayEquals(Utility.hex("9569ecdd4d0536705e9ef725"), iv);
 
@@ -523,24 +526,24 @@ class TestRFC8448 {
 
 		// {client} calculate finished "tls13 finished"
 		// (same as server)
-		client.v13FinishedVerifyData(cServerHandshakeTraffic, client.hash());
+		client.finishedVerifyData(cServerHandshakeTraffic, client.hash());
 		assertArrayEquals(Utility.hex("48d3e0e1b3d907c6acff145e16090388c77b05c050b634ab1a88bbd0dd1a34b2"), finished);
 
 		client.hash(Utility.hex(ServerFinished1));
 
 		// {client} derive secret "tls13 c ap traffic"
 		// (same as server)
-		cClientApplicationTraffic = client.v13ClientApplicationTrafficSecret(sMaster, client.hash());
+		cClientApplicationTraffic = client.clientApplicationTrafficSecret(sMaster, client.hash());
 		assertArrayEquals(Utility.hex("2abbf2b8e381d23dbebe1dd2a7d16a8bf484cb4950d23fb7fb7fa8547062d9a1"), cClientApplicationTraffic);
 
 		// {client} derive secret "tls13 s ap traffic"
 		// (same as server)
-		cServerApplicationTraffic = client.v13ServerApplicationTrafficSecret(sMaster, client.hash());
+		cServerApplicationTraffic = client.serverApplicationTrafficSecret(sMaster, client.hash());
 		assertArrayEquals(Utility.hex("cc21f1bf8feb7dd5fa505bd9c4b468a9984d554a993dc49e6d285598fb672691"), cServerApplicationTraffic);
 
 		// {client} derive secret "tls13 exp master"
 		// (same as server)
-		exporter = client.v13ExporterMasterSecret(cMaster, client.hash());
+		exporter = client.exporterMasterSecret(cMaster, client.hash());
 		assertArrayEquals(Utility.hex("3fd93d4ffddc98e64b14dd107aedf8ee4add23f4510f58a4592d0b201bee56b4"), exporter);
 
 		// {client} construct an EndOfEarlyData handshake message
@@ -548,20 +551,20 @@ class TestRFC8448 {
 		client.hash(Utility.hex(EndOfEarlyData));
 
 		// {client} derive write traffic keys for handshake data
-		key = client.v13WriteKey(cClientHandshakeTraffic, keyLength);
-		iv = client.v13WriteIV(cClientHandshakeTraffic, ivLength);
+		key = client.writeKey(cClientHandshakeTraffic, keyLength);
+		iv = client.writeIV(cClientHandshakeTraffic, ivLength);
 		assertArrayEquals(Utility.hex("b1530806f4adfeac83f1413032bbfa82"), key);
 		assertArrayEquals(Utility.hex("eb50c16be7654abf99dd06d9"), iv);
 
 		// {client} derive read traffic keys for application data
 		// (same as server application data write traffic keys)
-		key = client.v13WriteKey(cServerApplicationTraffic, keyLength);
-		iv = client.v13WriteIV(cServerApplicationTraffic, ivLength);
+		key = client.writeKey(cServerApplicationTraffic, keyLength);
+		iv = client.writeIV(cServerApplicationTraffic, ivLength);
 		assertArrayEquals(Utility.hex("e857c690a34c5a9129d833619684f95e"), key);
 		assertArrayEquals(Utility.hex("0685d6b561aab9ef1013faf9"), iv);
 
 		// {client} calculate finished "tls13 finished"
-		finished = client.v13FinishedVerifyData(cClientHandshakeTraffic, client.hash());
+		finished = client.finishedVerifyData(cClientHandshakeTraffic, client.hash());
 		assertArrayEquals(Utility.hex("7230a9c952c25cd6138fc5e6628308c41c5335dd81b9f96bcea50fd32bda416d"), finished);
 
 		// {client} construct a Finished handshake message
@@ -569,13 +572,13 @@ class TestRFC8448 {
 		client.hash(Utility.hex(ClientFinished1));
 
 		// {client} derive write traffic keys for application data
-		key = client.v13WriteKey(cClientApplicationTraffic, keyLength);
-		iv = client.v13WriteIV(cClientApplicationTraffic, ivLength);
+		key = client.writeKey(cClientApplicationTraffic, keyLength);
+		iv = client.writeIV(cClientApplicationTraffic, ivLength);
 		assertArrayEquals(Utility.hex("3cf122f301c6358ca7989553250efd72"), key);
 		assertArrayEquals(Utility.hex("ab1aec26aa78b8fc1176b9ac"), iv);
 
 		// {client} derive secret "tls13 res master":
-		cResumption = client.v13ResumptionMasterSecret(cMaster, client.hash());
+		cResumption = client.resumptionMasterSecret(cMaster, client.hash());
 		assertArrayEquals(Utility.hex("5e95bdf1f89005ea2e9aa0ba85e728e3c19c5fe0c699e3f5bee59faebd0b5406"), cResumption);
 
 		// SERVER
@@ -583,20 +586,20 @@ class TestRFC8448 {
 
 		// {server} derive read traffic keys for handshake data
 		// (same as client handshake data write traffic keys)
-		key = client.v13WriteKey(sClientHandshakeTraffic, keyLength);
-		iv = client.v13WriteIV(sClientHandshakeTraffic, ivLength);
+		key = client.writeKey(sClientHandshakeTraffic, keyLength);
+		iv = client.writeIV(sClientHandshakeTraffic, ivLength);
 		assertArrayEquals(Utility.hex("b1530806f4adfeac83f1413032bbfa82"), key);
 		assertArrayEquals(Utility.hex("eb50c16be7654abf99dd06d9"), iv);
 
 		// {server} calculate finished "tls13 finished"
 		// (same as client)
-		finished = server.v13FinishedVerifyData(cClientHandshakeTraffic, server.hash());
+		finished = server.finishedVerifyData(cClientHandshakeTraffic, server.hash());
 		assertArrayEquals(Utility.hex("7230a9c952c25cd6138fc5e6628308c41c5335dd81b9f96bcea50fd32bda416d"), finished);
 
 		// {server} derive read traffic keys for application data
 		// (same as client application data write traffic keys)
-		key = server.v13WriteKey(sClientApplicationTraffic, keyLength);
-		iv = server.v13WriteIV(sClientApplicationTraffic, ivLength);
+		key = server.writeKey(sClientApplicationTraffic, keyLength);
+		iv = server.writeIV(sClientApplicationTraffic, ivLength);
 		assertArrayEquals(Utility.hex("3cf122f301c6358ca7989553250efd72"), key);
 		assertArrayEquals(Utility.hex("ab1aec26aa78b8fc1176b9ac"), iv);
 
@@ -604,7 +607,7 @@ class TestRFC8448 {
 
 		// {server} derive secret "tls13 res master"
 		// (same as client)
-		sResumption = server.v13ResumptionMasterSecret(sMaster, client.hash());
+		sResumption = server.resumptionMasterSecret(sMaster, client.hash());
 		assertArrayEquals(Utility.hex("5e95bdf1f89005ea2e9aa0ba85e728e3c19c5fe0c699e3f5bee59faebd0b5406"), sResumption);
 
 		// {client} send application_data record
@@ -616,8 +619,11 @@ class TestRFC8448 {
 
 	@Test
 	void testHelloRetryRequestDeriveSecrets() throws Exception {
-		final DeriveSecret client = new DeriveSecret("SHA-256", "HmacSHA256");
-		final DeriveSecret server = new DeriveSecret("SHA-256", "HmacSHA256");
+		final V3DeriveSecret client = new V3DeriveSecret();
+		final V3DeriveSecret server = new V3DeriveSecret();
+
+		client.initialize("HmacSHA256", "SHA-256");
+		server.initialize("HmacSHA256", "SHA-256");
 
 		// ClientHello (180 octets):
 		String ClientHello1 = """
@@ -681,7 +687,7 @@ class TestRFC8448 {
 		server.hash(bytes(ClientHello2));
 
 		// {server} extract secret "early":
-		assertArrayEquals(server.v13EarlySecret(null), Utility.hex("33ad0a1c607ec03b09e6cd9893680ce210adf300aa1f2660e1b22e10f170f92a"));
+		assertArrayEquals(server.earlySecret(null), Utility.hex("33ad0a1c607ec03b09e6cd9893680ce210adf300aa1f2660e1b22e10f170f92a"));
 
 		// ServerHello (123 octets):
 		String ServerHello2 = """
@@ -696,7 +702,7 @@ class TestRFC8448 {
 		server.hash(bytes(ServerHello2));
 
 		// {server} derive secret for handshake "tls13 derived":
-		byte[] handshake = server.v13HandshakeSecret(//
+		byte[] handshake = server.handshakeSecret(//
 			Utility.hex("33ad0a1c607ec03b09e6cd9893680ce210adf300aa1f2660e1b22e10f170f92a"), //
 			Utility.hex("c142ce13ca11b5c2233652e63ad3d97844f1621fbfb9de69d547dc8fedeabeb4"));
 		assertArrayEquals(Utility.hex("ce022e5e6e81e50736d773f2d3adfce8220d049bf510f0dbfac927ef4243b148"), handshake);
@@ -706,11 +712,11 @@ class TestRFC8448 {
 		assertArrayEquals(Utility.hex("8aa8e828ec2f8a884fec95a3139de01c15a3daa7ff5bfc3f4bfcc21b438d7bf8"), client.hash());
 
 		// {server} derive secret "tls13 c hs traffic":
-		byte[] clientHandshakeTraffic = server.v13ClientHandshakeTrafficSecret(handshake, server.hash());
+		byte[] clientHandshakeTraffic = server.clientHandshakeTrafficSecret(handshake, server.hash());
 		assertArrayEquals(Utility.hex("158aa7ab8855073582b41d674b4055cabcc534728f659314861b4e08e2011566"), clientHandshakeTraffic);
 
 		// {server} derive secret "tls13 s hs traffic":
-		byte[] serverHandshakeTraffic = server.v13ServerHandshakeTrafficSecret(handshake, server.hash());
+		byte[] serverHandshakeTraffic = server.serverHandshakeTrafficSecret(handshake, server.hash());
 		assertArrayEquals(Utility.hex("3403e781e2af7b6508da28574f6e95a1abf162de83a97927c37672a4a0cef8a1"), serverHandshakeTraffic);
 
 	}
@@ -719,11 +725,14 @@ class TestRFC8448 {
 	void testSecretCache() throws Exception {
 		// 根据RFC8448验证密钥获取与缓存
 
-		final SecretCache clientSecrets = new SecretCache("SHA-256", "HmacSHA256");
-		final SecretCache serverSecrets = new SecretCache("SHA-256", "HmacSHA256");
+		final V3SecretCache clientSecrets = new V3SecretCache();
+		final V3SecretCache serverSecrets = new V3SecretCache();
 
-		final KeyExchange clientKeyExchange = new KeyExchange(NamedGroup.X25519);
-		final KeyExchange serverKeyExchange = new KeyExchange(NamedGroup.X25519);
+		clientSecrets.initialize("HmacSHA256", "SHA-256");
+		serverSecrets.initialize("HmacSHA256", "SHA-256");
+
+		final V3KeyExchange clientKeyExchange = new V3KeyExchange(NamedGroup.X25519);
+		final V3KeyExchange serverKeyExchange = new V3KeyExchange(NamedGroup.X25519);
 
 		byte[] temp;
 
@@ -749,11 +758,11 @@ class TestRFC8448 {
 
 		// {server} 更新共享密钥，导出握手流量密钥
 		temp = serverKeyExchange.sharedKey(clientKeyExchange.publicKey());
-		serverSecrets.v13SharedKey(temp);
+		serverSecrets.sharedKey(temp);
 		assertArrayEquals(Utility.hex("8bd4054fb55b9d63fdfbacf9f04b9f0d35e6d63f537563efd46272900f89492d"), temp);
-		temp = serverSecrets.v13ServerHandshakeTrafficSecret();
+		temp = serverSecrets.serverHandshakeTrafficSecret();
 		assertArrayEquals(Utility.hex("b67b7d690cc16c4e75e54213cb2d37b4e9c912bcded9105d42befd59d391ad38"), temp);
-		temp = serverSecrets.v13ClientHandshakeTrafficSecret();
+		temp = serverSecrets.clientHandshakeTrafficSecret();
 		assertArrayEquals(Utility.hex("b3eddb126e067f35a780b3abf45e2d8f3b1a950738f52e9600746a0e27a55a21"), temp);
 
 		// {client} received
@@ -761,11 +770,11 @@ class TestRFC8448 {
 
 		// {client} 更新共享密钥，导出握手流量密钥
 		temp = clientKeyExchange.sharedKey(serverKeyExchange.publicKey());
-		clientSecrets.v13SharedKey(temp);
+		clientSecrets.sharedKey(temp);
 		assertArrayEquals(Utility.hex("8bd4054fb55b9d63fdfbacf9f04b9f0d35e6d63f537563efd46272900f89492d"), temp);
-		temp = clientSecrets.v13ClientHandshakeTrafficSecret();
+		temp = clientSecrets.clientHandshakeTrafficSecret();
 		assertArrayEquals(Utility.hex("b3eddb126e067f35a780b3abf45e2d8f3b1a950738f52e9600746a0e27a55a21"), temp);
-		temp = clientSecrets.v13ServerHandshakeTrafficSecret();
+		temp = clientSecrets.serverHandshakeTrafficSecret();
 		assertArrayEquals(Utility.hex("b67b7d690cc16c4e75e54213cb2d37b4e9c912bcded9105d42befd59d391ad38"), temp);
 
 		// {server} construct an EncryptedExtensions handshake message
@@ -776,7 +785,7 @@ class TestRFC8448 {
 		serverSecrets.hash(buffer(ServerCertificateVerify));
 
 		// {server} 计算已发送的握手消息的完成校验码
-		temp = serverSecrets.v13ServerFinished();
+		temp = serverSecrets.serverFinished();
 		assertArrayEquals(Utility.hex("9b9b141d906337fbd2cbdce71df4deda4ab42c309572cb7fffee5454b78f0718"), temp);
 
 		// {server} construct a Finished handshake message
@@ -785,9 +794,9 @@ class TestRFC8448 {
 		serverSecrets.hash(buffer(ServerFinished));
 
 		// {server} 导出应用流量密钥
-		temp = serverSecrets.v13ClientApplicationTrafficSecret();
+		temp = serverSecrets.clientApplicationTrafficSecret();
 		assertArrayEquals(Utility.hex("9e40646ce79a7f9dc05af8889bce6552875afa0b06df0087f792ebb7c17504a5"), temp);
-		temp = serverSecrets.v13ServerApplicationTrafficSecret();
+		temp = serverSecrets.serverApplicationTrafficSecret();
 		assertArrayEquals(Utility.hex("a11af9f05531f856ad47116b45a950328204b4f44bfb6b3a4b4f1f3fcb631643"), temp);
 
 		// {client} received
@@ -797,19 +806,19 @@ class TestRFC8448 {
 
 		// {client} 校验服务端发送的握手完成校验码
 		// 注意：在ServerFinished消息参与哈希之前获取校验码
-		temp = clientSecrets.v13ServerFinished();
+		temp = clientSecrets.serverFinished();
 		assertArrayEquals(Utility.hex("9b9b141d906337fbd2cbdce71df4deda4ab42c309572cb7fffee5454b78f0718"), temp);
 		clientSecrets.hash(buffer(ServerFinished));
 
 		// {client} 计算已发送的握手消息的完成校验码
 		// 注意：在ServerFinished消息参与哈希之后获取校验码
-		temp = clientSecrets.v13ClientFinished();
+		temp = clientSecrets.clientFinished();
 		assertArrayEquals(Utility.hex("a8ec436d677634ae525ac1fcebe11a039ec17694fac6e98527b642f2edd5ce61"), temp);
 
 		// {client} 导出应用流量密钥
-		temp = clientSecrets.v13ClientApplicationTrafficSecret();
+		temp = clientSecrets.clientApplicationTrafficSecret();
 		assertArrayEquals(Utility.hex("9e40646ce79a7f9dc05af8889bce6552875afa0b06df0087f792ebb7c17504a5"), temp);
-		temp = clientSecrets.v13ServerApplicationTrafficSecret();
+		temp = clientSecrets.serverApplicationTrafficSecret();
 		assertArrayEquals(Utility.hex("a11af9f05531f856ad47116b45a950328204b4f44bfb6b3a4b4f1f3fcb631643"), temp);
 
 		// {client} construct a Finished handshake message
@@ -817,20 +826,20 @@ class TestRFC8448 {
 		clientSecrets.hash(buffer(ClientFinished));
 
 		// {server} received
-		temp = serverSecrets.v13ClientFinished();
+		temp = serverSecrets.clientFinished();
 		assertArrayEquals(Utility.hex("a8ec436d677634ae525ac1fcebe11a039ec17694fac6e98527b642f2edd5ce61"), temp);
 		serverSecrets.hash(buffer(ClientFinished));
 
 		// {server} construct a NewSessionTicket handshake message
 		// {server} send handshake record (TLSCiphertext)
 		// {server} 通过TicketNonce生成恢复密钥
-		temp = serverSecrets.v13ResumptionMasterSecret();
-		temp = serverSecrets.v13ResumptionSecret(new byte[] { 0, 0 });
+		temp = serverSecrets.resumptionMasterSecret();
+		temp = serverSecrets.resumptionSecret(new byte[] { 0, 0 });
 		assertArrayEquals(Utility.hex("4ecd0eb6ec3b4d87f5d6028f922ca4c5851a277fd41311c9e62d2c9492e1c4f3"), temp);
 		// {client} received
 		// {client} 通过TicketNonce生成恢复密钥
-		temp = clientSecrets.v13ResumptionMasterSecret();
-		temp = clientSecrets.v13ResumptionSecret(new byte[] { 0, 0 });
+		temp = clientSecrets.resumptionMasterSecret();
+		temp = clientSecrets.resumptionSecret(new byte[] { 0, 0 });
 		assertArrayEquals(Utility.hex("4ecd0eb6ec3b4d87f5d6028f922ca4c5851a277fd41311c9e62d2c9492e1c4f3"), temp);
 
 		// {client} send application_data record (TLSCiphertext)
@@ -849,15 +858,15 @@ class TestRFC8448 {
 		serverKeyExchange.setPrivateKey(Utility.hex("de5b4476e7b490b2652d338acbf2948066f255f9440e23b98fc69835298dc107"));
 		serverKeyExchange.setPublicKey(Utility.hex("121761ee42c333e1b9e77b60dd57c2053cd94512ab47f115e86eff50942cea31"));
 
-		clientSecrets.v13Reset(temp);
-		serverSecrets.v13Reset(temp);
+		clientSecrets.reset(temp);
+		serverSecrets.reset(temp);
 
 		// {client} construct a ClientHello handshake message
 		// ClientHello最后一个扩展的PskBinderEntry待计算后获得
 		clientSecrets.hash(buffer(ClientHelloPrefix));
 
 		// {client} calculate PSK binder
-		temp = clientSecrets.v13ResumptionBinderKey();
+		temp = clientSecrets.resumptionBinderKey();
 		assertArrayEquals(Utility.hex("3add4fb2d8fdf822a0ca3cf7678ef5e88dae990141c5924d57bb6fa31b9e5f9d"), temp);
 
 		// {client} send handshake record (TLSPlaintext)
@@ -866,9 +875,9 @@ class TestRFC8448 {
 		clientSecrets.hash(buffer("3add4fb2d8fdf822a0ca3cf7678ef5e88dae990141c5924d57bb6fa31b9e5f9d"));
 
 		// {client} 早期流量密钥
-		temp = clientSecrets.v13ClientEarlyTrafficSecret();
+		temp = clientSecrets.clientEarlyTrafficSecret();
 		assertArrayEquals(Utility.hex("3fbbe6a60deb66c30a32795aba0eff7eaa10105586e7be5c09678d63b6caab62"), temp);
-		temp = clientSecrets.v13EarlyExporterMasterSecret();
+		temp = clientSecrets.earlyExporterMasterSecret();
 		assertArrayEquals(Utility.hex("b2026866610937d7423e5be90862ccf24c0e6091186d34f812089ff5be2ef7df"), temp);
 
 		// {client} send application_data record (TLSCiphertext)
@@ -877,15 +886,15 @@ class TestRFC8448 {
 		// 接收后判定为0-RTT分两段执行消息哈希
 		serverSecrets.hash(buffer(ClientHelloPrefix));
 		// 验证 binder
-		temp = serverSecrets.v13ResumptionBinderKey();
+		temp = serverSecrets.resumptionBinderKey();
 		assertArrayEquals(Utility.hex("3add4fb2d8fdf822a0ca3cf7678ef5e88dae990141c5924d57bb6fa31b9e5f9d"), temp);
 
 		serverSecrets.hash(buffer("002120"));
 		serverSecrets.hash(buffer("3add4fb2d8fdf822a0ca3cf7678ef5e88dae990141c5924d57bb6fa31b9e5f9d"));
 		// {server} 早期流量密钥
-		temp = serverSecrets.v13ClientEarlyTrafficSecret();
+		temp = serverSecrets.clientEarlyTrafficSecret();
 		assertArrayEquals(Utility.hex("3fbbe6a60deb66c30a32795aba0eff7eaa10105586e7be5c09678d63b6caab62"), temp);
-		temp = serverSecrets.v13EarlyExporterMasterSecret();
+		temp = serverSecrets.earlyExporterMasterSecret();
 		assertArrayEquals(Utility.hex("b2026866610937d7423e5be90862ccf24c0e6091186d34f812089ff5be2ef7df"), temp);
 
 		// {server} construct a ServerHello handshake message
@@ -894,17 +903,17 @@ class TestRFC8448 {
 
 		// {server} 获取握手流量密钥
 		temp = serverKeyExchange.sharedKey(clientKeyExchange.publicKey());
-		serverSecrets.v13SharedKey(temp);
-		temp = serverSecrets.v13ServerHandshakeTrafficSecret();
+		serverSecrets.sharedKey(temp);
+		temp = serverSecrets.serverHandshakeTrafficSecret();
 		assertArrayEquals(Utility.hex("fe927ae271312e8bf0275b581c54eef020450dc4ecffaa05a1a35d27518e7803"), temp);
-		temp = serverSecrets.v13ClientHandshakeTrafficSecret();
+		temp = serverSecrets.clientHandshakeTrafficSecret();
 		assertArrayEquals(Utility.hex("2faac08f851d35fea3604fcb4de82dc62c9b164a70974d0462e27f1ab278700f"), temp);
 
 		// {server} construct an EncryptedExtensions handshake message
 		serverSecrets.hash(buffer(EncryptedExtensions1));
 
 		// {server} 计算握手完成校验码
-		temp = serverSecrets.v13ServerFinished();
+		temp = serverSecrets.serverFinished();
 		assertArrayEquals(Utility.hex("48d3e0e1b3d907c6acff145e16090388c77b05c050b634ab1a88bbd0dd1a34b2"), temp);
 
 		// {server} construct a Finished handshake message
@@ -913,9 +922,9 @@ class TestRFC8448 {
 		// payload:EncryptedExtensions+Finished
 
 		// {server} 获取应用流量密钥
-		temp = serverSecrets.v13ServerApplicationTrafficSecret();
+		temp = serverSecrets.serverApplicationTrafficSecret();
 		assertArrayEquals(Utility.hex("cc21f1bf8feb7dd5fa505bd9c4b468a9984d554a993dc49e6d285598fb672691"), temp);
-		temp = serverSecrets.v13ClientApplicationTrafficSecret();
+		temp = serverSecrets.clientApplicationTrafficSecret();
 		assertArrayEquals(Utility.hex("2abbf2b8e381d23dbebe1dd2a7d16a8bf484cb4950d23fb7fb7fa8547062d9a1"), temp);
 
 		// {client} received ServerHello
@@ -923,24 +932,24 @@ class TestRFC8448 {
 
 		// {client} 获取握手流量密钥
 		temp = clientKeyExchange.sharedKey(serverKeyExchange.publicKey());
-		clientSecrets.v13SharedKey(temp);
-		temp = clientSecrets.v13ServerHandshakeTrafficSecret();
+		clientSecrets.sharedKey(temp);
+		temp = clientSecrets.serverHandshakeTrafficSecret();
 		assertArrayEquals(Utility.hex("fe927ae271312e8bf0275b581c54eef020450dc4ecffaa05a1a35d27518e7803"), temp);
-		temp = clientSecrets.v13ClientHandshakeTrafficSecret();
+		temp = clientSecrets.clientHandshakeTrafficSecret();
 		assertArrayEquals(Utility.hex("2faac08f851d35fea3604fcb4de82dc62c9b164a70974d0462e27f1ab278700f"), temp);
 
 		// {client} received EncryptedExtensions
 		clientSecrets.hash(buffer(EncryptedExtensions1));
 		// {client} received Finished
 		// {client} 验证服务端发送的握手完成验证码
-		temp = clientSecrets.v13ServerFinished();
+		temp = clientSecrets.serverFinished();
 		assertArrayEquals(Utility.hex("48d3e0e1b3d907c6acff145e16090388c77b05c050b634ab1a88bbd0dd1a34b2"), temp);
 		clientSecrets.hash(buffer(ServerFinished1));
 
 		// {client} 获取应用流量密钥
-		temp = clientSecrets.v13ServerApplicationTrafficSecret();
+		temp = clientSecrets.serverApplicationTrafficSecret();
 		assertArrayEquals(Utility.hex("cc21f1bf8feb7dd5fa505bd9c4b468a9984d554a993dc49e6d285598fb672691"), temp);
-		temp = clientSecrets.v13ClientApplicationTrafficSecret();
+		temp = clientSecrets.clientApplicationTrafficSecret();
 		assertArrayEquals(Utility.hex("2abbf2b8e381d23dbebe1dd2a7d16a8bf484cb4950d23fb7fb7fa8547062d9a1"), temp);
 
 		// {client} construct an EndOfEarlyData handshake message
@@ -948,7 +957,7 @@ class TestRFC8448 {
 		clientSecrets.hash(buffer(EndOfEarlyData));
 
 		// {client} 计算握手完成校验码
-		temp = clientSecrets.v13ClientFinished();
+		temp = clientSecrets.clientFinished();
 		assertArrayEquals(Utility.hex("7230a9c952c25cd6138fc5e6628308c41c5335dd81b9f96bcea50fd32bda416d"), temp);
 
 		// {client} construct a Finished handshake message
@@ -960,7 +969,7 @@ class TestRFC8448 {
 
 		// {server} received ClientFinished
 		// {server} 验证客户端发送的握手完成验证码
-		temp = serverSecrets.v13ClientFinished();
+		temp = serverSecrets.clientFinished();
 		assertArrayEquals(Utility.hex("7230a9c952c25cd6138fc5e6628308c41c5335dd81b9f96bcea50fd32bda416d"), temp);
 		serverSecrets.hash(Utility.hex(ClientFinished1));
 
@@ -974,10 +983,13 @@ class TestRFC8448 {
 	void testCipher() throws Exception {
 		// 根据RFC8448验证消息加密与解密
 
-		final CipherSuiter server = new CipherSuiter(CipherSuite.TLS_AES_128_GCM_SHA256);
-		final CipherSuiter client = new CipherSuiter(CipherSuite.TLS_AES_128_GCM_SHA256);
+		final V3CipherSuiter server = new V3CipherSuiter();
+		final V3CipherSuiter client = new V3CipherSuiter();
 		final DataBuffer buffer = DataBuffer.instance();
 		final DataBuffer temp = DataBuffer.instance();
+
+		server.suite(CipherSuite.TLS_AES_128_GCM_SHA256);
+		client.suite(CipherSuite.TLS_AES_128_GCM_SHA256);
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Simple 1-RTT Handshake
@@ -1028,24 +1040,28 @@ class TestRFC8448 {
 				bf0253fe5175be898e750edc53370d2b""");
 
 		// RESET KEY
-		server.v13EncryptReset(Utility.hex("b67b7d690cc16c4e75e54213cb2d37b4e9c912bcded9105d42befd59d391ad38"));
-		client.v13DecryptReset(Utility.hex("b67b7d690cc16c4e75e54213cb2d37b4e9c912bcded9105d42befd59d391ad38"));
+		// server.encryptReset(Utility.hex("b67b7d690cc16c4e75e54213cb2d37b4e9c912bcded9105d42befd59d391ad38"));
+		// client.decryptReset(Utility.hex("b67b7d690cc16c4e75e54213cb2d37b4e9c912bcded9105d42befd59d391ad38"));
+		server.encryptReset(Utility.hex("3fce516009c21727d0f2e4e86ee403bc"), Utility.hex("5d313eb2671276ee13000b30"));
+		client.decryptReset(Utility.hex("3fce516009c21727d0f2e4e86ee403bc"), Utility.hex("5d313eb2671276ee13000b30"));
 		buffer.clear();
 
 		// {server} encrypt
 		temp.replicate(plain1);
-		server.v13EncryptAEAD(0x02a2);
+		server.encryptAEAD(0x02a2);
 		server.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher1);
 
 		// {client} decrypt
-		client.v13DecryptAEAD(0x02a2);
+		client.decryptAEAD(0x02a2);
 		client.decryptFinal(buffer);
 		assertEquals(buffer, plain1);
 
 		// RESET KEY
-		client.v13EncryptReset(Utility.hex("b3eddb126e067f35a780b3abf45e2d8f3b1a950738f52e9600746a0e27a55a21"));
-		server.v13DecryptReset(Utility.hex("b3eddb126e067f35a780b3abf45e2d8f3b1a950738f52e9600746a0e27a55a21"));
+		// client.encryptReset(Utility.hex("b3eddb126e067f35a780b3abf45e2d8f3b1a950738f52e9600746a0e27a55a21"));
+		// server.decryptReset(Utility.hex("b3eddb126e067f35a780b3abf45e2d8f3b1a950738f52e9600746a0e27a55a21"));
+		client.encryptReset(Utility.hex("dbfaa693d1762c5b666af5d950258d01"), Utility.hex("5bd3c71b836e0b76bb73265f"));
+		server.decryptReset(Utility.hex("dbfaa693d1762c5b666af5d950258d01"), Utility.hex("5bd3c71b836e0b76bb73265f"));
 		buffer.clear();
 
 		// {client} send handshake record
@@ -1062,18 +1078,20 @@ class TestRFC8448 {
 
 		// {client} encrypt
 		temp.replicate(plain2);
-		client.v13EncryptAEAD(0x0035);
+		client.encryptAEAD(0x0035);
 		client.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher2);
 
 		// {server} decrypt
-		server.v13DecryptAEAD(0x0035);
+		server.decryptAEAD(0x0035);
 		server.decryptFinal(buffer);
 		assertEquals(buffer, plain2);
 
 		// RESET KEY
-		server.v13EncryptReset(Utility.hex("a11af9f05531f856ad47116b45a950328204b4f44bfb6b3a4b4f1f3fcb631643"));
-		client.v13DecryptReset(Utility.hex("a11af9f05531f856ad47116b45a950328204b4f44bfb6b3a4b4f1f3fcb631643"));
+		// server.encryptReset(Utility.hex("a11af9f05531f856ad47116b45a950328204b4f44bfb6b3a4b4f1f3fcb631643"));
+		// client.decryptReset(Utility.hex("a11af9f05531f856ad47116b45a950328204b4f44bfb6b3a4b4f1f3fcb631643"));
+		server.encryptReset(Utility.hex("9f02283b6c9c07efc26bb9f2ac92e356"), Utility.hex("cf782b88dd83549aadf1e984"));
+		client.decryptReset(Utility.hex("9f02283b6c9c07efc26bb9f2ac92e356"), Utility.hex("cf782b88dd83549aadf1e984"));
 		buffer.clear();
 
 		// {server} send handshake record:
@@ -1098,18 +1116,20 @@ class TestRFC8448 {
 
 		// {server} encrypt
 		temp.replicate(plain3);
-		server.v13EncryptAEAD(0x00de);
+		server.encryptAEAD(0x00de);
 		server.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher3);
 
 		// {client} decrypt
-		client.v13DecryptAEAD(0x00de);
+		client.decryptAEAD(0x00de);
 		client.decryptFinal(buffer);
 		assertEquals(buffer, plain3);
 
 		// RESET KEY
-		client.v13EncryptReset(Utility.hex("9e40646ce79a7f9dc05af8889bce6552875afa0b06df0087f792ebb7c17504a5"));
-		server.v13DecryptReset(Utility.hex("9e40646ce79a7f9dc05af8889bce6552875afa0b06df0087f792ebb7c17504a5"));
+		// client.encryptReset(Utility.hex("9e40646ce79a7f9dc05af8889bce6552875afa0b06df0087f792ebb7c17504a5"));
+		// server.decryptReset(Utility.hex("9e40646ce79a7f9dc05af8889bce6552875afa0b06df0087f792ebb7c17504a5"));
+		client.encryptReset(Utility.hex("17422dda596ed5d9acd890e3c63f5051"), Utility.hex("5b78923dee08579033e523d9"));
+		server.decryptReset(Utility.hex("17422dda596ed5d9acd890e3c63f5051"), Utility.hex("5b78923dee08579033e523d9"));
 		buffer.clear();
 
 		// {client} send application_data record
@@ -1128,12 +1148,12 @@ class TestRFC8448 {
 
 		// {client} encrypt
 		temp.replicate(plain4);
-		client.v13EncryptAEAD(0x0043);
+		client.encryptAEAD(0x0043);
 		client.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher4);
 
 		// {server} decrypt
-		server.v13DecryptAEAD(0x0043);
+		server.decryptAEAD(0x0043);
 		server.decryptFinal(buffer);
 		assertEquals(buffer, plain4);
 
@@ -1154,12 +1174,12 @@ class TestRFC8448 {
 		buffer.clear();
 		// {server} encrypt
 		temp.replicate(plain5);
-		server.v13EncryptAEAD(0x0043);
+		server.encryptAEAD(0x0043);
 		server.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher5);
 
 		// {client} decrypt
-		client.v13DecryptAEAD(0x0043);
+		client.decryptAEAD(0x0043);
 		client.decryptFinal(buffer);
 		assertEquals(buffer, plain5);
 
@@ -1173,7 +1193,7 @@ class TestRFC8448 {
 		buffer.clear();
 		// {client} encrypt
 		temp.replicate(plain6);
-		client.v13EncryptAEAD(0x0013);
+		client.encryptAEAD(0x0013);
 		client.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher6);
 
@@ -1187,7 +1207,7 @@ class TestRFC8448 {
 		buffer.clear();
 		// {server} encrypt
 		temp.replicate(plain7);
-		server.v13EncryptAEAD(0x0013);
+		server.encryptAEAD(0x0013);
 		server.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher7);
 
@@ -1196,8 +1216,10 @@ class TestRFC8448 {
 		////////////////////////////////////////////////////////////////////////////////
 
 		// RESET KEY
-		client.v13EncryptReset(Utility.hex("3fbbe6a60deb66c30a32795aba0eff7eaa10105586e7be5c09678d63b6caab62"));
-		server.v13DecryptReset(Utility.hex("3fbbe6a60deb66c30a32795aba0eff7eaa10105586e7be5c09678d63b6caab62"));
+		// client.encryptReset(Utility.hex("3fbbe6a60deb66c30a32795aba0eff7eaa10105586e7be5c09678d63b6caab62"));
+		// server.decryptReset(Utility.hex("3fbbe6a60deb66c30a32795aba0eff7eaa10105586e7be5c09678d63b6caab62"));
+		client.encryptReset(Utility.hex("920205a5b7bf2115e6fc5c2942834f54"), Utility.hex("6d475f0993c8e564610db2b9"));
+		server.decryptReset(Utility.hex("920205a5b7bf2115e6fc5c2942834f54"), Utility.hex("6d475f0993c8e564610db2b9"));
 
 		// {client} send application_data record
 		// payload:6
@@ -1209,18 +1231,20 @@ class TestRFC8448 {
 		buffer.clear();
 		// {client} encrypt
 		temp.replicate(plain10);
-		client.v13EncryptAEAD(0x0017);
+		client.encryptAEAD(0x0017);
 		client.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher10);
 
 		// {server} decrypt
-		server.v13DecryptAEAD(0x0017);
+		server.decryptAEAD(0x0017);
 		server.decryptFinal(buffer);
 		assertEquals(buffer, plain10);
 
 		// RESET KEY
-		server.v13EncryptReset(Utility.hex("fe927ae271312e8bf0275b581c54eef020450dc4ecffaa05a1a35d27518e7803"));
-		client.v13DecryptReset(Utility.hex("fe927ae271312e8bf0275b581c54eef020450dc4ecffaa05a1a35d27518e7803"));
+		// server.encryptReset(Utility.hex("fe927ae271312e8bf0275b581c54eef020450dc4ecffaa05a1a35d27518e7803"));
+		// client.decryptReset(Utility.hex("fe927ae271312e8bf0275b581c54eef020450dc4ecffaa05a1a35d27518e7803"));
+		server.encryptReset(Utility.hex("27c6bdc0a3dcea39a47326d79bc9e4ee"), Utility.hex("9569ecdd4d0536705e9ef725"));
+		client.decryptReset(Utility.hex("27c6bdc0a3dcea39a47326d79bc9e4ee"), Utility.hex("9569ecdd4d0536705e9ef725"));
 
 		// {server} send handshake record
 		// payload:EncryptedExtensions+Finished
@@ -1240,12 +1264,12 @@ class TestRFC8448 {
 		buffer.clear();
 		// {server} encrypt
 		temp.replicate(plain11);
-		server.v13EncryptAEAD(0x0061);
+		server.encryptAEAD(0x0061);
 		server.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher11);
 
 		// {client} decrypt
-		client.v13DecryptAEAD(0x0061);
+		client.decryptAEAD(0x0061);
 		client.decryptFinal(buffer);
 		assertEquals(buffer, plain11);
 
@@ -1260,18 +1284,20 @@ class TestRFC8448 {
 		buffer.clear();
 		// {client} encrypt
 		temp.replicate(plain12);
-		client.v13EncryptAEAD(0x0015);
+		client.encryptAEAD(0x0015);
 		client.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher12);
 
 		// {server} decrypt
-		server.v13DecryptAEAD(0x0015);
+		server.decryptAEAD(0x0015);
 		server.decryptFinal(buffer);
 		assertEquals(buffer, plain12);
 
 		// RESET KEY
-		client.v13EncryptReset(Utility.hex("2faac08f851d35fea3604fcb4de82dc62c9b164a70974d0462e27f1ab278700f"));
-		server.v13DecryptReset(Utility.hex("2faac08f851d35fea3604fcb4de82dc62c9b164a70974d0462e27f1ab278700f"));
+		// client.encryptReset(Utility.hex("2faac08f851d35fea3604fcb4de82dc62c9b164a70974d0462e27f1ab278700f"));
+		// server.decryptReset(Utility.hex("2faac08f851d35fea3604fcb4de82dc62c9b164a70974d0462e27f1ab278700f"));
+		client.encryptReset(Utility.hex("b1530806f4adfeac83f1413032bbfa82"), Utility.hex("eb50c16be7654abf99dd06d9"));
+		server.decryptReset(Utility.hex("b1530806f4adfeac83f1413032bbfa82"), Utility.hex("eb50c16be7654abf99dd06d9"));
 
 		// {client} send handshake record
 		// payload:Finished
@@ -1287,21 +1313,25 @@ class TestRFC8448 {
 		buffer.clear();
 		// {client} encrypt
 		temp.replicate(plain13);
-		client.v13EncryptAEAD(0x0035);
+		client.encryptAEAD(0x0035);
 		client.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher13);
 
 		// {server} decrypt
-		server.v13DecryptAEAD(0x0035);
+		server.decryptAEAD(0x0035);
 		server.decryptFinal(buffer);
 		assertEquals(buffer, plain13);
 
 		// RESET KEY
-		client.v13EncryptReset(Utility.hex("2abbf2b8e381d23dbebe1dd2a7d16a8bf484cb4950d23fb7fb7fa8547062d9a1"));
-		server.v13DecryptReset(Utility.hex("2abbf2b8e381d23dbebe1dd2a7d16a8bf484cb4950d23fb7fb7fa8547062d9a1"));
+		// client.encryptReset(Utility.hex("2abbf2b8e381d23dbebe1dd2a7d16a8bf484cb4950d23fb7fb7fa8547062d9a1"));
+		// server.decryptReset(Utility.hex("2abbf2b8e381d23dbebe1dd2a7d16a8bf484cb4950d23fb7fb7fa8547062d9a1"));
+		client.encryptReset(Utility.hex("3cf122f301c6358ca7989553250efd72"), Utility.hex("ab1aec26aa78b8fc1176b9ac"));
+		server.decryptReset(Utility.hex("3cf122f301c6358ca7989553250efd72"), Utility.hex("ab1aec26aa78b8fc1176b9ac"));
 
-		server.v13EncryptReset(Utility.hex("cc21f1bf8feb7dd5fa505bd9c4b468a9984d554a993dc49e6d285598fb672691"));
-		client.v13DecryptReset(Utility.hex("cc21f1bf8feb7dd5fa505bd9c4b468a9984d554a993dc49e6d285598fb672691"));
+		// server.encryptReset(Utility.hex("cc21f1bf8feb7dd5fa505bd9c4b468a9984d554a993dc49e6d285598fb672691"));
+		// client.decryptReset(Utility.hex("cc21f1bf8feb7dd5fa505bd9c4b468a9984d554a993dc49e6d285598fb672691"));
+		server.encryptReset(Utility.hex("e857c690a34c5a9129d833619684f95e"), Utility.hex("0685d6b561aab9ef1013faf9"));
+		client.decryptReset(Utility.hex("e857c690a34c5a9129d833619684f95e"), Utility.hex("0685d6b561aab9ef1013faf9"));
 
 		// {server} derive write traffic keys for application data:
 		// PRK(32octets):cc21f1bf8feb7dd5fa505bd9c4b468a9984d554a993dc49e6d285598fb672691
@@ -1327,12 +1357,12 @@ class TestRFC8448 {
 
 		// {client} encrypt
 		temp.replicate(plain14);
-		client.v13EncryptAEAD(0x0043);
+		client.encryptAEAD(0x0043);
 		client.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher14);
 
 		// {server} decrypt
-		server.v13DecryptAEAD(0x0043);
+		server.decryptAEAD(0x0043);
 		server.decryptFinal(buffer);
 		assertEquals(buffer, plain14);
 
@@ -1353,12 +1383,12 @@ class TestRFC8448 {
 
 		// {server} encrypt
 		temp.replicate(plain15);
-		server.v13EncryptAEAD(0x0043);
+		server.encryptAEAD(0x0043);
 		server.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher15);
 
 		// {client} decrypt
-		client.v13DecryptAEAD(0x0043);
+		client.decryptAEAD(0x0043);
 		client.decryptFinal(buffer);
 		assertEquals(buffer, plain15);
 
@@ -1374,12 +1404,12 @@ class TestRFC8448 {
 
 		// {client} encrypt
 		temp.replicate(plain16);
-		client.v13EncryptAEAD(0x0013);
+		client.encryptAEAD(0x0013);
 		client.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher16);
 
 		// {server} decrypt
-		server.v13DecryptAEAD(0x0013);
+		server.decryptAEAD(0x0013);
 		server.decryptFinal(buffer);
 		assertEquals(buffer, plain16);
 
@@ -1395,12 +1425,12 @@ class TestRFC8448 {
 
 		// {server} encrypt
 		temp.replicate(plain17);
-		server.v13EncryptAEAD(0x0013);
+		server.encryptAEAD(0x0013);
 		server.encryptFinal(temp, buffer);
 		assertEquals(buffer, cipher17);
 
 		// {client} decrypt
-		client.v13DecryptAEAD(0x0013);
+		client.decryptAEAD(0x0013);
 		client.decryptFinal(buffer);
 		assertEquals(buffer, plain17);
 
@@ -1410,11 +1440,11 @@ class TestRFC8448 {
 		final DataBuffer plain = DataBuffer.instance();
 		plain.write(Utility.hex(ClientFinished));
 		buffer.clear();
-		client.v13EncryptAEAD(plain.readable() + 16);
+		client.encryptAEAD(plain.readable() + 16);
 		temp.replicate(plain);
 		client.encryptFinal(temp, buffer);
 
-		server.v13DecryptAEAD(buffer.readable());
+		server.decryptAEAD(buffer.readable());
 		server.decryptFinal(buffer);
 		assertEquals(buffer, plain);
 
@@ -1428,19 +1458,19 @@ class TestRFC8448 {
 
 		buffer.clear();
 		temp.replicate(plain);
-		client.v13EncryptAEAD(16 * 1024);
+		client.encryptAEAD(16 * 1024);
 		client.encryptFinal(temp, buffer);
 		System.out.println(buffer);
-		server.v13DecryptAEAD(16 * 1024);
+		server.decryptAEAD(16 * 1024);
 		server.decryptFinal(buffer);
 		assertEquals(buffer, plain);
 
 		buffer.clear();
 		temp.replicate(plain);
-		client.v13EncryptAEAD(16 * 1024);
+		client.encryptAEAD(16 * 1024);
 		client.encryptFinal(temp, buffer);
 		System.out.println(buffer);
-		server.v13DecryptAEAD(16 * 1024);
+		server.decryptAEAD(16 * 1024);
 		server.decryptFinal(buffer);
 		assertEquals(buffer, plain);
 	}
@@ -1550,8 +1580,8 @@ class TestRFC8448 {
 		final PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
 
 		// Transcript-Hash(Handshake Context, Certificate)
-		final TranscriptHash transcriptHash = new TranscriptHash();
-		transcriptHash.digest("SHA-256");
+		final V2TranscriptHash transcriptHash = new V2TranscriptHash();
+		transcriptHash.initialize("SHA-256");
 		transcriptHash.hash(Utility.hex(ClientHello));
 		transcriptHash.hash(Utility.hex(ServerHello));
 		transcriptHash.hash(Utility.hex(ServerEncryptedExtensions));
@@ -1566,30 +1596,6 @@ class TestRFC8448 {
 		// System.out.println(Utility.hex(sign));
 		// 验证签名
 		assertEquals(signaturer.verifyServer(publicKey, transcriptHash.hash(), sign), true);
-	}
-
-	@Test
-	void testSignatureSchemes() {
-		final Signaturer signaturer = new Signaturer();
-		for (short scheme : SignatureScheme.ALL) {
-			try {
-				signaturer.scheme(scheme);
-			} catch (Exception e) {
-				System.out.println(SignatureScheme.name(scheme) + ":" + e.getMessage());
-			}
-		}
-	}
-
-	@Test
-	void testCipherSuiters() throws Exception {
-		final CipherSuiter cipherSuiter = new CipherSuiter();
-		for (short suite : CipherSuite.ALL) {
-			try {
-				cipherSuiter.suite(suite);
-			} catch (Exception e) {
-				System.out.println(CipherSuite.name(suite) + ":" + e.getMessage());
-			}
-		}
 	}
 
 	/**

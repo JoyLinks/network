@@ -56,22 +56,33 @@ class TestCipherSuiter {
 	}
 
 	void V13(short group, short suite) throws Exception {
-		final KeyExchange clientKE = new KeyExchange(group);
-		final KeyExchange serverKE = new KeyExchange(group);
+		final V3KeyExchange clientKE = new V3KeyExchange(group);
+		final V3KeyExchange serverKE = new V3KeyExchange(group);
 
-		final CipherSuiter server = new CipherSuiter(suite);
-		final CipherSuiter client = new CipherSuiter(suite);
+		final V3SecretCache serverSC = new V3SecretCache();
+		final V3SecretCache clientSC = new V3SecretCache();
 
-		server.v13EarlySecret(null);
-		client.v13EarlySecret(null);
-		server.v13SharedKey(serverKE.sharedKey(clientKE.publicKey()));
-		client.v13SharedKey(clientKE.sharedKey(serverKE.publicKey()));
+		final V3CipherSuiter server = new V3CipherSuiter();
+		final V3CipherSuiter client = new V3CipherSuiter();
 
-		server.v13EncryptReset(server.v13ServerApplicationTrafficSecret());
-		server.v13DecryptReset(server.v13ClientApplicationTrafficSecret());
+		server.suite(suite);
+		client.suite(suite);
+		serverSC.initialize(server.type());
+		clientSC.initialize(client.type());
 
-		client.v13EncryptReset(client.v13ClientApplicationTrafficSecret());
-		client.v13DecryptReset(client.v13ServerApplicationTrafficSecret());
+		serverSC.earlySecret(null);
+		clientSC.earlySecret(null);
+
+		serverSC.sharedKey(serverKE.sharedKey(clientKE.publicKey()));
+		clientSC.sharedKey(clientKE.sharedKey(serverKE.publicKey()));
+
+		serverSC.serverApplicationTrafficSecret();
+		serverSC.clientApplicationTrafficSecret();
+		server.encryptReset(serverSC.serverApplicationWriteKey(server.type()), serverSC.serverApplicationWriteIV(server.type()));
+		server.decryptReset(serverSC.clientApplicationWriteKey(server.type()), serverSC.clientApplicationWriteIV(server.type()));
+
+		client.encryptReset(clientSC.clientApplicationWriteKey(client.type()), clientSC.clientApplicationWriteIV(client.type()));
+		client.decryptReset(clientSC.serverApplicationWriteKey(client.type()), clientSC.serverApplicationWriteIV(client.type()));
 
 		final DataBuffer plain = DataBuffer.instance();
 		final DataBuffer temp1 = DataBuffer.instance();
@@ -80,17 +91,17 @@ class TestCipherSuiter {
 		plain.writeASCIIs("1234567890");
 
 		temp1.replicate(plain);
-		server.v13EncryptAEAD(temp1.readable() + server.tagLength());
+		server.encryptAEAD(temp1.readable() + server.tagLength());
 		server.encryptFinal(temp1, temp2);
 
-		client.v13DecryptAEAD(temp2.readable());
+		client.decryptAEAD(temp2.readable());
 		client.decryptFinal(temp2, temp1);
 		assertEquals(temp1, plain);
 
-		client.v13EncryptAEAD(temp1.readable() + server.tagLength());
+		client.encryptAEAD(temp1.readable() + server.tagLength());
 		client.encryptFinal(temp1, temp2);
 
-		server.v13DecryptAEAD(temp2.readable());
+		server.decryptAEAD(temp2.readable());
 		server.decryptFinal(temp2, temp1);
 		assertEquals(temp1, plain);
 	}
@@ -176,8 +187,8 @@ class TestCipherSuiter {
 	}
 
 	void aead(short code) throws Exception {
-		final CipherSuiter client = new CipherSuiter();
-		final CipherSuiter server = new CipherSuiter();
+		final V2CipherSuiter client = new V2CipherSuiter();
+		final V2CipherSuiter server = new V2CipherSuiter();
 
 		client.suite(code);
 		server.suite(code);
@@ -192,11 +203,11 @@ class TestCipherSuiter {
 		TLS.RANDOM.nextBytes(client_write_IV);
 		TLS.RANDOM.nextBytes(server_write_IV);
 
-		client.v12EncryptReset(client_write_key, client_write_IV);
-		client.v12DecryptReset(server_write_key, server_write_IV);
+		client.encryptReset(client_write_key, client_write_IV);
+		client.decryptReset(server_write_key, server_write_IV);
 
-		server.v12EncryptReset(server_write_key, server_write_IV);
-		server.v12DecryptReset(client_write_key, client_write_IV);
+		server.encryptReset(server_write_key, server_write_IV);
+		server.decryptReset(client_write_key, client_write_IV);
 
 		final DataBuffer plain = DataBuffer.instance();
 		plain.writeASCIIs("1234567890");
@@ -205,18 +216,18 @@ class TestCipherSuiter {
 
 		temp.replicate(plain);
 
-		client.v12EncryptAEAD((byte) 0, TLS.V12, temp.readable() + client.tagLength());
+		client.encryptAEAD((byte) 0, TLS.V12, temp.readable() + client.tagLength());
 		client.encryptFinal(temp, cipe);
 
-		server.v12DecryptAEAD((byte) 0, TLS.V12, cipe.readable());
+		server.decryptAEAD((byte) 0, TLS.V12, cipe.readable());
 		server.decryptFinal(cipe, temp);
 
 		assertEquals(temp, plain);
 	}
 
 	void block(short code) throws Exception {
-		final CipherSuiter client = new CipherSuiter();
-		final CipherSuiter server = new CipherSuiter();
+		final V2CipherSuiter client = new V2CipherSuiter();
+		final V2CipherSuiter server = new V2CipherSuiter();
 
 		client.suite(code);
 		server.suite(code);
@@ -231,11 +242,11 @@ class TestCipherSuiter {
 		TLS.RANDOM.nextBytes(client_write_IV);
 		TLS.RANDOM.nextBytes(server_write_IV);
 
-		client.v12EncryptReset(client_write_key, client_write_IV);
-		client.v12DecryptReset(server_write_key, server_write_IV);
+		client.encryptReset(client_write_key, client_write_IV);
+		client.decryptReset(server_write_key, server_write_IV);
 
-		server.v12EncryptReset(server_write_key, server_write_IV);
-		server.v12DecryptReset(client_write_key, client_write_IV);
+		server.encryptReset(server_write_key, server_write_IV);
+		server.decryptReset(client_write_key, client_write_IV);
 
 		final DataBuffer plain = DataBuffer.instance();
 		plain.writeASCIIs("1234567890");
@@ -243,7 +254,7 @@ class TestCipherSuiter {
 		final DataBuffer cipe = DataBuffer.instance();
 
 		temp.replicate(plain);
-		RecordCoder.v12Padding(temp, client.blockLength());
+		RecordCoder.paddingBlock(temp, client.blockLength());
 
 		client.encryptBlock();
 		client.encryptFinal(temp, cipe);
@@ -260,8 +271,8 @@ class TestCipherSuiter {
 	}
 
 	void stream(short code) throws Exception {
-		final CipherSuiter client = new CipherSuiter();
-		final CipherSuiter server = new CipherSuiter();
+		final V2CipherSuiter client = new V2CipherSuiter();
+		final V2CipherSuiter server = new V2CipherSuiter();
 
 		client.suite(code);
 		server.suite(code);
@@ -272,11 +283,11 @@ class TestCipherSuiter {
 		TLS.RANDOM.nextBytes(client_write_key);
 		TLS.RANDOM.nextBytes(server_write_key);
 
-		client.v12EncryptReset(client_write_key, null);
-		client.v12DecryptReset(server_write_key, null);
+		client.encryptReset(client_write_key, null);
+		client.decryptReset(server_write_key, null);
 
-		server.v12EncryptReset(server_write_key, null);
-		server.v12DecryptReset(client_write_key, null);
+		server.encryptReset(server_write_key, null);
+		server.decryptReset(client_write_key, null);
 
 		final DataBuffer plain = DataBuffer.instance();
 		plain.writeASCIIs("1234567890");

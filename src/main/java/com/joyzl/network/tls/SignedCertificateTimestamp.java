@@ -18,7 +18,7 @@ import java.util.Arrays;
  */
 class SignedCertificateTimestamp extends Extension {
 
-	private byte[][] items = TLS.EMPTY_STRINGS;
+	private byte[][] items = TLS.EMPTY_BYTES_BYTES;
 
 	@Override
 	public short type() {
@@ -39,14 +39,14 @@ class SignedCertificateTimestamp extends Extension {
 
 	public void set(byte[]... value) {
 		if (value == null) {
-			items = TLS.EMPTY_STRINGS;
+			items = TLS.EMPTY_BYTES_BYTES;
 		} else {
 			items = value;
 		}
 	}
 
 	public void add(byte[] value) {
-		if (items == TLS.EMPTY_STRINGS) {
+		if (items == TLS.EMPTY_BYTES_BYTES) {
 			items = new byte[][] { value };
 		} else {
 			items = Arrays.copyOf(items, items.length + 1);

@@ -4,7 +4,6 @@ import java.io.IOException;
 
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.codec.Binary;
-import com.joyzl.network.tls.Certificate.CertificateEntry;
 import com.joyzl.network.tls.CertificateStatusRequest.OCSPResponse;
 import com.joyzl.network.tls.CertificateStatusRequest.OCSPStatusRequest;
 import com.joyzl.network.tls.CertificateStatusRequestListV2.CertificateStatusRequestItemV2;
@@ -12,6 +11,7 @@ import com.joyzl.network.tls.CertificateType.ClientCertificateType;
 import com.joyzl.network.tls.CertificateType.ServerCertificateType;
 import com.joyzl.network.tls.CertificateTypes.ClientCertificateTypes;
 import com.joyzl.network.tls.CertificateTypes.ServerCertificateTypes;
+import com.joyzl.network.tls.CertificateV3.CertificateEntry;
 import com.joyzl.network.tls.KeyShare.KeyShareEntry;
 import com.joyzl.network.tls.PreSharedKey.PskIdentity;
 import com.joyzl.network.tls.TrustedAuthorities.TrustedAuthority;

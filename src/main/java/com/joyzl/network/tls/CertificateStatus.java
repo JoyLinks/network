@@ -43,7 +43,7 @@ class CertificateStatus extends Handshake {
 	/** CertificateStatusType */
 	private byte statusType = CertificateStatusRequest.OCSP;
 	/** OCSPResponse/OCSPResponseList */
-	private byte[][] responses = TLS.EMPTY_STRINGS;
+	private byte[][] responses = TLS.EMPTY_BYTES_BYTES;
 
 	@Override
 	public byte msgType() {
@@ -67,7 +67,7 @@ class CertificateStatus extends Handshake {
 	}
 
 	public void addResponse(byte[] value) {
-		if (responses == TLS.EMPTY_STRINGS) {
+		if (responses == TLS.EMPTY_BYTES_BYTES) {
 			responses = new byte[][] { value };
 		} else {
 			responses = Arrays.copyOf(responses, responses.length + 1);
@@ -77,7 +77,7 @@ class CertificateStatus extends Handshake {
 
 	public void setResponse(byte[]... values) {
 		if (values == null) {
-			responses = TLS.EMPTY_STRINGS;
+			responses = TLS.EMPTY_BYTES_BYTES;
 		} else {
 			responses = values;
 		}

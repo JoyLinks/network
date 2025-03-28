@@ -39,21 +39,9 @@ import java.util.List;
  * } CompressedCertificate;
  * </pre>
  * 
- * <pre>
- * RFC 2246 TLSv1.0
- * RFC 4336 TLSv1.1
- * RFC 5246 TLSv1.2
- * 
- * opaque ASN.1Cert<1..2^24-1>; // X.509v3
- * 
- * struct {
- *     ASN.1Cert certificate_list<0..2^24-1>;
- * } Certificate;
- * </pre>
- * 
  * @author ZhangXi 2024年12月19日
  */
-class Certificate extends Handshake {
+class CertificateV3 extends Handshake {
 
 	// CertificateType MAX(255)
 

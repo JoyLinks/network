@@ -27,7 +27,7 @@ package com.joyzl.network.tls;
  */
 abstract class CertificateType extends Extension {
 
-	private byte type = Certificate.X509;
+	private byte type = CertificateV3.X509;
 
 	public CertificateType() {
 	}

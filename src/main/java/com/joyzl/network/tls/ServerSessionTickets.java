@@ -12,17 +12,17 @@ import com.joyzl.network.tls.PreSharedKey.PskIdentity;
  */
 public class ServerSessionTickets {
 
-	private final static Map<PskIdentity, NewSessionTicket> TICKETS = new ConcurrentHashMap<>();
+	private final static Map<PskIdentity, NewSessionTicket2> TICKETS = new ConcurrentHashMap<>();
 
-	public static NewSessionTicket get(PskIdentity identity) {
+	public static NewSessionTicket2 get(PskIdentity identity) {
 		return TICKETS.get(identity);
 	}
 
 	/**
 	 * 构造新的票据
 	 */
-	public static NewSessionTicket make(byte nonce) {
-		final NewSessionTicket ticket = new NewSessionTicket();
+	public static NewSessionTicket2 make(byte nonce) {
+		final NewSessionTicket2 ticket = new NewSessionTicket2();
 		ticket.setLifetime(172800);
 		ticket.setNonce(new byte[] { nonce });
 		ticket.setTicket(new byte[256]);

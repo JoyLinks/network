@@ -125,16 +125,6 @@ abstract class Record extends TLS {
 
 	public abstract byte contentType();
 
-	private short version = TLS.V12;
-
-	public final short getProtocolVersion() {
-		return version;
-	}
-
-	public final void setProtocolVersion(short value) {
-		version = value;
-	}
-
 	@Override
 	public String toString() {
 		return name(contentType());

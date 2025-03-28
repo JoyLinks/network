@@ -12,9 +12,9 @@ public class TLSParameters {
 	/** 可用的协议 */
 	private byte[][] alpns;
 	/** 可用的密钥算法 */
-	private short[] namedGroups = KeyExchange.AVAILABLES;
+	private short[] namedGroups = V3KeyExchange.AVAILABLES;
 	/** 可用的加密套件 */
-	private short[] cipherSuites = join(V3CipherSuiter.AVAILABLES, V2CipherSuiter.AVAILABLES);
+	private short[] cipherSuites = CipherSuiter.AVAILABLES;
 	/** 可用的签名算法 */
 	private short[] signatureSchemes = Signaturer.AVAILABLES;
 	/** 可用的版本 */

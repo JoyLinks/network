@@ -13,27 +13,55 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class ClientSessionTickets {
 
 	/** SNI,Queue */
-	private final static Map<String, Queue<NewSessionTicket>> M = new ConcurrentHashMap<>();
+	private final static Map<String, Queue<NewSessionTicket1>> M1 = new ConcurrentHashMap<>();
+	private final static Map<String, Queue<NewSessionTicket2>> M2 = new ConcurrentHashMap<>();
 
 	/**
-	 * 缓存 NewSessionTicket
+	 * 缓存 NewSessionTicket1
 	 */
-	public static void put(String sni, NewSessionTicket newSessionTicket) {
-		Queue<NewSessionTicket> q = M.get(sni);
+	public static void put(String sni, NewSessionTicket1 newSessionTicket) {
+		Queue<NewSessionTicket1> q = M1.get(sni);
 		if (q == null) {
 			q = new ConcurrentLinkedQueue<>();
-			M.put(sni, q);
+			M1.put(sni, q);
 		}
 		q.add(newSessionTicket);
 	}
 
 	/**
-	 * 取出 NewSessionTicket
+	 * 缓存 NewSessionTicket2
 	 */
-	public static NewSessionTicket get(String sni) {
-		final Queue<NewSessionTicket> q = M.get(sni);
+	public static void put(String sni, NewSessionTicket2 newSessionTicket) {
+		Queue<NewSessionTicket2> q = M2.get(sni);
+		if (q == null) {
+			q = new ConcurrentLinkedQueue<>();
+			M2.put(sni, q);
+		}
+		q.add(newSessionTicket);
+	}
+
+	/**
+	 * 取出 NewSessionTicket1
+	 */
+	public static NewSessionTicket1 get1(String sni) {
+		final Queue<NewSessionTicket1> q = M1.get(sni);
 		if (q != null) {
-			NewSessionTicket t;
+			NewSessionTicket1 t;
+			do {
+				t = q.poll();
+			} while (t != null && !t.valid());
+			return t;
+		}
+		return null;
+	}
+
+	/**
+	 * 取出 NewSessionTicket2
+	 */
+	public static NewSessionTicket2 get2(String sni) {
+		final Queue<NewSessionTicket2> q = M2.get(sni);
+		if (q != null) {
+			NewSessionTicket2 t;
 			do {
 				t = q.poll();
 			} while (t != null && !t.valid());

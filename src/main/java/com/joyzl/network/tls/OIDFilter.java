@@ -6,7 +6,7 @@ import java.util.Arrays;
 class OIDFilter {
 
 	private byte[] oid = TLS.EMPTY_BYTES;
-	private byte[][] values = TLS.EMPTY_STRINGS;
+	private byte[][] values = TLS.EMPTY_BYTES_BYTES;
 
 	public OIDFilter() {
 	}
@@ -44,7 +44,7 @@ class OIDFilter {
 	}
 
 	public void addValue(byte[] value) {
-		if (values == TLS.EMPTY_STRINGS) {
+		if (values == TLS.EMPTY_BYTES_BYTES) {
 			values = new byte[][] { value };
 		} else {
 			values = Arrays.copyOf(values, values.length + 1);
@@ -54,7 +54,7 @@ class OIDFilter {
 
 	public void setValues(byte[][] value) {
 		if (value == null) {
-			value = TLS.EMPTY_STRINGS;
+			value = TLS.EMPTY_BYTES_BYTES;
 		} else {
 			values = value;
 		}

@@ -15,21 +15,29 @@ import com.joyzl.network.tls.SessionCertificates.RemoteCache;
  * 
  * @author ZhangXi 2025年3月10日
  */
-public class V3ClientHandler extends TLSParameters implements ChainHandler {
+public class V3ClientHandler implements ChainHandler {
 
 	private final ChainHandler handler;
+	private final TLSParameters parameters;
+	private final TLSShare share;
 
 	private final V3CipherSuiter cipher = new V3CipherSuiter();
+	private final V3SecretCache secret = new V3SecretCache();
 	private Signaturer signaturer;
-	private KeyExchange key;
-	private String sn;
+	private V3KeyExchange key;
 
-	private final DataBuffer data = DataBuffer.instance();
-	private DataBuffer clientHello, serverHello;
-	private short version;
+	public V3ClientHandler(ChainHandler handler, TLSParameters parameters, TLSShare share) {
+		this.parameters = parameters;
+		this.handler = handler;
+		this.share = share;
+	}
+
+	public V3ClientHandler(ChainHandler handler, TLSParameters parameters) {
+		this(handler, parameters, new TLSShare());
+	}
 
 	public V3ClientHandler(ChainHandler handler) {
-		this.handler = handler;
+		this(handler, new TLSParameters(), new TLSShare());
 	}
 
 	@Override
@@ -55,19 +63,21 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 	@Override
 	public void connected(ChainChannel chain) throws Exception {
 		// 从远端地址获取服务名称
-		sn = ServerName.from(chain.getRemoteAddress());
+		if (share.getServerName() == null) {
+			share.setServerName(ServerName.from(chain.getRemoteAddress()));
+		}
 
 		// 构建握手请求消息
 		final ClientHello hello = createClientHello();
 
 		// 获取缓存的预共享密钥(PSK)
-		final NewSessionTicket ticket = ClientSessionTickets.get(sn);
+		final NewSessionTicket2 ticket = ClientSessionTickets.get2(share.getServerName());
 		if (ticket != null) {
 			// 0-RTT
 			cipher.suite(ticket.getSuite());
 
 			// Key Share
-			key = new KeyExchange(NamedGroup.X25519);
+			key = new V3KeyExchange(NamedGroup.X25519);
 			hello.addExtension(new KeyShareClientHello(new KeyShareEntry(NamedGroup.X25519, key.publicKey())));
 
 			// PSK 注意此扩展必须位于最后
@@ -77,13 +87,13 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 			pskIdentity.setIdentity(ticket.getTicket());
 			psk.add(pskIdentity);
 			hello.addExtension(psk);
-			psk.setHashLength(cipher.hmacLength());
-			cipher.v13Reset(ticket.getResumption());
+			psk.setHashLength(secret.hmacLength());
+			secret.reset(ticket.getResumption());
 
 			// early_data
 		} else {
 			// 1-RTT
-			key = new KeyExchange(NamedGroup.X25519);
+			key = new V3KeyExchange(NamedGroup.X25519);
 			// key = new KeyExchange(NamedGroup.SECP256R1);
 			hello.addExtension(new KeyShareClientHello(new KeyShareEntry(key.group(), key.publicKey())));
 
@@ -101,24 +111,24 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 	private ClientHello createClientHello() {
 		final ClientHello hello = new ClientHello();
 		hello.setCompressionMethods(TLS.COMPRESSION_METHODS);
-		hello.setCipherSuites(cipherSuites());
+		hello.setCipherSuites(parameters.cipherSuites());
 		hello.setVersion(TLS.V12);
 		hello.makeRandom();
 
-		hello.addExtension(new ServerNames(new ServerName(sn)));
-		hello.addExtension(new SupportedVersions(versions()));
-		hello.addExtension(new SupportedGroups(namedGroups()));
-		hello.addExtension(new SignatureAlgorithms(signatureSchemes()));
-		hello.addExtension(new SignatureAlgorithmsCert(signatureSchemes()));
+		// 1.3
+		hello.addExtension(new SupportedVersions(parameters.versions()));
+		hello.addExtension(new SupportedGroups(parameters.namedGroups()));
+		hello.addExtension(new SignatureAlgorithmsCert(parameters.signatureSchemes()));
 		hello.addExtension(new PskKeyExchangeModes(PskKeyExchangeModes.PSK_DHE_KE));
-		hello.addExtension(new ApplicationLayerProtocolNegotiation(alpns()));
-		hello.addExtension(ExtendedMasterSecret.INSTANCE);
-
 		hello.addExtension(new Heartbeat(Heartbeat.PEER_NOT_ALLOWED_TO_SEND));
+
+		// 1.2
+		hello.addExtension(new ServerNames(new ServerName(share.getServerName())));
+		hello.addExtension(new SignatureAlgorithms(parameters.signatureSchemes()));
+		hello.addExtension(new ApplicationLayerProtocolNegotiation(parameters.alpns()));
+		hello.addExtension(ExtendedMasterSecret.INSTANCE);
 		hello.addExtension(new CompressCertificate(CompressCertificate.BROTLI));
 		hello.addExtension(new ECPointFormats(ECPointFormats.UNCOMPRESSED));
-		// hello.addExtension(new SignedCertificateTimestamp());
-		hello.addExtension(new CertificateStatusRequestListV2());
 		hello.addExtension(new OCSPStatusRequest());
 		hello.addExtension(new RenegotiationInfo());
 		hello.addExtension(new SessionTicket());
@@ -130,7 +140,7 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 	public Object decode(ChainChannel chain, DataBuffer buffer) throws Exception {
 		final int type;
 		try {
-			type = V3RecordCoder.v13Decode(cipher, buffer, data);
+			type = RecordCoder.decode(cipher, buffer, share.buffer());
 		} catch (Exception e) {
 			if (e instanceof TLSException) {
 				e.printStackTrace();
@@ -142,25 +152,25 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 		if (type < 0) {
 			return null;
 		} else if (type == Record.APPLICATION_DATA) {
-			Object message = handler.decode(chain, data);
-			while (message != null && data.readable() > 0) {
+			Object message = handler.decode(chain, share.buffer());
+			while (message != null && share.buffer().readable() > 0) {
 				handler.received(chain, message);
-				message = handler.decode(chain, data);
+				message = handler.decode(chain, share.buffer());
 			}
 			return message;
 		} else if (type == Record.HANDSHAKE) {
-			Handshake handshake = decode(data);
-			while (handshake != null && data.readable() > 0) {
+			Handshake handshake = decode(share.buffer());
+			while (handshake != null && share.buffer().readable() > 0) {
 				received(chain, handshake);
-				handshake = decode(data);
+				handshake = decode(share.buffer());
 			}
 			return handshake;
 		} else if (type == Record.CHANGE_CIPHER_SPEC) {
-			return V3RecordCoder.decodeChangeCipherSpec(data);
+			return RecordCoder.decodeChangeCipherSpec(share.buffer());
 		} else if (type == Record.HEARTBEAT) {
-			return V3RecordCoder.decodeHeartbeat(data);
+			return RecordCoder.decodeHeartbeat(share.buffer());
 		} else if (type == Record.ALERT) {
-			return V3RecordCoder.decodeAlert(data);
+			return RecordCoder.decodeAlert(share.buffer());
 		} else {
 			return new TLSException(Alert.UNEXPECTED_MESSAGE);
 		}
@@ -179,12 +189,12 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 					for (int i = 0; i < handshakes.size(); i++) {
 						encode(handshakes.get(i), data);
 						if (handshakes.get(i).msgType() == Handshake.FINISHED) {
-							V3RecordCoder.encode(ChangeCipherSpec.INSTANCE, buffer);
+							RecordCoder.encodeV2(ChangeCipherSpec.INSTANCE, buffer);
 						}
 						if (cipher.encryptReady()) {
-							V3RecordCoder.v13EncodeCiphertext(cipher, record, data, buffer);
+							RecordCoder.encodeCiphertext(cipher, record, data, buffer);
 						} else {
-							V3RecordCoder.encodePlaintext(record, data, buffer);
+							RecordCoder.encodePlaintextV2(record, data, buffer);
 						}
 					}
 					data.release();
@@ -194,39 +204,39 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 					encode((Handshake) record, data);
 					final DataBuffer buffer = DataBuffer.instance();
 					if (((Handshake) record).msgType() == Handshake.FINISHED) {
-						V3RecordCoder.encode(ChangeCipherSpec.INSTANCE, buffer);
+						RecordCoder.encodeV2(ChangeCipherSpec.INSTANCE, buffer);
 					}
 					if (cipher.encryptReady()) {
-						V3RecordCoder.v13EncodeCiphertext(cipher, record, data, buffer);
+						RecordCoder.encodeCiphertext(cipher, record, data, buffer);
 					} else {
-						V3RecordCoder.encodePlaintext(record, data, buffer);
+						RecordCoder.encodePlaintextV2(record, data, buffer);
 					}
 					data.release();
 					return buffer;
 				}
 			} else if (record.contentType() == Record.CHANGE_CIPHER_SPEC) {
 				final DataBuffer buffer = DataBuffer.instance();
-				V3RecordCoder.encode((ChangeCipherSpec) record, buffer);
+				RecordCoder.encodeV2((ChangeCipherSpec) record, buffer);
 				return buffer;
 			} else if (record.contentType() == Record.APPLICATION_DATA) {
 				final DataBuffer buffer = DataBuffer.instance();
-				V3RecordCoder.encode((ApplicationData) record, buffer);
+				RecordCoder.encodeV2((ApplicationData) record, buffer);
 				return buffer;
 			} else if (record.contentType() == Record.HEARTBEAT) {
 				final DataBuffer data = DataBuffer.instance();
-				V3RecordCoder.encode((HeartbeatMessage) record, data);
+				RecordCoder.encode((HeartbeatMessage) record, data);
 				final DataBuffer buffer = DataBuffer.instance();
-				V3RecordCoder.v13EncodeCiphertext(cipher, record, data, buffer);
+				RecordCoder.encodeCiphertext(cipher, record, data, buffer);
 				data.release();
 				return buffer;
 			} else if (record.contentType() == Record.ALERT) {
 				final DataBuffer data = DataBuffer.instance();
-				V3RecordCoder.encode((Alert) record, data);
+				RecordCoder.encode((Alert) record, data);
 				final DataBuffer buffer = DataBuffer.instance();
 				if (cipher.encryptReady()) {
-					V3RecordCoder.v13EncodeCiphertext(cipher, record, data, buffer);
+					RecordCoder.encodeCiphertext(cipher, record, data, buffer);
 				} else {
-					V3RecordCoder.encodePlaintext(record, data, buffer);
+					RecordCoder.encodePlaintextV2(record, data, buffer);
 				}
 				data.release();
 				return buffer;
@@ -237,7 +247,7 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 			// APPLICATION DATA
 			final DataBuffer data = handler.encode(chain, message);
 			final DataBuffer buffer = DataBuffer.instance();
-			V3RecordCoder.v13EncodeCiphertext(cipher, ApplicationData.INSTANCE, data, buffer);
+			RecordCoder.encodeCiphertext(cipher, ApplicationData.INSTANCE, data, buffer);
 			data.release();
 			return buffer;
 		}
@@ -257,32 +267,30 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 		}
 		// System.out.println("H:" + type);
 		if (type == Handshake.SERVER_HELLO) {
-			serverHello = DataBuffer.instance();
-			serverHello.replicate(buffer, 0, length);
-			// 特殊合成处理
-			// if (HandshakeCoder.isHelloRetryRequest(buffer)) {
-			// cipher.retry();
-			// }
-			// cipher.hash(buffer, length);
-			return HandshakeCoder.decode(version, buffer);
+			// 等待握手协商时执行首条消息哈希
+			if (share.getServerHello() == null) {
+				share.setServerHello(DataBuffer.instance());
+			}
+			share.getServerHello().replicate(buffer, 0, length);
+			return HandshakeCoder.decodeV3(buffer);
 		} else if (type == Handshake.FINISHED) {
 			// 服务端完成消息校验码
-			final byte[] local = cipher.v13ServerFinished();
-			cipher.hash(buffer, length);
+			final byte[] local = secret.serverFinished();
+			secret.hash(buffer, length);
 
-			final Finished finished = (Finished) HandshakeCoder.decode(version, buffer);
+			final Finished finished = (Finished) HandshakeCoder.decodeV3(buffer);
 			finished.setLocalData(local);
 			return finished;
 		} else {
-			cipher.hash(buffer, length);
-			return HandshakeCoder.decode(version, buffer);
+			secret.hash(buffer, length);
+			return HandshakeCoder.decodeV3(buffer);
 		}
 	}
 
 	private void encode(Handshake handshake, DataBuffer buffer) throws Exception {
 		if (handshake.msgType() == Handshake.CLIENT_HELLO) {
 			final ClientHello hello = (ClientHello) handshake;
-			HandshakeCoder.encode(handshake, buffer);
+			HandshakeCoder.encodeV3(handshake, buffer);
 			if (hello.hasExtensions() && hello.lastExtension() instanceof PreSharedKeys) {
 				// 0-RTT BinderKey
 				final PreSharedKeys psks = (PreSharedKeys) hello.lastExtension();
@@ -291,47 +299,49 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 				// Transcript-Hash(Truncate(ClientHello1))
 				// binders Length uint16 Short 2Byte
 				buffer.backSkip(psks.bindersLength() + 2);
-				cipher.hash(buffer);
+				secret.hash(buffer);
 
 				// 2计算BinderKey
 				PskIdentity identity;
 				for (int index = 0; index < psks.size(); index++) {
 					identity = psks.get(index);
-					identity.setBinder(cipher.v13ResumptionBinderKey());
+					identity.setBinder(secret.resumptionBinderKey());
 				}
 				ExtensionCoder.encodeBinders(psks, buffer);
 
 				// 3重置消息哈希以包含BinderKey部分
-				cipher.hashReset();
+				secret.hashReset();
 			} else {
 				// 等待握手协商时执行首条消息哈希
-				clientHello = DataBuffer.instance();
-				clientHello.replicate(buffer);
+				if (share.getClientHello() == null) {
+					share.setClientHello(DataBuffer.instance());
+				}
+				share.getClientHello().replicate(buffer);
 				return;
 			}
 		} else if (handshake.msgType() == Handshake.CERTIFICATE_VERIFY) {
 			// 生成客户端证书消息签名
-			final CertificateVerify verify = (CertificateVerify) handshake;
-			verify.setSignature(signaturer.singClient(cipher.hash()));
-			HandshakeCoder.encode(handshake, buffer);
+			final CertificateVerifyV3 verify = (CertificateVerifyV3) handshake;
+			verify.setSignature(signaturer.singClient(secret.hash()));
+			HandshakeCoder.encodeV3(handshake, buffer);
 		} else if (handshake.msgType() == Handshake.FINISHED) {
 			final Finished finished = (Finished) handshake;
 			// 握手完成消息编码之前构造验证码
-			finished.setVerifyData(cipher.v13ClientFinished());
-			HandshakeCoder.encode(handshake, buffer);
+			finished.setVerifyData(secret.clientFinished());
+			HandshakeCoder.encodeV3(handshake, buffer);
 		} else {
-			HandshakeCoder.encode(handshake, buffer);
+			HandshakeCoder.encodeV3(handshake, buffer);
 		}
-		cipher.hash(buffer);
+		secret.hash(buffer);
 	}
 
 	@Override
 	public void received(ChainChannel chain, Object message) throws Exception {
 		if (message == null) {
-			if (cipher.v13IsApplication()) {
+			if (secret.isApplication()) {
 				handler.received(chain, message);
 			} else {
-				// chain.close();
+				chain.reset();
 			}
 		} else if (message instanceof Record) {
 			System.out.println("RECV " + message);
@@ -348,11 +358,11 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 			} else if (record.contentType() == Record.HEARTBEAT) {
 				heartbeat(chain, (HeartbeatMessage) record);
 			} else if (record.contentType() == Record.INVALID) {
-				// chain.close();
+				chain.reset();
 			} else if (record.contentType() == Record.ALERT) {
-				// chain.close();
+				chain.reset();
 			} else {
-				// chain.close();
+				chain.reset();
 			}
 		} else {
 			if (cipher.decryptLimit()) {
@@ -367,13 +377,13 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 		if (message instanceof Record) {
 			System.out.println("SENT " + message);
 			if (message instanceof Alert) {
-				// chain.close();
+				chain.reset();
 			} else if (message instanceof Finished) {
-				if (cipher.v13IsHandshaked()) {
+				if (secret.isHandshaked()) {
 					// 重置为应用加密套件
-					cipher.v13EncryptReset(cipher.v13ClientApplicationTrafficSecret());
+					cipher.encryptReset(secret.clientApplicationWriteKey(cipher.type()), secret.clientApplicationWriteIV(cipher.type()));
 					// 生成恢复密钥
-					cipher.v13ResumptionMasterSecret();
+					secret.resumptionMasterSecret();
 					// 握手成功
 					handler.connected(chain);
 				}
@@ -381,8 +391,10 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 				final KeyUpdate update = (KeyUpdate) message;
 				if (update.get() == KeyUpdate.UPDATE_NOT_REQUESTED) {
 					// 响应密钥更新，重置加解密套件
-					cipher.v13EncryptReset(cipher.v13ServerApplicationTrafficSecret());
-					cipher.v13DecryptReset(cipher.v13ClientApplicationTrafficSecret());
+					secret.serverApplicationTrafficSecret();
+					secret.clientApplicationTrafficSecret();
+					cipher.encryptReset(secret.serverApplicationWriteKey(cipher.type()), secret.serverApplicationWriteIV(cipher.type()));
+					cipher.decryptReset(secret.clientApplicationWriteKey(cipher.type()), secret.clientApplicationWriteIV(cipher.type()));
 				}
 			}
 		} else {
@@ -400,6 +412,18 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 	private Record handshake(Handshake record) throws Exception {
 		if (record.msgType() == Handshake.SERVER_HELLO) {
 			final ServerHello hello = (ServerHello) record;
+			// 确认版本
+			if (hello.getVersion() != TLS.V12) {
+				return new Alert(Alert.PROTOCOL_VERSION);
+			}
+			final SelectedVersion sv = hello.getExtension(Extension.SUPPORTED_VERSIONS);
+			if (sv == null) {
+				return new Alert(Alert.PROTOCOL_VERSION);
+			}
+			if (sv.get() != TLS.V13) {
+				return new Alert(Alert.PROTOCOL_VERSION);
+			}
+
 			if (hello.isHelloRetryRequest()) {
 				// 只有支持1.3的服务端才会发送此消息
 
@@ -411,117 +435,87 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 				}
 				if (hello.getCipherSuite() > 0) {
 					cipher.suite(hello.getCipherSuite());
+					secret.initialize(cipher.type());
 				} else {
 					return new Alert(Alert.ILLEGAL_PARAMETER);
 				}
 
-				// 确认版本
-				if (hello.getVersion() != TLS.V12) {
-					return new Alert(Alert.ILLEGAL_PARAMETER);
-				}
-				final SelectedVersion sv = hello.getExtension(Extension.SUPPORTED_VERSIONS);
-				if (sv == null) {
-					return new Alert(Alert.ILLEGAL_PARAMETER);
-				}
-
-				if (sv.get() == TLS.V13) {
-					version = TLS.V13;
-
-					final ClientHello retry = createClientHello();
-					final KeyShareHelloRetryRequest ksr = hello.getExtension(Extension.KEY_SHARE);
-					if (ksr != null) {
-						// 生成新的共享密钥
-						key.initialize(ksr.getSelectedGroup());
-						retry.addExtension(new KeyShareClientHello(new KeyShareEntry(key.group(), key.publicKey())));
-					} else {
-						return new Alert(Alert.ILLEGAL_PARAMETER);
-					}
-					final Cookie cookie = hello.getExtension(Extension.COOKIE);
-					if (cookie != null) {
-						// Cookie由Server发送并原样送回
-						retry.addExtension(cookie);
-					}
-
-					// 特殊合成处理
-					cipher.hash(clientHello);
-					cipher.retry();
-					cipher.hash(serverHello);
-					clientHello.release();
-					serverHello.release();
-					clientHello = null;
-					serverHello = null;
-					return retry;
+				final ClientHello retry = createClientHello();
+				final KeyShareHelloRetryRequest ksr = hello.getExtension(Extension.KEY_SHARE);
+				if (ksr != null) {
+					// 生成新的共享密钥
+					key.initialize(ksr.getSelectedGroup());
+					retry.addExtension(new KeyShareClientHello(new KeyShareEntry(key.group(), key.publicKey())));
 				} else {
 					return new Alert(Alert.ILLEGAL_PARAMETER);
 				}
+				final Cookie cookie = hello.getExtension(Extension.COOKIE);
+				if (cookie != null) {
+					// Cookie由Server发送并原样送回
+					retry.addExtension(cookie);
+				}
+
+				// 特殊合成处理
+				secret.hash(share.getClientHello());
+				secret.retry();
+				secret.hash(share.getServerHello());
+				share.setClientHello(null);
+				share.setServerHello(null);
+				return retry;
 			} else {
-				final SelectedVersion selected = hello.getExtension(Extension.SUPPORTED_VERSIONS);
-				if (selected != null) {
-					version = selected.get();
-				} else {
-					version = hello.getVersion();
-				}
-				if (version == 0) {
-					// 未能匹配TLS版本
-					return new Alert(Alert.PROTOCOL_VERSION);
-				}
-				if (version == TLS.V13) {
-					final EarlyDataIndication ed = hello.getExtension(Extension.EARLY_DATA);
-					final PreSharedKeySelected psk = hello.getExtension(Extension.PRE_SHARED_KEY);
-					if (psk != null) {
-						if (ed != null) {
-							if (psk.getSelected() != 0) {
-								// 早期数据时PSK必须选择首个
-								// 否则加密的的早期数据如何解密呢
-								return new Alert(Alert.ILLEGAL_PARAMETER);
-							} else {
-								// 已选择0-RTT握手
-								// 早期数据已被接受
-								// 无须重置密码套件
-							}
+				final EarlyDataIndication ed = hello.getExtension(Extension.EARLY_DATA);
+				final PreSharedKeySelected psk = hello.getExtension(Extension.PRE_SHARED_KEY);
+				if (psk != null) {
+					if (ed != null) {
+						if (psk.getSelected() != 0) {
+							// 早期数据时PSK必须选择首个
+							// 否则加密的的早期数据如何解密呢
+							return new Alert(Alert.ILLEGAL_PARAMETER);
 						} else {
 							// 已选择0-RTT握手
+							// 早期数据已被接受
 							// 无须重置密码套件
 						}
 					} else {
-						if (ed != null) {
-							// 未选择PSK时不应有早期数据扩展
-							return new Alert(Alert.ILLEGAL_PARAMETER);
-						}
-						// 继续常规握手
-						cipher.suite(hello.getCipherSuite());
+						// 已选择0-RTT握手
+						// 无须重置密码套件
 					}
+				} else {
+					if (ed != null) {
+						// 未选择PSK时不应有早期数据扩展
+						return new Alert(Alert.ILLEGAL_PARAMETER);
+					}
+					// 继续常规握手
+					cipher.suite(hello.getCipherSuite());
+					secret.initialize(cipher.type());
+				}
 
-					if (clientHello != null) {
-						cipher.hash(clientHello);
-						clientHello.release();
-						clientHello = null;
-					}
-					if (serverHello != null) {
-						cipher.hash(serverHello);
-						serverHello.release();
-						serverHello = null;
-					}
+				if (share.getClientHello() != null) {
+					secret.hash(share.getClientHello());
+					share.setClientHello(null);
+				}
+				if (share.getServerHello() != null) {
+					secret.hash(share.getServerHello());
+					share.setServerHello(null);
+				}
 
-					final KeyShareServerHello share = hello.getExtension(Extension.KEY_SHARE);
-					if (share != null) {
-						if (share.getServerShare() != null) {
-							if (share.getServerShare().getGroup() == key.group()) {
-								cipher.v13SharedKey(key.sharedKey(share.getServerShare().getKeyExchange()));
-								cipher.v13EncryptReset(cipher.v13ClientHandshakeTrafficSecret());
-								cipher.v13DecryptReset(cipher.v13ServerHandshakeTrafficSecret());
-							} else {
-								return new Alert(Alert.ILLEGAL_PARAMETER);
-							}
+				final KeyShareServerHello share = hello.getExtension(Extension.KEY_SHARE);
+				if (share != null) {
+					if (share.getServerShare() != null) {
+						if (share.getServerShare().getGroup() == key.group()) {
+							secret.sharedKey(key.sharedKey(share.getServerShare().getKeyExchange()));
+							secret.clientHandshakeTrafficSecret();
+							secret.serverHandshakeTrafficSecret();
+							cipher.encryptReset(secret.clientHandshakeWriteKey(cipher.type()), secret.clientHandshakeWriteIV(cipher.type()));
+							cipher.decryptReset(secret.serverHandshakeWriteKey(cipher.type()), secret.serverHandshakeWriteIV(cipher.type()));
 						} else {
 							return new Alert(Alert.ILLEGAL_PARAMETER);
 						}
 					} else {
-						// TODO 待验证
+						return new Alert(Alert.ILLEGAL_PARAMETER);
 					}
-				} else //
-				if (version == TLS.V12) {
-
+				} else {
+					// TODO 待验证
 				}
 			}
 		} else if (record.msgType() == Handshake.ENCRYPTED_EXTENSIONS) {
@@ -531,19 +525,19 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 
 			}
 		} else if (record.msgType() == Handshake.CERTIFICATE_REQUEST) {
-			final CertificateRequest request = (CertificateRequest) record;
+			final CertificateRequestV3 request = (CertificateRequestV3) record;
 			final OIDFilters filters = request.getExtension(Extension.OID_FILTERS);
 			final SignatureAlgorithms algorithms = request.getExtension(Extension.SIGNATURE_ALGORITHMS);
 			final CertificateAuthorities authorities = request.getExtension(Extension.CERTIFICATE_AUTHORITIES);
 			final SignatureAlgorithmsCert sac = request.getExtension(Extension.SIGNATURE_ALGORITHMS_CERT);
 
-			final Certificate certificate = new Certificate();
+			final CertificateV3 certificate = new CertificateV3();
 			certificate.setContext(request.getContext());
 			final LocalCache local = SessionCertificates.filters(authorities, filters);
 			if (local != null) {
 				final short scheme = algorithms.match(local.getScheme());
 				if (scheme > 0) {
-					final CertificateVerify certificateVerify = new CertificateVerify();
+					final CertificateVerifyV3 certificateVerify = new CertificateVerifyV3();
 					certificateVerify.setAlgorithm(scheme);
 					certificate.set(local.getEntries());
 				} else {
@@ -554,14 +548,14 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 			}
 			return certificate;
 		} else if (record.msgType() == Handshake.CERTIFICATE) {
-			final Certificate certificate = (Certificate) record;
+			final CertificateV3 certificate = (CertificateV3) record;
 			if (certificate.size() > 0) {
-				final RemoteCache remote = SessionCertificates.loadCertificate(sn, certificate);
+				final RemoteCache remote = SessionCertificates.loadCertificate(share.getServerName(), certificate);
 				// OCSP
 				// SignedCertificateTimestamp
 				// MD5/SHA-1 bad_certificate
 
-				if (isIgnoreCertificate()) {
+				if (parameters.isIgnoreCertificate()) {
 					// 不检查证书
 				} else {
 					try {
@@ -576,7 +570,7 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 					// 签名算法待证书验证消息指定
 					signaturer = new Signaturer();
 					signaturer.setPublicKey(remote.getPublicKey());
-					signaturer.setHash(cipher.hash());
+					signaturer.setHash(secret.hash());
 				} else {
 					return new Alert(Alert.UNEXPECTED_MESSAGE);
 				}
@@ -585,7 +579,7 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 				return new Alert(Alert.DECODE_ERROR);
 			}
 		} else if (record.msgType() == Handshake.CERTIFICATE_VERIFY) {
-			final CertificateVerify verify = (CertificateVerify) record;
+			final CertificateVerifyV3 verify = (CertificateVerifyV3) record;
 			if (signaturer != null) {
 				signaturer.scheme(verify.getAlgorithm());
 				if (signaturer.verifyServer(verify.getSignature())) {
@@ -600,17 +594,20 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 				return new Alert(Alert.UNEXPECTED_MESSAGE);
 			}
 		} else if (record.msgType() == Handshake.NEW_SESSION_TICKET) {
-			final NewSessionTicket ticket = (NewSessionTicket) record;
-			ticket.setResumption(cipher.v13ResumptionSecret(ticket.getNonce()));
-			ticket.setSuite(cipher.suite());
-			ClientSessionTickets.put(sn, ticket);
+			final NewSessionTicket2 ticket = (NewSessionTicket2) record;
+			ticket.setResumption(secret.resumptionSecret(ticket.getNonce()));
+			ticket.setSuite(cipher.type().code());
+			ClientSessionTickets.put(share.getServerName(), ticket);
 		} else if (record.msgType() == Handshake.FINISHED) {
 			final Finished finished = (Finished) record;
 			if (finished.validate()) {
 				// 导出应用流量密钥
-				// 重置解密套件，加密套件等待握手完成消息发送后重置
-				cipher.v13DecryptReset(cipher.v13ServerApplicationTrafficSecret());
-				cipher.v13ClientApplicationTrafficSecret();
+				secret.serverApplicationTrafficSecret();
+				// 加密套件等待握手完成消息发送后重置
+				secret.clientApplicationTrafficSecret();
+				// 重置解密套件
+				cipher.decryptReset(secret.serverApplicationWriteKey(cipher.type()), secret.serverApplicationWriteIV(cipher.type()));
+
 				// cipher.exporterMaster();
 				// EndOfEarlyData
 				// chain.send(EndOfEarlyData.INSTANCE);
@@ -625,7 +622,7 @@ public class V3ClientHandler extends TLSParameters implements ChainHandler {
 
 	@Override
 	public void beat(ChainChannel chain) throws Exception {
-		if (cipher.v13IsApplication()) {
+		if (secret.isApplication()) {
 			final HeartbeatMessage heartbeat = new HeartbeatMessage();
 			heartbeat.setMessageType(HeartbeatMessage.HEARTBEAT_REQUEST);
 			heartbeat.setPayload(Binary.split(chain.hashCode()));

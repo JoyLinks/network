@@ -2,7 +2,7 @@ package com.joyzl.network.tls;
 
 /**
  * <pre>
- * TLS 1.3 RFC 8446
+ * RFC 8446
  * struct {
  *     uint32 ticket_lifetime;
  *     uint32 ticket_age_add;
@@ -12,17 +12,9 @@ package com.joyzl.network.tls;
  * } NewSessionTicket;
  * </pre>
  * 
- * <pre>
- * TLS 1.2 RFC 5077
- * struct {
-          uint32 ticket_lifetime_hint;
-          opaque ticket<0..2^16-1>;
-      } NewSessionTicket;
- * </pre>
- * 
  * @author ZhangXi 2024年12月19日
  */
-class NewSessionTicket extends HandshakeExtensions {
+class NewSessionTicket2 extends NewSessionTicket1 {
 
 	/** 2^32 */
 	final static long MOD = 4294967296L;
@@ -31,26 +23,11 @@ class NewSessionTicket extends HandshakeExtensions {
 
 	////////////////////////////////////////////////////////////////////////////////
 
-	private int lifetime;
 	private int age_add;
 	private byte[] nonce = TLS.EMPTY_BYTES;
-	private byte[] ticket = TLS.EMPTY_BYTES;
 
-	public NewSessionTicket() {
-		timestamp = System.currentTimeMillis();
-	}
-
-	@Override
-	public byte msgType() {
-		return NEW_SESSION_TICKET;
-	}
-
-	public byte[] getTicket() {
-		return ticket;
-	}
-
-	public void setTicket(byte[] value) {
-		ticket = value;
+	public NewSessionTicket2() {
+		super();
 	}
 
 	public byte[] getNonce() {
@@ -58,7 +35,11 @@ class NewSessionTicket extends HandshakeExtensions {
 	}
 
 	public void setNonce(byte[] value) {
-		nonce = value;
+		if (value == null) {
+			nonce = TLS.EMPTY_BYTES;
+		} else {
+			nonce = value;
+		}
 	}
 
 	public int getAgeAdd() {
@@ -69,42 +50,10 @@ class NewSessionTicket extends HandshakeExtensions {
 		age_add = value;
 	}
 
-	public int getLifetime() {
-		return lifetime;
-	}
-
-	public void setLifetime(int value) {
-		lifetime = value;
-	}
-
 	////////////////////////////////////////////////////////////////////////////////
 
-	/** 票据构建的时间戳 */
-	private final long timestamp;
-	/** 票据对应恢复密钥(PSK) */
-	private byte[] resumption = TLS.EMPTY_BYTES;
-	/** NamedGroup,CipherSuite */
-	private short group, suite;
-
-	public long timestamp() {
-		return timestamp;
-	}
-
-	public byte[] getResumption() {
-		return resumption;
-	}
-
-	public void setResumption(byte[] value) {
-		resumption = value;
-	}
-
-	public short getSuite() {
-		return suite;
-	}
-
-	public void setSuite(short value) {
-		suite = value;
-	}
+	/** NamedGroup */
+	private short group;
 
 	public short getGroup() {
 		return group;
@@ -119,7 +68,7 @@ class NewSessionTicket extends HandshakeExtensions {
 	 */
 	public int obfuscatedAgeAdd() {
 		long a = age_add & 0xFFFFFFFFL;
-		return (int) ((System.currentTimeMillis() - timestamp + a) % MOD);
+		return (int) ((System.currentTimeMillis() - timestamp() + a) % MOD);
 	}
 
 	/**
@@ -129,21 +78,10 @@ class NewSessionTicket extends HandshakeExtensions {
 		if (age_add == 0) {
 			return true;
 		}
-		if (value - age_add < lifetime * 1000) {
+		if (value - age_add < getLifetime() * 1000) {
 			return true;
 		}
 		return false;
-	}
-
-	/**
-	 * 验证票据是否有效（未过期）
-	 */
-	public boolean valid() {
-		if (lifetime == 0) {
-			// RFC5077 零表示未指定生命周期
-			return true;
-		}
-		return (System.currentTimeMillis() - timestamp) / 1000 < lifetime;
 	}
 
 	@Override
@@ -151,14 +89,14 @@ class NewSessionTicket extends HandshakeExtensions {
 		final StringBuilder b = new StringBuilder();
 		b.append(name());
 		b.append(":lifetime=");
-		b.append(lifetime);
+		b.append(getLifetime());
 		b.append(",age_add=");
 		b.append(age_add & 0xFFFFFFFFL);
 		b.append(",nonce=");
 		b.append(nonce.length);
 		b.append("Byte");
 		b.append(",ticket=");
-		b.append(ticket.length);
+		b.append(getTicket().length);
 		b.append("Byte");
 		return b.toString();
 	}

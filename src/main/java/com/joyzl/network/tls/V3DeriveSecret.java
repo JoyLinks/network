@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets;
  * 
  * @author ZhangXi 2025年1月9日
  */
-class V3DeriveSecret extends HKDF {
+class V3DeriveSecret extends V3HKDF {
 
 	/*-
 	 * TLS 1.3 密钥导出
@@ -45,116 +45,108 @@ class V3DeriveSecret extends HKDF {
 	final static byte[] EXP_MASTER = "exp master".getBytes(StandardCharsets.US_ASCII);
 	final static byte[] RES_MASTER = "res master".getBytes(StandardCharsets.US_ASCII);
 
-	public V3DeriveSecret() {
-	}
-
-	public V3DeriveSecret(String digest, String hmac) throws Exception {
-		digest(digest);
-		hmac(hmac);
-	}
-
 	/**
 	 * TLS 1.3 Derive Secret
 	 */
-	protected byte[] v13DeriveSecret(byte[] secret) throws Exception {
-		return v13DeriveSecret(secret, DERIVED, hashEmpty());
+	protected byte[] deriveSecret(byte[] secret) throws Exception {
+		return deriveSecret(secret, DERIVED, hashEmpty());
 	}
 
 	/**
 	 * TLS 1.3 Early Secret
 	 */
-	protected byte[] v13EarlySecret(byte[] PSK) throws Exception {
-		return v13Extract(TLS.EMPTY_BYTES, PSK);
+	protected byte[] earlySecret(byte[] PSK) throws Exception {
+		return extract(TLS.EMPTY_BYTES, PSK);
 	}
 
 	/**
 	 * TLS 1.3 ext binder_key
 	 */
-	protected byte[] v13ExporterBinderKey(byte[] early) throws Exception {
-		return v13DeriveSecret(early, EXT_BINDER, hashEmpty());
+	protected byte[] exporterBinderKey(byte[] early) throws Exception {
+		return deriveSecret(early, EXT_BINDER, hashEmpty());
 	}
 
 	/**
 	 * TLS 1.3 res binder_key
 	 */
-	protected byte[] v13ResumptionBinderKey(byte[] early) throws Exception {
-		return v13DeriveSecret(early, RES_BINDER, hashEmpty());
+	protected byte[] resumptionBinderKey(byte[] early) throws Exception {
+		return deriveSecret(early, RES_BINDER, hashEmpty());
 	}
 
 	/**
 	 * TLS 1.3 client_early_traffic_secret
 	 */
-	protected byte[] v13ClientEarlyTrafficSecret(byte[] early, byte[] hash) throws Exception {
-		return v13DeriveSecret(early, C_E_TRAFFIC, hash);
+	protected byte[] clientEarlyTrafficSecret(byte[] early, byte[] hash) throws Exception {
+		return deriveSecret(early, C_E_TRAFFIC, hash);
 	}
 
 	/**
 	 * TLS 1.3 early_exporter_master_secret
 	 */
-	protected byte[] v13EarlyExporterMasterSecret(byte[] early, byte[] hash) throws Exception {
-		return v13DeriveSecret(early, E_EXP_MASTER, hash);
+	protected byte[] earlyExporterMasterSecret(byte[] early, byte[] hash) throws Exception {
+		return deriveSecret(early, E_EXP_MASTER, hash);
 	}
 
 	/**
 	 * TLS 1.3 Handshake Secret
 	 */
-	protected byte[] v13HandshakeSecret(byte[] early, byte[] shared) throws Exception {
+	protected byte[] handshakeSecret(byte[] early, byte[] shared) throws Exception {
 		// Derive-Secret(., "derived", "")
-		early = v13DeriveSecret(early, DERIVED, hashEmpty());
+		early = deriveSecret(early, DERIVED, hashEmpty());
 		// (EC)DHE -> HKDF-Extract = Handshake Secret
-		return v13Extract(early, shared);
+		return extract(early, shared);
 	}
 
 	/**
 	 * TLS 1.3 client_handshake_traffic_secret
 	 */
-	protected byte[] v13ClientHandshakeTrafficSecret(byte[] handshake, byte[] hash) throws Exception {
-		return v13DeriveSecret(handshake, C_HS_TRAFFIC, hash);
+	protected byte[] clientHandshakeTrafficSecret(byte[] handshake, byte[] hash) throws Exception {
+		return deriveSecret(handshake, C_HS_TRAFFIC, hash);
 	}
 
 	/**
 	 * TLS 1.3 server_handshake_traffic_secret
 	 */
-	protected byte[] v13ServerHandshakeTrafficSecret(byte[] handshake, byte[] hash) throws Exception {
-		return v13DeriveSecret(handshake, S_HS_TRAFFIC, hash);
+	protected byte[] serverHandshakeTrafficSecret(byte[] handshake, byte[] hash) throws Exception {
+		return deriveSecret(handshake, S_HS_TRAFFIC, hash);
 	}
 
 	/**
 	 * TLS 1.3 Master Secret
 	 */
-	protected byte[] v13MasterSecret(byte[] handshake) throws Exception {
+	protected byte[] masterSecret(byte[] handshake) throws Exception {
 		// Derive-Secret(., "derived", "")
-		handshake = v13DeriveSecret(handshake, DERIVED, hashEmpty());
+		handshake = deriveSecret(handshake, DERIVED, hashEmpty());
 		// 0 -> HKDF-Extract = Master Secret
-		return v13Extract(handshake, TLS.EMPTY_BYTES);
+		return extract(handshake, TLS.EMPTY_BYTES);
 	}
 
 	/**
 	 * TLS 1.3 client_application_traffic_secret
 	 */
-	protected byte[] v13ClientApplicationTrafficSecret(byte[] master, byte[] hash) throws Exception {
-		return v13DeriveSecret(master, C_AP_TRAFFIC, hash);
+	protected byte[] clientApplicationTrafficSecret(byte[] master, byte[] hash) throws Exception {
+		return deriveSecret(master, C_AP_TRAFFIC, hash);
 	}
 
 	/**
 	 * TLS 1.3 server_application_traffic_secret
 	 */
-	protected byte[] v13ServerApplicationTrafficSecret(byte[] master, byte[] hash) throws Exception {
-		return v13DeriveSecret(master, S_AP_TRAFFIC, hash);
+	protected byte[] serverApplicationTrafficSecret(byte[] master, byte[] hash) throws Exception {
+		return deriveSecret(master, S_AP_TRAFFIC, hash);
 	}
 
 	/**
 	 * TLS 1.3 exporter_master_secret
 	 */
-	protected byte[] v13ExporterMasterSecret(byte[] master, byte[] hash) throws Exception {
-		return v13DeriveSecret(master, EXP_MASTER, hash);
+	protected byte[] exporterMasterSecret(byte[] master, byte[] hash) throws Exception {
+		return deriveSecret(master, EXP_MASTER, hash);
 	}
 
 	/**
 	 * TLS 1.3 resumption_master_secret
 	 */
-	protected byte[] v13ResumptionMasterSecret(byte[] master, byte[] hash) throws Exception {
-		return v13DeriveSecret(master, RES_MASTER, hash);
+	protected byte[] resumptionMasterSecret(byte[] master, byte[] hash) throws Exception {
+		return deriveSecret(master, RES_MASTER, hash);
 	}
 
 	/*-
@@ -176,15 +168,15 @@ class V3DeriveSecret extends HKDF {
 	/**
 	 * TLS 1.3 *_traffic_secret -> [sender]_write_key
 	 */
-	protected byte[] v13WriteKey(byte[] traffic, int length) throws Exception {
-		return v13ExpandLabel(traffic, KEY, TLS.EMPTY_BYTES, length);
+	protected byte[] writeKey(byte[] traffic, int length) throws Exception {
+		return expandLabel(traffic, KEY, TLS.EMPTY_BYTES, length);
 	}
 
 	/**
 	 * TLS 1.3 *_traffic_secret -> [sender]_write_iv
 	 */
-	protected byte[] v13WriteIV(byte[] traffic, int length) throws Exception {
-		return v13ExpandLabel(traffic, IV, TLS.EMPTY_BYTES, length);
+	protected byte[] writeIV(byte[] traffic, int length) throws Exception {
+		return expandLabel(traffic, IV, TLS.EMPTY_BYTES, length);
 	}
 
 	/*-
@@ -207,12 +199,12 @@ class V3DeriveSecret extends HKDF {
 	final static byte[] FINISHED = "finished".getBytes(StandardCharsets.US_ASCII);
 
 	/** TLS 1.3 */
-	protected byte[] v13FinishedVerifyData(byte[] traffic, byte[] hash) throws Exception {
+	protected byte[] finishedVerifyData(byte[] traffic, byte[] hash) throws Exception {
 		// finished_key=HKDF-Expand-Label(BaseKey,"finished","",Hash.length)
 		// verify_data=HMAC(finished_key,Transcript-Hash(Handshake-Context,Certificate*,CertificateVerify*))
 
-		final byte[] finished_key = v13ExpandLabel(traffic, FINISHED, TLS.EMPTY_BYTES, hmacLength());
-		return v13Extract(finished_key, hash);
+		final byte[] finished_key = expandLabel(traffic, FINISHED, TLS.EMPTY_BYTES, hmacLength());
+		return extract(finished_key, hash);
 	}
 
 	final static byte[] EXPORTER = "exporter".getBytes(StandardCharsets.US_ASCII);
@@ -222,13 +214,13 @@ class V3DeriveSecret extends HKDF {
 	 * exporter_master_secret -> exporter<br>
 	 * early_exporter_master_secret -> exporter<br>
 	 */
-	protected byte[] v13ExporterSecret(byte[] label, byte[] secret, byte[] hash, int length) throws Exception {
+	protected byte[] exporterSecret(byte[] label, byte[] secret, byte[] hash, int length) throws Exception {
 		// TLS-Exporter(label, context_value, key_length) =
 		// HKDF-Expand-Label(Derive-Secret(Secret,label,""),"exporter",Hash(context_value),key_length)
 		// RFC8446 RFC5705
 
-		secret = v13DeriveSecret(secret, label, hashEmpty());
-		return v13ExpandLabel(secret, EXPORTER, hash, length);
+		secret = deriveSecret(secret, label, hashEmpty());
+		return expandLabel(secret, EXPORTER, hash, length);
 	}
 
 	final static byte[] RESUMPTION = "resumption".getBytes(StandardCharsets.US_ASCII);
@@ -236,10 +228,10 @@ class V3DeriveSecret extends HKDF {
 	/**
 	 * TLS 1.3 resumption_master_secret -> resumption
 	 */
-	protected byte[] v13ResumptionSecret(byte[] secret, byte[] nonce) throws Exception {
+	protected byte[] resumptionSecret(byte[] secret, byte[] nonce) throws Exception {
 		// HKDF-Expand-Label(resumption_master_secret,"resumption",ticket_nonce,Hash.length)
 
-		return v13ExpandLabel(secret, RESUMPTION, nonce, hashLength());
+		return expandLabel(secret, RESUMPTION, nonce, hashLength());
 	}
 
 	/*-
@@ -250,7 +242,7 @@ class V3DeriveSecret extends HKDF {
 	/**
 	 * TLS 1.3 application_traffic_secret_N + 1
 	 */
-	protected byte[] v13NextApplicationTrafficSecret(byte[] traffic) throws Exception {
-		return v13ExpandLabel(traffic, TRAFFIC_UPD, TLS.EMPTY_BYTES, hashLength());
+	protected byte[] nextApplicationTrafficSecret(byte[] traffic) throws Exception {
+		return expandLabel(traffic, TRAFFIC_UPD, TLS.EMPTY_BYTES, hashLength());
 	}
 }

@@ -18,7 +18,7 @@ import com.joyzl.network.codec.Binary;
  * 
  * @author ZhangXi 2024年12月22日
  */
-class PRF_HKDF extends TranscriptHash {
+class PRF_HKDF extends V2TranscriptHash {
 
 	/** HMAC */
 	private Mac hmac;

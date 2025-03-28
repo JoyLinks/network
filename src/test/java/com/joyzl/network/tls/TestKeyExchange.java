@@ -25,8 +25,8 @@ class TestKeyExchange {
 
 	@Test
 	void x25519() throws Exception {
-		final KeyExchange client = new KeyExchange();
-		final KeyExchange server = new KeyExchange();
+		final V3KeyExchange client = new V3KeyExchange();
+		final V3KeyExchange server = new V3KeyExchange();
 
 		client.initialize(NamedGroup.X25519);
 		server.initialize(NamedGroup.X25519);
@@ -64,8 +64,8 @@ class TestKeyExchange {
 
 	@Test
 	void testX448() throws Exception {
-		final KeyExchange client = new KeyExchange();
-		final KeyExchange server = new KeyExchange();
+		final V3KeyExchange client = new V3KeyExchange();
+		final V3KeyExchange server = new V3KeyExchange();
 
 		client.initialize(NamedGroup.X448);
 		server.initialize(NamedGroup.X448);
@@ -86,8 +86,8 @@ class TestKeyExchange {
 
 	@Test
 	void testSECP521R1() throws Exception {
-		final KeyExchange client = new KeyExchange();
-		final KeyExchange server = new KeyExchange();
+		final V3KeyExchange client = new V3KeyExchange();
+		final V3KeyExchange server = new V3KeyExchange();
 
 		client.initialize(NamedGroup.SECP521R1);
 		server.initialize(NamedGroup.SECP521R1);
@@ -116,8 +116,8 @@ class TestKeyExchange {
 
 	@Test
 	void testSECP384R1() throws Exception {
-		final KeyExchange client = new KeyExchange();
-		final KeyExchange server = new KeyExchange();
+		final V3KeyExchange client = new V3KeyExchange();
+		final V3KeyExchange server = new V3KeyExchange();
 
 		client.initialize(NamedGroup.SECP384R1);
 		server.initialize(NamedGroup.SECP384R1);
@@ -146,8 +146,8 @@ class TestKeyExchange {
 
 	@Test
 	void testSECP256R1() throws Exception {
-		final KeyExchange client = new KeyExchange();
-		final KeyExchange server = new KeyExchange();
+		final V3KeyExchange client = new V3KeyExchange();
+		final V3KeyExchange server = new V3KeyExchange();
 
 		client.initialize(NamedGroup.SECP256R1);
 		server.initialize(NamedGroup.SECP256R1);
@@ -176,8 +176,8 @@ class TestKeyExchange {
 
 	@Test
 	void testFFDHE2048() throws Exception {
-		final KeyExchange client = new KeyExchange();
-		final KeyExchange server = new KeyExchange();
+		final V3KeyExchange client = new V3KeyExchange();
+		final V3KeyExchange server = new V3KeyExchange();
 
 		client.initialize(NamedGroup.FFDHE2048);
 		server.initialize(NamedGroup.FFDHE2048);

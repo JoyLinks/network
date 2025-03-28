@@ -23,7 +23,7 @@ import java.util.Set;
 
 import javax.security.auth.x500.X500Principal;
 
-import com.joyzl.network.tls.Certificate.CertificateEntry;
+import com.joyzl.network.tls.CertificateV3.CertificateEntry;
 
 /**
  * 提供终端可用与会话的证书
@@ -280,13 +280,25 @@ public class SessionCertificates {
 	/**
 	 * 加载对端证书并缓存
 	 */
-	static RemoteCache loadCertificate(String name, com.joyzl.network.tls.Certificate c) throws Exception {
+	static RemoteCache loadCertificate(String name, CertificateV3 c) throws Exception {
 		final CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
 		final Certificate[] certificates = new Certificate[c.size()];
 		for (int index = 0; index < c.size(); index++) {
-			if (c.get(index).type() == com.joyzl.network.tls.Certificate.X509) {
+			if (c.get(index).type() == CertificateV3.X509) {
 				certificates[index] = certificateFactory.generateCertificate(new ByteArrayInputStream(c.get(index).getData()));
 			}
+		}
+		return createRemoteCache(name, certificates);
+	}
+
+	/**
+	 * 加载对端证书并缓存
+	 */
+	static RemoteCache loadCertificate(String name, CertificateV0 c) throws Exception {
+		final CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+		final Certificate[] certificates = new Certificate[c.size()];
+		for (int index = 0; index < c.size(); index++) {
+			certificates[index] = certificateFactory.generateCertificate(new ByteArrayInputStream(c.get(index)));
 		}
 		return createRemoteCache(name, certificates);
 	}

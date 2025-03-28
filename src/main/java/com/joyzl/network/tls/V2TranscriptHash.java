@@ -1,6 +1,7 @@
 package com.joyzl.network.tls;
 
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.buffer.DataBufferUnit;
@@ -10,7 +11,7 @@ import com.joyzl.network.buffer.DataBufferUnit;
  * 
  * @author ZhangXi 2024年12月30日
  */
-class TranscriptHash {
+class V2TranscriptHash {
 
 	// Transcript-Hash("")
 	// SHA256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
@@ -27,13 +28,14 @@ class TranscriptHash {
 	/** 最后获取的哈希值 */
 	private byte[] current = TLS.EMPTY_BYTES;
 
-	public TranscriptHash() {
-	}
-
-	/** 指定哈希算法 */
-	public void digest(String name) throws Exception {
-		digest = MessageDigest.getInstance(name);
-		EMPTY_HASH = digest.digest();
+	public void initialize(String name) throws NoSuchAlgorithmException {
+		if (digest == null || !name.equals(digest.getAlgorithm())) {
+			digest = MessageDigest.getInstance(name);
+			EMPTY_HASH = digest.digest();
+		} else {
+			digest.reset();
+		}
+		current = TLS.EMPTY_BYTES;
 	}
 
 	/** 重置 Transcript-Hash */

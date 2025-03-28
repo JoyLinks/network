@@ -13,6 +13,9 @@ class ServerHelloDone extends Handshake {
 
 	final static ServerHelloDone INSTANCE = new ServerHelloDone();
 
+	private ServerHelloDone() {
+	}
+
 	@Override
 	public byte msgType() {
 		return SERVER_HELLO_DONE;

@@ -9,7 +9,7 @@ import com.joyzl.network.codec.Binary;
  * 
  * @author ZhangXi 2025年1月9日
  */
-class V2DeriveSecret extends PRF {
+class V2DeriveSecret extends V2PRF {
 
 	/*-
 	 * TLS 1.2 密钥导出

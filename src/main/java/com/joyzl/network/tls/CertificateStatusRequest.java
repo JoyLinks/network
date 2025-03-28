@@ -56,7 +56,7 @@ abstract class CertificateStatusRequest extends Extension {
 	static class OCSPStatusRequest extends CertificateStatusRequest {
 
 		/** DER-encoded ASN.1 */
-		private byte[][] responderIDs = TLS.EMPTY_STRINGS;
+		private byte[][] responderIDs = TLS.EMPTY_BYTES_BYTES;
 		/** DER-encoded ASN.1 */
 		private byte[] requestExtensions = TLS.EMPTY_BYTES;
 
@@ -69,7 +69,7 @@ abstract class CertificateStatusRequest extends Extension {
 		}
 
 		public void addResponderID(byte[] value) {
-			if (responderIDs == EMPTY_STRINGS) {
+			if (responderIDs == EMPTY_BYTES_BYTES) {
 				responderIDs = new byte[][] { value };
 			} else {
 				responderIDs = Arrays.copyOf(responderIDs, responderIDs.length + 1);
@@ -79,7 +79,7 @@ abstract class CertificateStatusRequest extends Extension {
 
 		public void setResponderIDs(byte[][] value) {
 			if (value == null) {
-				responderIDs = TLS.EMPTY_STRINGS;
+				responderIDs = TLS.EMPTY_BYTES_BYTES;
 			} else {
 				responderIDs = value;
 			}

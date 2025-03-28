@@ -12,8 +12,8 @@ public class TestTranscriptHash {
 
 	@Test
 	void test() throws Exception {
-		final TranscriptHash t = new TranscriptHash();
-		t.digest("SHA-256");
+		final V2TranscriptHash t = new V2TranscriptHash();
+		t.initialize("SHA-256");
 
 		assertEquals(32, t.hashLength());
 		assertArrayEquals(Utility.hex("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"), t.hashEmpty());

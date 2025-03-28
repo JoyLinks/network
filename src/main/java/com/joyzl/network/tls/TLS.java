@@ -3,6 +3,14 @@ package com.joyzl.network.tls;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 
+/**
+ * TLS 1.3 1.2 1.1 1.0
+ * <p>
+ * 本实现不支持 SSL3 SSL2 这些旧的已经废弃协议；SSL30 SSL20 版本号的常量仅为了判断。
+ * </p>
+ * 
+ * @author ZhangXi 2025年3月26日
+ */
 public abstract class TLS {
 
 	/** TLS 1.3 */
@@ -34,7 +42,7 @@ public abstract class TLS {
 	/** 防空常量 */
 	final static short[] EMPTY_SHORTS = new short[0];
 	/** 防空常量 */
-	final static byte[][] EMPTY_STRINGS = new byte[0][];
+	final static byte[][] EMPTY_BYTES_BYTES = new byte[0][];
 
 	/** 随机数 */
 	final static SecureRandom RANDOM;

@@ -19,6 +19,13 @@ import java.util.Arrays;
  * } Finished;
  * </pre>
  * 
+ * <pre>
+ * TLS 1.0 1.1
+ * struct {
+ *       opaque verify_data[12];
+ * } Finished;
+ * </pre>
+ * 
  * @author ZhangXi 2024年12月19日
  */
 class Finished extends Handshake {

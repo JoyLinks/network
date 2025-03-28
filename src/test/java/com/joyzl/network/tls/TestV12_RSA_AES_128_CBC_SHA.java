@@ -219,69 +219,79 @@ public class TestV12_RSA_AES_128_CBC_SHA extends TestHelper {
 
 	@Test
 	void test() throws Exception {
-		final V2CipherSuiter client = new V2CipherSuiter(CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA);
-		final V2CipherSuiter server = new V2CipherSuiter(CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA);
-		client.pms(preMasterSecret);
-		server.pms(preMasterSecret);
+		final CipherSuiteType type = CipherSuiteType.TLS_RSA_WITH_AES_128_CBC_SHA;
+		final V2SecretCache clientSecret = new V2SecretCache();
+		final V2SecretCache serverSecret = new V2SecretCache();
+		clientSecret.initialize(type);
+		serverSecret.initialize(type);
+
+		clientSecret.pms(preMasterSecret);
+		serverSecret.pms(preMasterSecret);
 
 		// rfc7627 SHA256
 		final byte[] session_hash = bytes("82d6bc8d19874cca5fc04db6f9ea9cdda99a15db212243d25bddb77aa49822be");
 
-		client.hash(clientHello);
-		client.hash(serverHello);
-		client.hash(serverCertificate);
-		client.hash(serverCertificateRequest);
-		client.hash(serverHelloDone);
-		client.hash(clientCertificate);
-		client.hash(clientKeyExchange);
-		assertArrayEquals(client.hash(), session_hash);
+		clientSecret.hash(clientHello);
+		clientSecret.hash(serverHello);
+		clientSecret.hash(serverCertificate);
+		clientSecret.hash(serverCertificateRequest);
+		clientSecret.hash(serverHelloDone);
+		clientSecret.hash(clientCertificate);
+		clientSecret.hash(clientKeyExchange);
+		assertArrayEquals(clientSecret.hash(), session_hash);
 
-		server.hash(clientHello);
-		server.hash(serverHello);
-		server.hash(serverCertificate);
-		server.hash(serverCertificateRequest);
-		server.hash(serverHelloDone);
-		server.hash(clientCertificate);
-		server.hash(clientKeyExchange);
-		assertArrayEquals(server.hash(), session_hash);
+		serverSecret.hash(clientHello);
+		serverSecret.hash(serverHello);
+		serverSecret.hash(serverCertificate);
+		serverSecret.hash(serverCertificateRequest);
+		serverSecret.hash(serverHelloDone);
+		serverSecret.hash(clientCertificate);
+		serverSecret.hash(clientKeyExchange);
+		assertArrayEquals(serverSecret.hash(), session_hash);
 
 		final byte[] master_secret = bytes("7bb571f36c38efba3eb95f5871391830116985671f8cb10de01c71c74319c49f9d2baaf1071490a19999ea56bf1e03dc");
-		client.masterSecret();
-		assertArrayEquals(client.master(), master_secret);
-		server.masterSecret();
-		assertArrayEquals(server.master(), master_secret);
+		clientSecret.masterSecret();
+		assertArrayEquals(clientSecret.master(), master_secret);
+		serverSecret.masterSecret();
+		assertArrayEquals(serverSecret.master(), master_secret);
 
 		// 104=MAC(20)*2+KEY(16)*2+IV(16)*2
-		assertEquals(client.keyBlockLength(), 104);
-		client.keyBlock(serverRandom, clientRandom);
-		assertEquals(server.keyBlockLength(), 104);
-		server.keyBlock(serverRandom, clientRandom);
+		assertEquals(clientSecret.keyBlockLength(type), 104);
+		clientSecret.keyBlock(type, serverRandom, clientRandom);
+		assertEquals(serverSecret.keyBlockLength(type), 104);
+		serverSecret.keyBlock(type, serverRandom, clientRandom);
 
 		// client_write_MAC_key[20]：0d19a4197332db8266200724604c063d8cf116ff
-		assertArrayEquals(client.clientWriteMACKey(), bytes("0d19a4197332db8266200724604c063d8cf116ff"));
+		assertArrayEquals(clientSecret.clientWriteMACKey(type), bytes("0d19a4197332db8266200724604c063d8cf116ff"));
 		// server_write_MAC_key[20]：958513064070ba5137176bb621b27b80cc4c26e0
-		assertArrayEquals(client.serverWriteMACKey(), bytes("958513064070ba5137176bb621b27b80cc4c26e0"));
+		assertArrayEquals(clientSecret.serverWriteMACKey(type), bytes("958513064070ba5137176bb621b27b80cc4c26e0"));
 		// client_write_key[16]：60381c0e233f4e1896bf61147da34652
-		assertArrayEquals(client.clientWriteKey(), bytes("60381c0e233f4e1896bf61147da34652"));
+		assertArrayEquals(clientSecret.clientWriteKey(type), bytes("60381c0e233f4e1896bf61147da34652"));
 		// server_write_key[16]：b824d8d1b789ddc05a94a4debb81d40f
-		assertArrayEquals(client.serverWriteKey(), bytes("b824d8d1b789ddc05a94a4debb81d40f"));
+		assertArrayEquals(clientSecret.serverWriteKey(type), bytes("b824d8d1b789ddc05a94a4debb81d40f"));
 
 		// 重置密钥
 
-		client.encryptReset(client.clientWriteKey(), client.clientWriteIV());
-		client.encryptMACKey(client.clientWriteMACKey());
+		final V2CipherSuiter client = new V2CipherSuiter();
+		final V2CipherSuiter server = new V2CipherSuiter();
 
-		server.encryptReset(server.serverWriteKey(), server.serverWriteIV());
-		server.encryptMACKey(server.serverWriteMACKey());
+		client.suite(type);
+		server.suite(type);
 
-		client.decryptReset(client.serverWriteKey(), client.serverWriteIV());
-		client.decryptMACKey(client.serverWriteMACKey());
+		client.encryptReset(clientSecret.clientWriteKey(type), clientSecret.clientWriteIV(type));
+		client.encryptMACKey(clientSecret.clientWriteMACKey(type));
 
-		server.decryptReset(server.clientWriteKey(), server.clientWriteIV());
-		server.decryptMACKey(server.clientWriteMACKey());
+		server.encryptReset(serverSecret.serverWriteKey(type), serverSecret.serverWriteIV(type));
+		server.encryptMACKey(serverSecret.serverWriteMACKey(type));
 
-		client.hash(clientCertificateVerify);
-		server.hash(clientCertificateVerify);
+		client.decryptReset(clientSecret.serverWriteKey(type), clientSecret.serverWriteIV(type));
+		client.decryptMACKey(clientSecret.serverWriteMACKey(type));
+
+		server.decryptReset(serverSecret.clientWriteKey(type), serverSecret.clientWriteIV(type));
+		server.decryptMACKey(serverSecret.clientWriteMACKey(type));
+
+		clientSecret.hash(clientCertificateVerify);
+		serverSecret.hash(clientCertificateVerify);
 
 		final DataBuffer buffer1 = DataBuffer.instance();
 		final DataBuffer buffer2 = DataBuffer.instance();
@@ -295,8 +305,8 @@ public class TestV12_RSA_AES_128_CBC_SHA extends TestHelper {
 		byte[] temp;
 
 		// VerfyData SHA256
-		assertArrayEquals(client.clientFinished(), vd);
-		assertArrayEquals(server.clientFinished(), vd);
+		assertArrayEquals(clientSecret.clientFinished(), vd);
+		assertArrayEquals(serverSecret.clientFinished(), vd);
 
 		// MAC SHA1
 		buffer1.write(clientFinished);
@@ -324,16 +334,16 @@ public class TestV12_RSA_AES_128_CBC_SHA extends TestHelper {
 
 		buffer2.skipBytes(4);
 		buffer2.readFully(vd);
-		assertArrayEquals(server.clientFinished(), vd);
+		assertArrayEquals(serverSecret.clientFinished(), vd);
 		buffer2.readFully(mc);
 		assertArrayEquals(mc, temp);
 		buffer2.readFully(temp = new byte[pd.length]);
 		assertArrayEquals(pd, temp);
 
-		client.hash(clientFinished);
-		client.hash(serverNewSessionTicket);
-		server.hash(clientFinished);
-		server.hash(serverNewSessionTicket);
+		clientSecret.hash(clientFinished);
+		clientSecret.hash(serverNewSessionTicket);
+		serverSecret.hash(clientFinished);
+		serverSecret.hash(serverNewSessionTicket);
 
 		// Server Finished
 
@@ -343,8 +353,8 @@ public class TestV12_RSA_AES_128_CBC_SHA extends TestHelper {
 		mc = bytes("4643eccf7fb0d847e83af62d58693b7f6e4e8b4c");
 
 		// VerfyData SHA256
-		assertArrayEquals(client.serverFinished(), vd);
-		assertArrayEquals(server.serverFinished(), vd);
+		assertArrayEquals(clientSecret.serverFinished(), vd);
+		assertArrayEquals(serverSecret.serverFinished(), vd);
 
 		// MAC SHA1
 		buffer1.write(serverFinished);
@@ -372,7 +382,7 @@ public class TestV12_RSA_AES_128_CBC_SHA extends TestHelper {
 
 		buffer2.skipBytes(4);
 		buffer2.readFully(vd);
-		assertArrayEquals(client.serverFinished(), vd);
+		assertArrayEquals(clientSecret.serverFinished(), vd);
 		buffer2.readFully(mc);
 		assertArrayEquals(mc, temp);
 		buffer2.readFully(temp = new byte[pd.length]);

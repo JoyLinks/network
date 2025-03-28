@@ -20,15 +20,15 @@ import java.util.Arrays;
 import javax.crypto.KeyAgreement;
 
 /**
- * 密钥交换处理类
+ * TLS 1.3 密钥交换处理类
  * 
  * @author ZhangXi 2025年2月3日
  */
-class KeyExchange implements NamedGroup {
+class V3KeyExchange implements NamedGroup {
 
 	final static short[] AVAILABLES;
 	static {
-		final KeyExchange ke = new KeyExchange();
+		final V3KeyExchange ke = new V3KeyExchange();
 		short[] items = new short[0];
 		for (short group : ALL) {
 			try {
@@ -53,10 +53,10 @@ class KeyExchange implements NamedGroup {
 	private PrivateKey privateKey;
 	private PublicKey publicKey;
 
-	public KeyExchange() {
+	public V3KeyExchange() {
 	}
 
-	public KeyExchange(short group) throws Exception {
+	public V3KeyExchange(short group) throws Exception {
 		initialize(group);
 	}
 
@@ -144,13 +144,13 @@ class KeyExchange implements NamedGroup {
 	 * @param key 对方公钥
 	 */
 	public byte[] sharedKey(byte[] key) throws Exception {
-		if (group == SECP256R1 || group == SECP384R1 || group == SECP521R1) {
-			final KeyAgreement agreement = KeyAgreement.getInstance("ECDH");
+		if (group == X25519 || group == X448) {
+			final KeyAgreement agreement = KeyAgreement.getInstance("XDH");
 			agreement.init(getPrivateKey());
 			agreement.doPhase(publicKey(key), true);
 			return agreement.generateSecret();
-		} else if (group == X25519 || group == X448) {
-			final KeyAgreement agreement = KeyAgreement.getInstance("XDH");
+		} else if (group == SECP256R1 || group == SECP384R1 || group == SECP521R1) {
+			final KeyAgreement agreement = KeyAgreement.getInstance("ECDH");
 			agreement.init(getPrivateKey());
 			agreement.doPhase(publicKey(key), true);
 			return agreement.generateSecret();

@@ -13,7 +13,7 @@ import javax.crypto.spec.SecretKeySpec;
  * 
  * @author ZhangXi 2024年12月22日
  */
-class HKDF extends TranscriptHash {
+class V3HKDF extends V2TranscriptHash {
 
 	/** HMAC */
 	private Mac hmac;
@@ -21,17 +21,14 @@ class HKDF extends TranscriptHash {
 	/** Hash.length 00 */
 	private byte[] ZEROS;
 
-	public HKDF() {
-	}
-
-	public HKDF(String name) throws Exception {
-		hmac(name);
-	}
-
-	/** 指定认证算法 */
-	public void hmac(String name) throws Exception {
-		hmac = Mac.getInstance(name);
-		ZEROS = new byte[hmac.getMacLength()];
+	public void initialize(String mac, String digest) throws Exception {
+		super.initialize(digest);
+		if (hmac == null || !mac.equals(hmac.getAlgorithm())) {
+			hmac = Mac.getInstance(mac);
+			ZEROS = new byte[hmac.getMacLength()];
+		} else {
+			hmac.reset();
+		}
 	}
 
 	/** HMAC.length */
@@ -66,7 +63,7 @@ class HKDF extends TranscriptHash {
 	 */
 
 	/** TLS 1.3 HKDF-Extract(salt, IKM) -> PRK=HMAC-Hash(salt, IKM) */
-	protected final byte[] v13Extract(byte[] salt, byte[] IKM) throws Exception {
+	protected final byte[] extract(byte[] salt, byte[] IKM) throws Exception {
 		if (salt == null || salt.length == 0) {
 			// HashLen zeros
 			salt = ZEROS;
@@ -85,7 +82,7 @@ class HKDF extends TranscriptHash {
 	}
 
 	/** TLS 1.3 HKDF-Expand */
-	protected final byte[] v13Expand(byte[] PRK, byte[] info, int length) throws Exception {
+	protected final byte[] expand(byte[] PRK, byte[] info, int length) throws Exception {
 		if (length <= 0) {
 			throw new IllegalArgumentException("length");
 		}
@@ -127,7 +124,7 @@ class HKDF extends TranscriptHash {
 	 */
 
 	/** TLS 1.3 HKDF-Expand-Label(Secret, Label, Context, Length) */
-	protected byte[] v13ExpandLabel(byte[] secret, byte[] label, byte[] context, int length) throws Exception {
+	protected byte[] expandLabel(byte[] secret, byte[] label, byte[] context, int length) throws Exception {
 		if (length <= 0) {
 			throw new IllegalArgumentException("length");
 		}
@@ -174,7 +171,7 @@ class HKDF extends TranscriptHash {
 	 * TLS 1.3
 	 * Derive-Secret(Secret,Label,Messages)=HKDF-Expand-Label(Secret,Label,Transcript-Hash(Messages),Hash.length)
 	 */
-	protected final byte[] v13DeriveSecret(byte[] secret, byte[] label, byte[] hash) throws Exception {
-		return v13ExpandLabel(secret, label, hash, hashLength());
+	protected final byte[] deriveSecret(byte[] secret, byte[] label, byte[] hash) throws Exception {
+		return expandLabel(secret, label, hash, hashLength());
 	}
 }

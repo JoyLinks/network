@@ -44,7 +44,7 @@ public class ApplicationLayerProtocolNegotiation extends Extension {
 
 	////////////////////////////////////////////////////////////////////////////////
 
-	private byte[][] items = TLS.EMPTY_STRINGS;
+	private byte[][] items = TLS.EMPTY_BYTES_BYTES;
 
 	public ApplicationLayerProtocolNegotiation() {
 	}
@@ -76,7 +76,7 @@ public class ApplicationLayerProtocolNegotiation extends Extension {
 
 	public void set(byte[]... value) {
 		if (value == null) {
-			items = TLS.EMPTY_STRINGS;
+			items = TLS.EMPTY_BYTES_BYTES;
 		} else {
 			items = value;
 		}
@@ -84,7 +84,7 @@ public class ApplicationLayerProtocolNegotiation extends Extension {
 
 	public void set(String... value) {
 		if (value == null) {
-			items = TLS.EMPTY_STRINGS;
+			items = TLS.EMPTY_BYTES_BYTES;
 		} else {
 			items = new byte[value.length][];
 			for (int index = 0; index < items.length; index++) {
@@ -94,7 +94,7 @@ public class ApplicationLayerProtocolNegotiation extends Extension {
 	}
 
 	public void add(byte[] value) {
-		if (items == TLS.EMPTY_STRINGS) {
+		if (items == TLS.EMPTY_BYTES_BYTES) {
 			items = new byte[][] { value };
 		} else {
 			items = Arrays.copyOf(items, items.length + 1);
@@ -103,7 +103,7 @@ public class ApplicationLayerProtocolNegotiation extends Extension {
 	}
 
 	public void add(String value) {
-		if (items == TLS.EMPTY_STRINGS) {
+		if (items == TLS.EMPTY_BYTES_BYTES) {
 			items = new byte[][] { value.getBytes(StandardCharsets.US_ASCII) };
 		} else {
 			items = Arrays.copyOf(items, items.length + 1);

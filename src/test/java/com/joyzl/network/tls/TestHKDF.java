@@ -25,11 +25,13 @@ class TestHKDF {
 		// OKM=0x3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865(42octets)
 		final String OKM = "3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865";
 
-		final PRF_HKDF hkdf = new PRF_HKDF("HmacSHA256");
-		final byte[] temp1 = hkdf.v13Extract(salt, IKM);
+		final V3HKDF hkdf = new V3HKDF();
+		hkdf.initialize("HmacSHA256", "SHA256");
+
+		final byte[] temp1 = hkdf.extract(salt, IKM);
 		assertEquals(Utility.hex(temp1), PRK);
 
-		final byte[] temp2 = hkdf.v13Expand(temp1, info, 42);
+		final byte[] temp2 = hkdf.expand(temp1, info, 42);
 		assertEquals(Utility.hex(temp2), OKM);
 	}
 
@@ -38,8 +40,10 @@ class TestHKDF {
 		final String info = "00200d746c733133206465726976656420e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 		final String expanded = "6f2615a108c702c5678f54fc9dbab69716c076189c48250cebeac3576c3611ba";
 
-		final PRF_HKDF hkdf = new PRF_HKDF("HmacSHA256");
-		final byte[] temp = hkdf.v13Expand(Utility.hex(PRK), Utility.hex(info), 32);
+		final V3HKDF hkdf = new V3HKDF();
+		hkdf.initialize("HmacSHA256", "SHA256");
+
+		final byte[] temp = hkdf.expand(Utility.hex(PRK), Utility.hex(info), 32);
 		assertEquals(Utility.hex(temp), expanded);
 	}
 }

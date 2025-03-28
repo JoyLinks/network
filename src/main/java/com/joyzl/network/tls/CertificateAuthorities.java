@@ -20,7 +20,7 @@ import java.util.Arrays;
  */
 class CertificateAuthorities extends Extension {
 
-	private byte[][] authorities = TLS.EMPTY_STRINGS;
+	private byte[][] authorities = TLS.EMPTY_BYTES_BYTES;
 
 	@Override
 	public short type() {
@@ -37,14 +37,14 @@ class CertificateAuthorities extends Extension {
 
 	public void set(byte[]... value) {
 		if (value == null) {
-			authorities = TLS.EMPTY_STRINGS;
+			authorities = TLS.EMPTY_BYTES_BYTES;
 		} else {
 			authorities = value;
 		}
 	}
 
 	public void add(byte[] value) {
-		if (authorities == TLS.EMPTY_STRINGS) {
+		if (authorities == TLS.EMPTY_BYTES_BYTES) {
 			authorities = new byte[][] { value };
 		} else {
 			authorities = Arrays.copyOf(authorities, authorities.length + 1);

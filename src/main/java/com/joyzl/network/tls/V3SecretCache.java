@@ -81,36 +81,32 @@ class V3SecretCache extends V3DeriveSecret {
 	private byte[] clientHandshakeTraffic, clientApplicationTraffic;
 	private byte[] serverHandshakeTraffic, serverApplicationTraffic;
 
-	public V3SecretCache() {
+	public void initialize(CipherSuiteType type) throws Exception {
+		initialize(type.macAlgorithm(), type.digestAlgorithm());
+		reset(null);
 	}
 
-	public V3SecretCache(String digest, String hmac) throws Exception {
-		digest(digest);
-		hmac(hmac);
-	}
-
-	@Override
-	public void hmac(String name) throws Exception {
-		super.hmac(name);
-		v13Reset(null);
+	public void initialize(String mac, String digest) throws Exception {
+		super.initialize(mac, digest);
+		reset(null);
 	}
 
 	public boolean hasMaster() {
 		return master != null;
 	}
 
-	public boolean v13IsHandshaked() {
+	public boolean isHandshaked() {
 		return clientHandshakeTraffic != null || serverHandshakeTraffic != null;
 	}
 
-	public boolean v13IsApplication() {
+	public boolean isApplication() {
 		return clientApplicationTraffic != null || serverApplicationTraffic != null;
 	}
 
 	/**
 	 * 重置密钥处理类
 	 */
-	public void v13Reset(byte[] psk) throws Exception {
+	public void reset(byte[] psk) throws Exception {
 		hashReset();
 		master = null;
 		handshake = null;
@@ -118,84 +114,116 @@ class V3SecretCache extends V3DeriveSecret {
 		serverHandshakeTraffic = null;
 		clientApplicationTraffic = null;
 		serverApplicationTraffic = null;
-		early = v13EarlySecret(psk);
+		early = earlySecret(psk);
 	}
 
 	/**
 	 * 设置对端共享密钥
 	 */
-	public void v13SharedKey(byte[] key) throws Exception {
-		handshake = v13HandshakeSecret(early, key);
-		master = v13MasterSecret(handshake);
+	public void sharedKey(byte[] key) throws Exception {
+		handshake = handshakeSecret(early, key);
+		master = masterSecret(handshake);
 	}
 
-	public byte[] v13ClientHandshakeTrafficSecret() throws Exception {
+	public byte[] clientHandshakeTrafficSecret() throws Exception {
 		if (clientHandshakeTraffic == null) {
-			return clientHandshakeTraffic = v13ClientHandshakeTrafficSecret(handshake, hash());
+			return clientHandshakeTraffic = clientHandshakeTrafficSecret(handshake, hash());
 		}
 		return clientHandshakeTraffic;
 	}
 
-	public byte[] v13ServerHandshakeTrafficSecret() throws Exception {
+	public byte[] serverHandshakeTrafficSecret() throws Exception {
 		if (serverHandshakeTraffic == null) {
-			return serverHandshakeTraffic = v13ServerHandshakeTrafficSecret(handshake, hash());
+			return serverHandshakeTraffic = serverHandshakeTrafficSecret(handshake, hash());
 		}
 		return serverHandshakeTraffic;
 	}
 
-	public byte[] v13ClientFinished() throws Exception {
-		return v13FinishedVerifyData(clientHandshakeTraffic, hash());
+	public byte[] clientHandshakeWriteKey(CipherSuiteType type) throws Exception {
+		return writeKey(clientHandshakeTraffic, type.key());
 	}
 
-	public byte[] v13ClientFinished2() throws Exception {
-		return v13FinishedVerifyData(clientApplicationTraffic, hash());
+	public byte[] clientHandshakeWriteIV(CipherSuiteType type) throws Exception {
+		return writeIV(clientHandshakeTraffic, type.iv());
 	}
 
-	public byte[] v13ServerFinished() throws Exception {
-		return v13FinishedVerifyData(serverHandshakeTraffic, hash());
+	public byte[] serverHandshakeWriteKey(CipherSuiteType type) throws Exception {
+		return writeKey(serverHandshakeTraffic, type.key());
 	}
 
-	public byte[] v13ClientApplicationTrafficSecret() throws Exception {
+	public byte[] serverHandshakeWriteIV(CipherSuiteType type) throws Exception {
+		return writeIV(serverHandshakeTraffic, type.iv());
+	}
+
+	public byte[] clientFinished() throws Exception {
+		return finishedVerifyData(clientHandshakeTraffic, hash());
+	}
+
+	public byte[] clientFinished2() throws Exception {
+		return finishedVerifyData(clientApplicationTraffic, hash());
+	}
+
+	public byte[] serverFinished() throws Exception {
+		return finishedVerifyData(serverHandshakeTraffic, hash());
+	}
+
+	public byte[] clientApplicationTrafficSecret() throws Exception {
 		if (clientApplicationTraffic == null) {
-			return clientApplicationTraffic = v13ClientApplicationTrafficSecret(master, hash());
+			return clientApplicationTraffic = clientApplicationTrafficSecret(master, hash());
 		}
 		return clientApplicationTraffic;
 	}
 
-	public byte[] v13ServerApplicationTrafficSecret() throws Exception {
+	public byte[] serverApplicationTrafficSecret() throws Exception {
 		if (serverApplicationTraffic == null) {
-			return serverApplicationTraffic = v13ServerApplicationTrafficSecret(master, hash());
+			return serverApplicationTraffic = serverApplicationTrafficSecret(master, hash());
 		}
 		return serverApplicationTraffic;
 	}
 
-	public void v13NextApplicationTrafficSecret() throws Exception {
-		clientApplicationTraffic = v13NextApplicationTrafficSecret(clientApplicationTraffic);
-		serverApplicationTraffic = v13NextApplicationTrafficSecret(serverApplicationTraffic);
+	public void nextApplicationTrafficSecret() throws Exception {
+		clientApplicationTraffic = nextApplicationTrafficSecret(clientApplicationTraffic);
+		serverApplicationTraffic = nextApplicationTrafficSecret(serverApplicationTraffic);
 	}
 
-	public byte[] v13ExporterMasterSecret() throws Exception {
-		return v13ExporterMasterSecret(master, hash());
+	public byte[] clientApplicationWriteKey(CipherSuiteType type) throws Exception {
+		return writeKey(clientApplicationTraffic, type.key());
 	}
 
-	public byte[] v13ResumptionMasterSecret() throws Exception {
-		return master = v13ResumptionMasterSecret(master, hash());
+	public byte[] clientApplicationWriteIV(CipherSuiteType type) throws Exception {
+		return writeIV(clientApplicationTraffic, type.iv());
 	}
 
-	public byte[] v13ResumptionSecret(byte[] ticket_nonce) throws Exception {
-		ticket_nonce = v13ResumptionSecret(master, ticket_nonce);
+	public byte[] serverApplicationWriteKey(CipherSuiteType type) throws Exception {
+		return writeKey(serverApplicationTraffic, type.key());
+	}
+
+	public byte[] serverApplicationWriteIV(CipherSuiteType type) throws Exception {
+		return writeIV(serverApplicationTraffic, type.iv());
+	}
+
+	public byte[] exporterMasterSecret() throws Exception {
+		return exporterMasterSecret(master, hash());
+	}
+
+	public byte[] resumptionMasterSecret() throws Exception {
+		return master = resumptionMasterSecret(master, hash());
+	}
+
+	public byte[] resumptionSecret(byte[] ticket_nonce) throws Exception {
+		ticket_nonce = resumptionSecret(master, ticket_nonce);
 		return ticket_nonce;
 	}
 
-	public byte[] v13ResumptionBinderKey() throws Exception {
-		return v13FinishedVerifyData(v13ResumptionBinderKey(early), hash());
+	public byte[] resumptionBinderKey() throws Exception {
+		return finishedVerifyData(resumptionBinderKey(early), hash());
 	}
 
-	public byte[] v13ClientEarlyTrafficSecret() throws Exception {
-		return v13ClientEarlyTrafficSecret(early, hash());
+	public byte[] clientEarlyTrafficSecret() throws Exception {
+		return clientEarlyTrafficSecret(early, hash());
 	}
 
-	public byte[] v13EarlyExporterMasterSecret() throws Exception {
-		return v13EarlyExporterMasterSecret(early, hash());
+	public byte[] earlyExporterMasterSecret() throws Exception {
+		return earlyExporterMasterSecret(early, hash());
 	}
 }
