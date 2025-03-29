@@ -57,6 +57,7 @@ class V0SecretCache extends V0DeriveSecret {
 	private byte[] pms;
 	private byte[] master;
 	private byte[] block;
+	private byte[] clientRandom, serverRandom;
 
 	public byte[] pms() {
 		return pms;
@@ -79,7 +80,7 @@ class V0SecretCache extends V0DeriveSecret {
 	}
 
 	/** RSA(pms) / Diffie-Hellman(key) */
-	public byte[] masterSecret(byte[] clientRandom, byte[] serverRandom) throws Exception {
+	public byte[] masterSecret() throws Exception {
 		return master = super.masterSecret(pms, clientRandom, serverRandom);
 	}
 
@@ -92,7 +93,7 @@ class V0SecretCache extends V0DeriveSecret {
 	}
 
 	/** key_block */
-	public byte[] keyBlock(CipherSuiteType type, byte[] serverRandom, byte[] clientRandom) throws Exception {
+	public byte[] keyBlock(CipherSuiteType type) throws Exception {
 		return block = keyBlock(master, serverRandom, clientRandom, keyBlockLength(type));
 	}
 
@@ -117,12 +118,18 @@ class V0SecretCache extends V0DeriveSecret {
 	}
 
 	/** client_write_key */
-	public byte[] clientWriteKey(CipherSuiteType type) {
+	public byte[] clientWriteKey(CipherSuiteType type) throws Exception {
+		if (type.exportable()) {
+			return finalClientWriteKey(clientWriteKey(block, type.hash(), type.key()), clientRandom, serverRandom, type.key());
+		}
 		return clientWriteKey(block, type.hash(), type.key());
 	}
 
 	/** server_write_key */
-	public byte[] serverWriteKey(CipherSuiteType type) {
+	public byte[] serverWriteKey(CipherSuiteType type) throws Exception {
+		if (type.exportable()) {
+			return finalServerWriteKey(serverWriteKey(block, type.hash(), type.key()), clientRandom, serverRandom, type.key());
+		}
 		return serverWriteKey(block, type.hash(), type.key());
 	}
 
@@ -144,5 +151,13 @@ class V0SecretCache extends V0DeriveSecret {
 	/** master_secret -> verify_data */
 	protected byte[] clientFinished() throws Exception {
 		return clientFinished(master, hashMD5(), hashSHA());
+	}
+
+	public void serverRandom(byte[] value) {
+		serverRandom = value;
+	}
+
+	public void clientRandom(byte[] value) {
+		clientRandom = value;
 	}
 }

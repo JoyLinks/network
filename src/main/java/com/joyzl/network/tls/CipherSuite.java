@@ -568,18 +568,4 @@ public interface CipherSuite {
 		}
 		return -1;
 	}
-
-	/**
-	 * 匹配
-	 */
-	public static short match(short suite, short[] others) {
-		// for (int i = 0; i < V13.length; i++) {
-		// for (int s = 0; s < others.length; s++) {
-		// if (V13[i] == others[s]) {
-		// return others[s];
-		// }
-		// }
-		// }
-		return 0;
-	}
 }

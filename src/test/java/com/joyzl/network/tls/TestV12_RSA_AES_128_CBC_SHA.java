@@ -225,6 +225,12 @@ public class TestV12_RSA_AES_128_CBC_SHA extends TestHelper {
 		clientSecret.initialize(type);
 		serverSecret.initialize(type);
 
+		clientSecret.clientRandom(clientRandom);
+		clientSecret.serverRandom(serverRandom);
+
+		serverSecret.clientRandom(clientRandom);
+		serverSecret.serverRandom(serverRandom);
+
 		clientSecret.pms(preMasterSecret);
 		serverSecret.pms(preMasterSecret);
 
@@ -250,16 +256,16 @@ public class TestV12_RSA_AES_128_CBC_SHA extends TestHelper {
 		assertArrayEquals(serverSecret.hash(), session_hash);
 
 		final byte[] master_secret = bytes("7bb571f36c38efba3eb95f5871391830116985671f8cb10de01c71c74319c49f9d2baaf1071490a19999ea56bf1e03dc");
-		clientSecret.masterSecret();
+		clientSecret.extendedMasterSecret();
 		assertArrayEquals(clientSecret.master(), master_secret);
-		serverSecret.masterSecret();
+		serverSecret.extendedMasterSecret();
 		assertArrayEquals(serverSecret.master(), master_secret);
 
 		// 104=MAC(20)*2+KEY(16)*2+IV(16)*2
 		assertEquals(clientSecret.keyBlockLength(type), 104);
-		clientSecret.keyBlock(type, serverRandom, clientRandom);
+		clientSecret.keyBlock(type);
 		assertEquals(serverSecret.keyBlockLength(type), 104);
-		serverSecret.keyBlock(type, serverRandom, clientRandom);
+		serverSecret.keyBlock(type);
 
 		// client_write_MAC_key[20]：0d19a4197332db8266200724604c063d8cf116ff
 		assertArrayEquals(clientSecret.clientWriteMACKey(type), bytes("0d19a4197332db8266200724604c063d8cf116ff"));
@@ -275,8 +281,8 @@ public class TestV12_RSA_AES_128_CBC_SHA extends TestHelper {
 		final V2CipherSuiter client = new V2CipherSuiter();
 		final V2CipherSuiter server = new V2CipherSuiter();
 
-		client.suite(type);
-		server.suite(type);
+		client.initialize(type);
+		server.initialize(type);
 
 		client.encryptReset(clientSecret.clientWriteKey(type), clientSecret.clientWriteIV(type));
 		client.encryptMACKey(clientSecret.clientWriteMACKey(type));

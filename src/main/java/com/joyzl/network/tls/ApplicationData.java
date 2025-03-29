@@ -26,6 +26,8 @@ class ApplicationData extends Record {
 
 	private ApplicationData() {
 		// 无须额外实例化此对象
+		// 实际应用数据已由高层协议实例为特定对象
+		// 此对象仅作应用层零数据时使用
 		// 在记录层编码解码时包装或剥离
 	}
 

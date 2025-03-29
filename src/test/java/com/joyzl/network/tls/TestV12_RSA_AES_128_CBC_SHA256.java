@@ -356,13 +356,19 @@ public class TestV12_RSA_AES_128_CBC_SHA256 extends TestHelper {
 		clientSecret.initialize(type);
 		serverSecret.initialize(type);
 
+		clientSecret.clientRandom(clientRandom);
+		clientSecret.serverRandom(serverRandom);
+
+		serverSecret.clientRandom(clientRandom);
+		serverSecret.serverRandom(serverRandom);
+
 		clientSecret.pms(preMasterSecret);
-		clientSecret.masterSecret(clientRandom, serverRandom);
-		clientSecret.keyBlock(type, serverRandom, clientRandom);
+		clientSecret.masterSecret();
+		clientSecret.keyBlock(type);
 
 		serverSecret.pms(preMasterSecret);
-		serverSecret.masterSecret(clientRandom, serverRandom);
-		serverSecret.keyBlock(type, serverRandom, clientRandom);
+		serverSecret.masterSecret();
+		serverSecret.keyBlock(type);
 
 		// 验证密钥导出
 
@@ -413,8 +419,8 @@ public class TestV12_RSA_AES_128_CBC_SHA256 extends TestHelper {
 		final V2CipherSuiter client = new V2CipherSuiter();
 		final V2CipherSuiter server = new V2CipherSuiter();
 
-		client.suite(type);
-		server.suite(type);
+		client.initialize(type);
+		server.initialize(type);
 
 		client.encryptReset(clientSecret.clientWriteKey(type), clientSecret.clientWriteIV(type));
 		client.encryptMACKey(clientSecret.clientWriteMACKey(type));

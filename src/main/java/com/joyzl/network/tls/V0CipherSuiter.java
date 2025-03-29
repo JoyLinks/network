@@ -20,8 +20,8 @@ class V0CipherSuiter extends CipherSuiter {
 
 	private Mac mac;
 
-	public void suite(CipherSuiteType type) throws Exception {
-		super.suite(type);
+	public void initialize(CipherSuiteType type) throws Exception {
+		super.initialize(type);
 		// 消息签名使用密码套件算法
 		// SecurityParameters.mac_algorithm
 		// SecurityParameters.mac_length

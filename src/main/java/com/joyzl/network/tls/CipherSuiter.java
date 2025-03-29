@@ -51,6 +51,20 @@ abstract class CipherSuiter implements CipherSuite {
 		return null;
 	}
 
+	/**
+	 * 匹配密码套件
+	 */
+	public static short match(short[] suites, short[] others) {
+		for (int i = 0; i < suites.length; i++) {
+			for (int s = 0; s < others.length; s++) {
+				if (suites[i] == others[s]) {
+					return others[s];
+				}
+			}
+		}
+		return 0;
+	}
+
 	////////////////////////////////////////////////////////////////////////////////
 
 	protected CipherSuiteType type = CipherSuiteType.TLS_NULL_WITH_NULL_NULL;
@@ -64,11 +78,11 @@ abstract class CipherSuiter implements CipherSuite {
 	protected Key encryptKey;
 	protected Key decryptKey;
 
-	public void suite(short code) throws Exception {
-		suite(CipherSuiteType.valueOf(code));
+	public void initialize(short code) throws Exception {
+		initialize(CipherSuiteType.valueOf(code));
 	}
 
-	public void suite(CipherSuiteType type) throws Exception {
+	public void initialize(CipherSuiteType type) throws Exception {
 		if (type != this.type) {
 			this.type = type;
 

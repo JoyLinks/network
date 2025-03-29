@@ -7,6 +7,11 @@ package com.joyzl.network.tls;
  */
 public enum CipherSuiteType {
 	// TLS_KeyExchange_Signature_WITH_Cipher_Hash
+	// CBC:cipher block chaining
+	// DES:Data Encryption Standard
+	// DSS:Digital Signature Standard
+	// IV:Initialization Vector
+	// AES:Advanced Encryption Standard
 
 	TLS_NULL_WITH_NULL_NULL(CipherSuite.TLS_NULL_WITH_NULL_NULL, 0, 0, false, null, null, null, null, 0, 0, 0, 0, 0),
 

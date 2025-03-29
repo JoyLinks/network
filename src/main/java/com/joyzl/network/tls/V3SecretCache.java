@@ -80,6 +80,7 @@ class V3SecretCache extends V3DeriveSecret {
 	private byte[] handshake;
 	private byte[] clientHandshakeTraffic, clientApplicationTraffic;
 	private byte[] serverHandshakeTraffic, serverApplicationTraffic;
+	private byte[] clientEarlyTraffic;
 
 	public void initialize(CipherSuiteType type) throws Exception {
 		initialize(type.macAlgorithm(), type.digestAlgorithm());
@@ -220,7 +221,15 @@ class V3SecretCache extends V3DeriveSecret {
 	}
 
 	public byte[] clientEarlyTrafficSecret() throws Exception {
-		return clientEarlyTrafficSecret(early, hash());
+		return clientEarlyTraffic = clientEarlyTrafficSecret(early, hash());
+	}
+
+	public byte[] clientEarlyWriteKey(CipherSuiteType type) throws Exception {
+		return writeKey(clientEarlyTraffic, type.key());
+	}
+
+	public byte[] clientEarlyWriteIV(CipherSuiteType type) throws Exception {
+		return writeIV(clientEarlyTraffic, type.iv());
 	}
 
 	public byte[] earlyExporterMasterSecret() throws Exception {

@@ -41,8 +41,6 @@ import com.joyzl.network.buffer.DataBuffer;
  */
 public class TCPSlave extends Slave {
 
-	private final static Object BUSY = new Object();
-
 	private final SocketAddress remote;
 	private final AsynchronousSocketChannel socketChannel;
 	private volatile boolean connected = true;
@@ -97,32 +95,25 @@ public class TCPSlave extends Slave {
 	 * 当前收到的消息
 	 */
 	public Object receiveMessage() {
-		if (receiveMessage == BUSY) {
-			return null;
-		}
 		return receiveMessage;
 	}
 
 	/**
 	 * 从网络接收数据
-	 * <p>
-	 * 此方法不是多线程安全的，调用者应确保上一次数据接收返回之后才能再次接收数据
-	 * </p>
 	 */
 	@Override
 	public void receive() {
 		if (connected) {
 			if (receiveMessage == null) {
-				receiveMessage = BUSY;
 				if (read == null) {
 					read = DataBuffer.instance();
+					// SocketChannel不能投递多个接收操作，否则会收到ReadPendingException异常
+					socketChannel.read(//
+						read.write(), // ByteBuffer
+						handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
+						this, SlaveReceiveHandler.INSTANCE // Handler
+					);
 				}
-				// SocketChannel不能投递多个接收操作，否则会收到ReadPendingException异常
-				socketChannel.read(//
-					read.write(), // ByteBuffer
-					handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
-					this, SlaveReceiveHandler.INSTANCE // Handler
-				);
 			}
 		}
 	}
@@ -133,9 +124,10 @@ public class TCPSlave extends Slave {
 			read.written(size);
 			try {
 				// 多次请求解包直到没有对象返回
+				// 在数据包粘连的情况下，可能会接收到两个数据包的数据
+				// 在数据包截断的情况下，可能会收到半个数据包
 				while (true) {
 					size = read.readable();
-					// 在数据包粘连的情况下，可能会接收到两个数据包的数据
 					receiveMessage = handler().decode(this, read);
 					if (receiveMessage == null) {
 						// 数据未能解析消息对象,继续接收数据
@@ -156,16 +148,22 @@ public class TCPSlave extends Slave {
 						}
 					}
 				}
-				// 继续接收数据
-				socketChannel.read(//
-					read.write(), // ByteBuffer
-					handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
-					this, SlaveReceiveHandler.INSTANCE // Handler
-				);
+				if (connected) {
+					// 继续接收数据
+					socketChannel.read(//
+						read.write(), // ByteBuffer
+						handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
+						this, SlaveReceiveHandler.INSTANCE // Handler
+					);
+				} else {
+					read.release();
+					read = null;
+				}
 			} catch (Exception e) {
 				read.release();
 				read = null;
 				handler().error(this, e);
+				close();
 			}
 		} else if (size == 0) {
 			// 没有数据并且没有达到流的末端时返回0
@@ -174,6 +172,7 @@ public class TCPSlave extends Slave {
 			read.release();
 			read = null;
 			handler().error(this, new IllegalStateException("TCPSlave:零读"));
+			close();
 		} else {
 			// 链路被关闭
 			read.release();
@@ -224,9 +223,6 @@ public class TCPSlave extends Slave {
 
 	/**
 	 * 发送数据到网络
-	 * <p>
-	 * 此方法不是多线程安全的，调用者应确保上一次发送返回后才能执行下一个消息发送。
-	 * </p>
 	 */
 	@Override
 	public void send(Object message) {
@@ -256,10 +252,10 @@ public class TCPSlave extends Slave {
 					close();
 				}
 			} else {
-				System.out.println(message);
+				throw new IllegalStateException("TCPSlave:发送冲突" + message);
 			}
 		} else {
-			System.out.println(message);
+			throw new IllegalStateException("TCPSlave:连接断开" + message);
 		}
 	}
 
@@ -277,9 +273,9 @@ public class TCPSlave extends Slave {
 			} else {
 				// 数据已发完
 				// 必须在通知处理对象之前清空当前消息关联
-				final Object message = sendMessage;
 				write.release();
 				write = null;
+				final Object message = sendMessage;
 				sendMessage = null;
 				try {
 					handler().sent(this, message);

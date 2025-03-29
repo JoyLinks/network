@@ -29,8 +29,8 @@ class V3CipherSuiter extends CipherSuiter {
 
 	////////////////////////////////////////////////////////////////////////////////
 
-	public void suite(short code) throws Exception {
-		suite(CipherSuiter.find(code, V13));
+	public void initialize(short code) throws Exception {
+		initialize(CipherSuiter.find(code, V13));
 	}
 
 	/**

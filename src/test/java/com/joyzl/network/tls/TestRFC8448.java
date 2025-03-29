@@ -988,8 +988,8 @@ class TestRFC8448 {
 		final DataBuffer buffer = DataBuffer.instance();
 		final DataBuffer temp = DataBuffer.instance();
 
-		server.suite(CipherSuite.TLS_AES_128_GCM_SHA256);
-		client.suite(CipherSuite.TLS_AES_128_GCM_SHA256);
+		server.initialize(CipherSuite.TLS_AES_128_GCM_SHA256);
+		client.initialize(CipherSuite.TLS_AES_128_GCM_SHA256);
 
 		////////////////////////////////////////////////////////////////////////////////
 		// Simple 1-RTT Handshake

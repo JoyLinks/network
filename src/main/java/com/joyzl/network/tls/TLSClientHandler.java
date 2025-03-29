@@ -9,27 +9,33 @@ import com.joyzl.network.chain.ChainHandler;
  * 
  * @author ZhangXi 2025年3月10日
  */
-public class TLSClientHandler implements ChainHandler {
+public class TLSClientHandler extends TLS implements ChainHandler {
 
-	// 各版本共享对象
+	// 各版本共享
+	private final ChainHandler handler;
 	private final TLSParameters parameters;
 	private final TLSShare share;
-
+	// 各版本实例
 	private final V3ClientHandler v3;
 	private final V2ClientHandler v2;
-	private final V0ClientHandler v1;
-	private ChainHandler tls;
+	private final V1ClientHandler v1;
+	private final V0ClientHandler v0;
+	// 当前版本和实例
+	private ChainHandler current;
 	private short version;
 
 	public TLSClientHandler(ChainHandler handler, TLSParameters parameters) {
 		this.share = new TLSShare();
 		this.parameters = parameters;
+		this.handler = handler;
 
 		v3 = new V3ClientHandler(handler, parameters, share);
 		v2 = new V2ClientHandler(handler, parameters, share);
-		v1 = new V0ClientHandler(handler, parameters, share);
+		v1 = new V1ClientHandler(handler, parameters, share);
+		v0 = new V0ClientHandler(handler, parameters, share);
 		// 默认采用1.3版本
-		tls = v3;
+		// 即便版本协商失败也应用最高版本发送失败消息
+		current = v3;
 	}
 
 	public TLSClientHandler(ChainHandler handler) {
@@ -38,76 +44,82 @@ public class TLSClientHandler implements ChainHandler {
 
 	@Override
 	public long getTimeoutRead() {
-		return tls.getTimeoutRead();
+		return handler.getTimeoutRead();
 	}
 
 	@Override
 	public long getTimeoutWrite() {
-		return tls.getTimeoutWrite();
+		return handler.getTimeoutWrite();
 	}
 
 	@Override
 	public void disconnected(ChainChannel chain) throws Exception {
-		tls.disconnected(chain);
+		current.disconnected(chain);
 		version = 0;
 	}
 
 	@Override
 	public void connected(ChainChannel chain) throws Exception {
-		tls.connected(chain);
+		current.connected(chain);
 	}
 
 	@Override
 	public Object decode(ChainChannel chain, DataBuffer buffer) throws Exception {
-		return tls.decode(chain, buffer);
+		return current.decode(chain, buffer);
 	}
 
 	@Override
 	public DataBuffer encode(ChainChannel chain, Object message) throws Exception {
-		return tls.encode(chain, message);
+		return current.encode(chain, message);
 	}
 
 	@Override
 	public void received(ChainChannel chain, Object message) throws Exception {
 		if (version <= 0) {
-			if (message instanceof Handshake handshake) {
-				if (handshake.msgType() == Handshake.SERVER_HELLO) {
-					final ServerHello hello = (ServerHello) handshake;
-					final SelectedVersion selected = hello.getExtension(Extension.SUPPORTED_VERSIONS);
-					if (selected != null) {
-						version = selected.get();
-					} else {
-						version = hello.getVersion();
-					}
-					if (version == TLS.V13) {
-						tls = v3;
-					} else if (version == TLS.V12) {
-						tls = v2;
-					} else if (version == TLS.V11 || version == TLS.V10) {
-						tls = v1;
-					} else {
-						chain.send(new Alert(Alert.PROTOCOL_VERSION));
-						return;
-					}
+			// ClientHello和ServerHello在各个版本兼容
+			// 首先协商版本，之后切换为协商版本执行后续握手和通信
+			// ***Hello消息待协商密码套件后执行消息摘要计算，由TLSShare对象提供消息缓存
+			if (message instanceof ServerHello) {
+				final ServerHello hello = (ServerHello) message;
+				final SelectedVersion selected = hello.getExtension(Extension.SUPPORTED_VERSIONS);
+				if (selected != null) {
+					version = selected.get();
+				} else {
+					version = hello.getVersion();
 				}
+				if (version == V13) {
+					current = v3;
+				} else if (version == V12) {
+					current = v2;
+				} else if (version == V11) {
+					current = v1;
+				} else if (version == V10) {
+					current = v0;
+				} else {
+					chain.send(new Alert(Alert.PROTOCOL_VERSION));
+					return;
+				}
+			} else {
+				chain.send(new Alert(Alert.UNEXPECTED_MESSAGE));
+				return;
 			}
 		}
-		tls.received(chain, message);
+		current.received(chain, message);
 	}
 
 	@Override
 	public void sent(ChainChannel chain, Object message) throws Exception {
-		tls.sent(chain, message);
+		current.sent(chain, message);
 	}
 
 	@Override
 	public void beat(ChainChannel chain) throws Exception {
-		tls.beat(chain);
+		current.beat(chain);
 	}
 
 	@Override
 	public void error(ChainChannel chain, Throwable e) {
-		tls.error(chain, e);
+		current.error(chain, e);
 	}
 
 	public TLSParameters getParameters() {

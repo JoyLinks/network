@@ -41,8 +41,6 @@ import com.joyzl.network.buffer.DataBuffer;
  */
 public class TCPLink extends Client {
 
-	private final static Object BUSY = new Object();
-
 	private final InetSocketAddress remote;
 	private AsynchronousSocketChannel socket_channel;
 	private volatile boolean connected = false;
@@ -165,17 +163,11 @@ public class TCPLink extends Client {
 	 * 当前收到的消息
 	 */
 	public Object receiveMessage() {
-		if (receiveMessage == BUSY) {
-			return null;
-		}
 		return receiveMessage;
 	}
 
 	/**
 	 * 从网络接收数据
-	 * <p>
-	 * 此方法不是多线程安全的，调用者应确保上一次数据接收返回之后才能再次接收数据
-	 * </p>
 	 */
 	@Override
 	public void receive() {
@@ -299,9 +291,6 @@ public class TCPLink extends Client {
 
 	/**
 	 * 发送数据到网络
-	 * <p>
-	 * 此方法不是多线程安全的，调用者应确保上一次发送返回后才能执行下一个消息发送。
-	 * </p>
 	 */
 	@Override
 	public void send(Object message) {
@@ -331,10 +320,10 @@ public class TCPLink extends Client {
 					reset();
 				}
 			} else {
-				System.out.println(message);
+				throw new IllegalStateException("TCPLink:发送冲突" + message);
 			}
 		} else {
-			System.out.println(message);
+			throw new IllegalStateException("TCPLink:还未连接" + message);
 		}
 	}
 
@@ -352,9 +341,9 @@ public class TCPLink extends Client {
 			} else {
 				// 数据已发完
 				// 必须在通知处理对象之前清空当前消息关联
-				final Object message = sendMessage;
 				write.release();
 				write = null;
+				final Object message = sendMessage;
 				sendMessage = null;
 				try {
 					handler().sent(this, message);

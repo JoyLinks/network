@@ -88,25 +88,26 @@ public class V2ClientHandler implements ChainHandler {
 		hello.addExtension(new RenegotiationInfo());
 		hello.addExtension(new SessionTicket());
 
+		secret.clientRandom(hello.getRandom());
+
 		// SESSION TICKET
 		final NewSessionTicket1 ticket = ClientSessionTickets.get1(share.getServerName());
 		if (ticket != null) {
 			final SessionTicket st = hello.getExtension(Extension.SESSION_TICKET);
 			st.setTicket(ticket.getTicket());
-			cipher.suite(ticket.getSuite());
+			cipher.initialize(ticket.getSuite());
 			secret.master(ticket.getResumption());
 		} else {
 			// SESSION ID
 			hello.setSessionId(sessionId);
 			if (hello.hasSessionId()) {
-				cipher.suite(cipher.type().code());
+				cipher.initialize(cipher.type().code());
 				secret.master(secret.master());
 			} else {
-				cipher.suite(CipherSuiter.TLS_NULL_WITH_NULL_NULL);
+				cipher.initialize(CipherSuiter.TLS_NULL_WITH_NULL_NULL);
 				secret.pms(null);
 			}
 		}
-		clientVerify = hello.getRandom();
 
 		chain.send(hello);
 		chain.receive();
@@ -279,11 +280,11 @@ public class V2ClientHandler implements ChainHandler {
 
 			// 导出客户端密钥
 			if (extendedMasterSecret) {
-				secret.masterSecret();
-				secret.keyBlock(cipher.type(), serverVerify, clientVerify);
+				secret.extendedMasterSecret();
+				secret.keyBlock(cipher.type());
 			} else {
-				secret.masterSecret(clientVerify, serverVerify);
-				secret.keyBlock(cipher.type(), serverVerify, clientVerify);
+				secret.masterSecret();
+				secret.keyBlock(cipher.type());
 			}
 		} else if (handshake.msgType() == Handshake.FINISHED) {
 			final Finished finished = (Finished) handshake;
@@ -364,9 +365,9 @@ public class V2ClientHandler implements ChainHandler {
 				return new Alert(Alert.PROTOCOL_VERSION);
 			}
 
-			cipher.suite(hello.getCipherSuite());
+			cipher.initialize(hello.getCipherSuite());
 			secret.initialize(cipher.type());
-			serverVerify = hello.getRandom();
+			secret.serverRandom(hello.getRandom());
 
 			if (share.getClientHello() != null) {
 				secret.hash(share.getClientHello());
@@ -395,7 +396,7 @@ public class V2ClientHandler implements ChainHandler {
 					// 通过会话标识恢复
 					if (secret.master() != null) {
 						// 导出客户端密钥
-						secret.keyBlock(cipher.type(), serverVerify, clientVerify);
+						secret.keyBlock(cipher.type());
 						return null;
 					} else {
 						// 继续常规握手
@@ -420,7 +421,7 @@ public class V2ClientHandler implements ChainHandler {
 					// 执行票据恢复
 					if (secret.master() != null) {
 						// 导出客户端密钥
-						secret.keyBlock(cipher.type(), serverVerify, clientVerify);
+						secret.keyBlock(cipher.type());
 						return null;
 					} else {
 						// 继续常规握手

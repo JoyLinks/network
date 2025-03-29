@@ -109,6 +109,11 @@ public abstract class Chain {
 
 	private Context context;
 
+	/** 获取是否至少有一个关联对象实例 */
+	public boolean hasContext() {
+		return context != null;
+	}
+
 	/**
 	 * 获取链路关联的对象实例，如果找不到指定类型的实例将返回空(null)
 	 */
@@ -173,6 +178,8 @@ public abstract class Chain {
 		@SuppressWarnings("unchecked")
 		public <T> T get(Class<T> cs) {
 			if (o.getClass() == cs) {
+				return (T) o;
+			} else if (cs.isInstance(o)) {
 				return (T) o;
 			} else if (c != null) {
 				return c.get(cs);

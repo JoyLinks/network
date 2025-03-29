@@ -57,6 +57,7 @@ class V2SecretCache extends V2DeriveSecret {
 	private byte[] pms;
 	private byte[] master;
 	private byte[] block;
+	private byte[] clientRandom, serverRandom;
 
 	public byte[] pms() {
 		return pms;
@@ -98,12 +99,12 @@ class V2SecretCache extends V2DeriveSecret {
 	}
 
 	/** RSA(pms) / Diffie-Hellman(key) */
-	public byte[] masterSecret(byte[] clientRandom, byte[] serverRandom) throws Exception {
+	public byte[] masterSecret() throws Exception {
 		return master = super.masterSecret(pms, clientRandom, serverRandom);
 	}
 
 	/** RSA(pms) / Diffie-Hellman(key) */
-	public byte[] masterSecret() throws Exception {
+	public byte[] extendedMasterSecret() throws Exception {
 		return master = super.masterSecret(pms, hash());
 	}
 
@@ -116,7 +117,7 @@ class V2SecretCache extends V2DeriveSecret {
 	}
 
 	/** key_block */
-	public byte[] keyBlock(CipherSuiteType type, byte[] serverRandom, byte[] clientRandom) throws Exception {
+	public byte[] keyBlock(CipherSuiteType type) throws Exception {
 		return block = keyBlock(master, serverRandom, clientRandom, keyBlockLength(type));
 	}
 
@@ -168,5 +169,13 @@ class V2SecretCache extends V2DeriveSecret {
 	/** master_secret -> verify_data */
 	protected byte[] clientFinished() throws Exception {
 		return clientFinished(master, hash());
+	}
+
+	public void serverRandom(byte[] value) {
+		serverRandom = value;
+	}
+
+	public void clientRandom(byte[] value) {
+		clientRandom = value;
 	}
 }

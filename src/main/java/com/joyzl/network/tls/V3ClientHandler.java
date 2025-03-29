@@ -74,7 +74,7 @@ public class V3ClientHandler implements ChainHandler {
 		final NewSessionTicket2 ticket = ClientSessionTickets.get2(share.getServerName());
 		if (ticket != null) {
 			// 0-RTT
-			cipher.suite(ticket.getSuite());
+			cipher.initialize(ticket.getSuite());
 
 			// Key Share
 			key = new V3KeyExchange(NamedGroup.X25519);
@@ -434,7 +434,7 @@ public class V3ClientHandler implements ChainHandler {
 					return new Alert(Alert.ILLEGAL_PARAMETER);
 				}
 				if (hello.getCipherSuite() > 0) {
-					cipher.suite(hello.getCipherSuite());
+					cipher.initialize(hello.getCipherSuite());
 					secret.initialize(cipher.type());
 				} else {
 					return new Alert(Alert.ILLEGAL_PARAMETER);
@@ -486,7 +486,7 @@ public class V3ClientHandler implements ChainHandler {
 						return new Alert(Alert.ILLEGAL_PARAMETER);
 					}
 					// 继续常规握手
-					cipher.suite(hello.getCipherSuite());
+					cipher.initialize(hello.getCipherSuite());
 					secret.initialize(cipher.type());
 				}
 

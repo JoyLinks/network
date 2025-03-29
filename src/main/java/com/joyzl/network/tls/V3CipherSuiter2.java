@@ -46,10 +46,10 @@ class V3CipherSuiter2 extends CipherSuiter {
 	}
 
 	public V3CipherSuiter2(short code) throws Exception {
-		suite(code);
+		initialize(code);
 	}
 
-	public void suite(short code) throws Exception {
+	public void initialize(short code) throws Exception {
 		type = CipherSuiter.find(code, V13);
 		if (type != null) {
 			encryptKey = null;

@@ -188,18 +188,25 @@ class TestV12_DHE_RSA_WITH_AES_128_CBC_SHA256 extends TestHelper {
 		final CipherSuiteType type = CipherSuiteType.TLS_DHE_RSA_WITH_AES_128_CBC_SHA256;
 		final V2SecretCache client = new V2SecretCache();
 		final V2SecretCache server = new V2SecretCache();
+
 		client.initialize(type);
 		server.initialize(type);
+
+		client.clientRandom(clientRandom);
+		client.serverRandom(serverRandom);
+
+		server.clientRandom(clientRandom);
+		server.serverRandom(serverRandom);
 
 		client.pms(preMasterSecret);
 		server.pms(preMasterSecret);
 
-		client.masterSecret(clientRandom, serverRandom);
-		client.keyBlock(type, serverRandom, clientRandom);
+		client.masterSecret();
+		client.keyBlock(type);
 		assertArrayEquals(client.master(), master);
 
-		server.masterSecret(clientRandom, serverRandom);
-		server.keyBlock(type, serverRandom, clientRandom);
+		server.masterSecret();
+		server.keyBlock(type);
 		assertArrayEquals(client.master(), master);
 	}
 

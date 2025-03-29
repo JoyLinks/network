@@ -65,8 +65,8 @@ class TestCipherSuiter {
 		final V3CipherSuiter server = new V3CipherSuiter();
 		final V3CipherSuiter client = new V3CipherSuiter();
 
-		server.suite(suite);
-		client.suite(suite);
+		server.initialize(suite);
+		client.initialize(suite);
 		serverSC.initialize(server.type());
 		clientSC.initialize(client.type());
 
@@ -81,6 +81,8 @@ class TestCipherSuiter {
 		server.encryptReset(serverSC.serverApplicationWriteKey(server.type()), serverSC.serverApplicationWriteIV(server.type()));
 		server.decryptReset(serverSC.clientApplicationWriteKey(server.type()), serverSC.clientApplicationWriteIV(server.type()));
 
+		clientSC.serverApplicationTrafficSecret();
+		clientSC.clientApplicationTrafficSecret();
 		client.encryptReset(clientSC.clientApplicationWriteKey(client.type()), clientSC.clientApplicationWriteIV(client.type()));
 		client.decryptReset(clientSC.serverApplicationWriteKey(client.type()), clientSC.serverApplicationWriteIV(client.type()));
 
@@ -190,8 +192,8 @@ class TestCipherSuiter {
 		final V2CipherSuiter client = new V2CipherSuiter();
 		final V2CipherSuiter server = new V2CipherSuiter();
 
-		client.suite(code);
-		server.suite(code);
+		client.initialize(code);
+		server.initialize(code);
 
 		final byte[] client_write_key = new byte[client.keyLength()];
 		final byte[] server_write_key = new byte[client.keyLength()];
@@ -229,8 +231,8 @@ class TestCipherSuiter {
 		final V2CipherSuiter client = new V2CipherSuiter();
 		final V2CipherSuiter server = new V2CipherSuiter();
 
-		client.suite(code);
-		server.suite(code);
+		client.initialize(code);
+		server.initialize(code);
 
 		final byte[] client_write_key = new byte[client.keyLength()];
 		final byte[] server_write_key = new byte[client.keyLength()];
@@ -274,8 +276,8 @@ class TestCipherSuiter {
 		final V2CipherSuiter client = new V2CipherSuiter();
 		final V2CipherSuiter server = new V2CipherSuiter();
 
-		client.suite(code);
-		server.suite(code);
+		client.initialize(code);
+		server.initialize(code);
 
 		final byte[] client_write_key = new byte[client.keyLength()];
 		final byte[] server_write_key = new byte[client.keyLength()];
