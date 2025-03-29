@@ -1,0 +1,148 @@
+package com.joyzl.network.tls;
+
+/**
+ * TLS 1.3 具有状态的密钥处理类
+ * 
+ * @author ZhangXi 2024年12月30日
+ */
+class V0SecretCache extends V0DeriveSecret {
+
+	/*-
+	 * TLS 1.0 握手与加解密切换
+	 * 
+	 * Client-----------------------------------------------Server
+	 * ClientHello               -------->
+	 *                                                 ServerHello
+	 *                                                Certificate*
+	 *                                          ServerKeyExchange*
+	 *                                         CertificateRequest*
+	 *                           <--------         ServerHelloDone
+	 * Certificate*
+	 * ClientKeyExchange
+	 * CertificateVerify*
+	 * [ChangeCipherSpec]
+	 * Finished                  -------->
+	 *                                          [ChangeCipherSpec]
+	 *                           <--------                Finished
+	 * Application Data          <------->        Application Data
+	 * 
+	 * -------------------------Session ID------------------------
+	 * ClientHello                ------->
+	 *                                                 ServerHello
+	 *                                          [ChangeCipherSpec]
+	 *                           <--------                Finished
+	 * [ChangeCipherSpec]
+	 * Finished                  -------->
+	 * Application Data          <------->        Application Data
+	 * -----------------------Session Ticket----------------------
+	 * ClientHello
+	 * (empty SessionTicket extension)-------->
+	 *                                                 ServerHello
+	 *                             (empty SessionTicket extension)
+	 *                                                Certificate*
+	 *                                          ServerKeyExchange*
+	 *                                         CertificateRequest*
+	 *                              <--------      ServerHelloDone
+	 * Certificate*
+	 * ClientKeyExchange
+	 * CertificateVerify*
+	 * [ChangeCipherSpec]
+	 * Finished                     -------->
+	 * 											  NewSessionTicket
+	 *                                          [ChangeCipherSpec]
+	 *                              <--------             Finished
+	 * Application Data             <------->     Application Data
+	 */
+
+	private byte[] pms;
+	private byte[] master;
+	private byte[] block;
+
+	public byte[] pms() {
+		return pms;
+	}
+
+	public void pms(byte[] value) {
+		master = null;
+		block = null;
+		pms = value;
+	}
+
+	public byte[] master() {
+		return master;
+	}
+
+	public void master(byte[] value) {
+		master = value;
+		block = null;
+		pms = null;
+	}
+
+	/** RSA(pms) / Diffie-Hellman(key) */
+	public byte[] masterSecret(byte[] clientRandom, byte[] serverRandom) throws Exception {
+		return master = super.masterSecret(pms, clientRandom, serverRandom);
+	}
+
+	public boolean hasBlock() {
+		return block != null;
+	}
+
+	public byte[] block() {
+		return block;
+	}
+
+	/** key_block */
+	public byte[] keyBlock(CipherSuiteType type, byte[] serverRandom, byte[] clientRandom) throws Exception {
+		return block = keyBlock(master, serverRandom, clientRandom, keyBlockLength(type));
+	}
+
+	int keyBlockLength(CipherSuiteType type) {
+		// client_write_MAC_key [SecurityParameters.mac_key_length]
+		// server_write_MAC_key [SecurityParameters.mac_key_length]
+		// client_write_key [SecurityParameters.enc_key_length]
+		// server_write_key [SecurityParameters.enc_key_length]
+		// client_write_IV [SecurityParameters.fixed_iv_length]
+		// server_write_IV [SecurityParameters.fixed_iv_length]
+		return type.hash() * 2 + type.key() * 2 + type.iv() * 2;
+	}
+
+	/** client_write_MAC_key */
+	public byte[] clientWriteMACKey(CipherSuiteType type) {
+		return clientWriteMACKey(block, type.hash());
+	}
+
+	/** server_write_MAC_key */
+	public byte[] serverWriteMACKey(CipherSuiteType type) {
+		return serverWriteMACKey(block, type.hash());
+	}
+
+	/** client_write_key */
+	public byte[] clientWriteKey(CipherSuiteType type) {
+		return clientWriteKey(block, type.hash(), type.key());
+	}
+
+	/** server_write_key */
+	public byte[] serverWriteKey(CipherSuiteType type) {
+		return serverWriteKey(block, type.hash(), type.key());
+	}
+
+	/** client_write_IV */
+	public byte[] clientWriteIV(CipherSuiteType type) {
+		return clientWriteIV(block, type.hash(), type.key(), type.iv());
+	}
+
+	/** server_write_IV */
+	public byte[] serverWriteIV(CipherSuiteType type) {
+		return serverWriteIV(block, type.hash(), type.key(), type.iv());
+	}
+
+	/** master_secret -> verify_data */
+	protected byte[] serverFinished() throws Exception {
+		return serverFinished(master, hashMD5(), hashSHA());
+	}
+
+	/** master_secret -> verify_data */
+	protected byte[] clientFinished() throws Exception {
+		return clientFinished(master, hashMD5(), hashSHA());
+	}
+}
