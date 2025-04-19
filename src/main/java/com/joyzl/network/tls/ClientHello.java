@@ -1,5 +1,7 @@
 package com.joyzl.network.tls;
 
+import com.joyzl.network.codec.Binary;
+
 /**
  * <pre>
  * RFC 8446 TLSv1.3
@@ -61,11 +63,11 @@ package com.joyzl.network.tls;
  */
 class ClientHello extends HandshakeExtensions {
 
-	private short version = TLS.V12;
-	private byte[] random = TLS.EMPTY_BYTES;
-	private byte[] session_id = TLS.EMPTY_BYTES;
-	private short[] cipher_suites = TLS.EMPTY_SHORTS;
-	private byte[] compression_methods = TLS.EMPTY_BYTES;
+	private short version = V12;
+	private byte[] random = EMPTY_BYTES;
+	private byte[] session_id = EMPTY_BYTES;
+	private short[] cipher_suites = EMPTY_SHORTS;
+	private byte[] compression_methods = EMPTY_BYTES;
 
 	@Override
 	public byte msgType() {
@@ -102,14 +104,16 @@ class ClientHello extends HandshakeExtensions {
 
 	public void setRandom(byte[] value) {
 		if (value == null) {
-			random = TLS.EMPTY_BYTES;
+			random = EMPTY_BYTES;
 		} else {
 			random = value;
 		}
 	}
 
 	public void makeRandom() {
-		random = V2DeriveSecret.helloRandom();
+		random = new byte[32];
+		RANDOM.nextBytes(random);
+		Binary.put(random, 0, (int) System.currentTimeMillis());
 	}
 
 	public boolean hasSessionId() {
@@ -122,14 +126,14 @@ class ClientHello extends HandshakeExtensions {
 
 	public void setSessionId(byte[] value) {
 		if (value == null) {
-			session_id = TLS.EMPTY_BYTES;
+			session_id = EMPTY_BYTES;
 		} else {
 			session_id = value;
 		}
 	}
 
 	public void makeSessionId() {
-		TLS.RANDOM.nextBytes(session_id = new byte[32]);
+		RANDOM.nextBytes(session_id = new byte[32]);
 	}
 
 	public boolean hasCipherSuites() {
@@ -146,7 +150,7 @@ class ClientHello extends HandshakeExtensions {
 
 	public void setCipherSuites(short[] value) {
 		if (value == null) {
-			cipher_suites = TLS.EMPTY_SHORTS;
+			cipher_suites = EMPTY_SHORTS;
 		} else {
 			cipher_suites = value;
 		}
@@ -162,7 +166,7 @@ class ClientHello extends HandshakeExtensions {
 
 	public void setCompressionMethods(byte[] value) {
 		if (value == null) {
-			compression_methods = TLS.EMPTY_BYTES;
+			compression_methods = EMPTY_BYTES;
 		} else {
 			compression_methods = value;
 		}

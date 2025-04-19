@@ -15,7 +15,7 @@ import com.joyzl.network.tls.SessionCertificates.RemoteCache;
  * 
  * @author ZhangXi 2025年3月10日
  */
-public class V2ClientHandler implements ChainHandler {
+public class V2ClientHandler extends ClientHandler {
 
 	private final ChainHandler handler;
 	private final TLSParameters parameters;
@@ -72,9 +72,9 @@ public class V2ClientHandler implements ChainHandler {
 
 		// 构建握手请求消息
 		final ClientHello hello = new ClientHello();
-		hello.setCompressionMethods(TLS.COMPRESSION_METHODS);
+		hello.setCompressionMethods(COMPRESSION_METHODS);
 		hello.setCipherSuites(parameters.cipherSuites());
-		hello.setVersion(TLS.V12);
+		hello.setVersion(V12);
 		hello.makeRandom();
 
 		hello.addExtension(new ServerNames(new ServerName(share.getServerName())));
@@ -361,7 +361,7 @@ public class V2ClientHandler implements ChainHandler {
 		if (record.msgType() == Handshake.SERVER_HELLO) {
 			final ServerHello hello = (ServerHello) record;
 			// 确认版本
-			if (hello.getVersion() != TLS.V12) {
+			if (hello.getVersion() != V12) {
 				return new Alert(Alert.PROTOCOL_VERSION);
 			}
 

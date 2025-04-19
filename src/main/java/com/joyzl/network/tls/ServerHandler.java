@@ -8,7 +8,7 @@ import com.joyzl.network.chain.ChainHandler;
  * 
  * @author ZhangXi 2025年2月14日
  */
-public class ServerHandler extends TLS {
+abstract class ServerHandler extends TLS implements ChainHandler {
 
 	protected final ChainHandler handler;
 	protected final TLSParameters parameters;

@@ -10,7 +10,7 @@ import com.joyzl.network.codec.Binary;
  * 
  * @author ZhangXi 2025年2月14日
  */
-public class V2ServerHandler extends ServerHandler implements ChainHandler {
+public class V2ServerHandler extends ServerHandler {
 
 	public V2ServerHandler(ChainHandler handler, TLSParameters parameters) {
 		super(handler, parameters);
@@ -242,8 +242,54 @@ public class V2ServerHandler extends ServerHandler implements ChainHandler {
 	private Record handshake(TLSContext context, Handshake record) throws Exception {
 		if (record.msgType() == Handshake.CLIENT_HELLO) {
 			final ClientHello hello = (ClientHello) record;
+			if (hello.getVersion() != V12) {
+				return new Alert(Alert.PROTOCOL_VERSION);
+			}
+			// 压缩模式
+			if (hello.hasCompressionMethods()) {
+				if (hello.getCompressionMethods()[0] == 0) {
+					// 不支持任何压缩
+				} else {
+					return new Alert(Alert.ILLEGAL_PARAMETER);
+				}
+			} else {
+				return new Alert(Alert.ILLEGAL_PARAMETER);
+			}
+			// 加密套件
+			final short suite;
+			if (hello.hasCipherSuites()) {
+				suite = CipherSuiter.match(hello.getCipherSuites(), parameters.cipherSuites());
+				if (suite > 0) {
+					// 设置加密套件
+					context.cipher.initialize(suite);
+				} else {
+					// 未能匹配加密套件
+					return new Alert(Alert.ILLEGAL_PARAMETER);
+				}
+			} else {
+				// 未指定加密套件
+				return new Alert(Alert.ILLEGAL_PARAMETER);
+			}
 
-			return new Alert(Alert.PROTOCOL_VERSION);
+			// 使用增强型主密钥
+			final ExtendedMasterSecret ems = hello.getExtension(Extension.EXTENDED_MASTER_SECRET);
+			context.extendedMasterSecret = ems != null;
+
+			final SessionTicket st = hello.getExtension(Extension.SESSION_TICKET);
+
+			context.secret.clientRandom(hello.getRandom());
+			context.secret.initialize(context.cipher.type());
+
+			final ServerHello server = new ServerHello();
+			server.setCipherSuite(suite);
+			server.makeRandom(V12);
+
+			if (hello.hasSessionId()) {
+
+			} else {
+				server.setSessionId(hello.getSessionId());
+			}
+			return null;
 		} else if (record.msgType() == Handshake.FINISHED) {
 			final Finished finished = (Finished) record;
 			if (finished.validate()) {
@@ -261,6 +307,8 @@ public class V2ServerHandler extends ServerHandler implements ChainHandler {
 		final V2CipherSuiter cipher;
 		final V2SecretCache secret;
 		final V2KeyExchange key;
+
+		boolean extendedMasterSecret;
 
 		public TLSContext() {
 			signaturer = new Signaturer();

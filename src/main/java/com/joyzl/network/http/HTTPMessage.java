@@ -8,6 +8,8 @@ package com.joyzl.network.http;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.joyzl.network.codec.Binary;
+
 /**
  * Request和Response的父类 提供HTTP Header支持
  * 
@@ -18,6 +20,11 @@ public class HTTPMessage extends Message {
 
 	private String version = HTTP.V11;
 	private final Map<String, String> headers = new HashMap<>();
+
+	// HTTP 2
+	private int stream;
+	private int dependency;
+	private int weight;
 
 	@Override
 	public void reset() throws Exception {
@@ -55,5 +62,37 @@ public class HTTPMessage extends Message {
 
 	public void clearHeaders() {
 		headers.clear();
+	}
+
+	int getStream() {
+		return stream & 0x7fffffff;
+	}
+
+	void setStream(int value) {
+		stream = value;
+	}
+
+	boolean isExclusive() {
+		return Binary.getBit(dependency, 31);
+	}
+
+	void setExclusive(boolean value) {
+		dependency = Binary.setBit(dependency, value, 31);
+	}
+
+	int getDependency() {
+		return dependency;
+	}
+
+	void setDependency(int value) {
+		dependency = value;
+	}
+
+	int getWeight() {
+		return weight;
+	}
+
+	void setWeight(int value) {
+		weight = value;
 	}
 }

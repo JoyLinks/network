@@ -11,7 +11,7 @@ package com.joyzl.network.odbs;
  * <pre>
  * 帧结构
  * +--------+----------+-------+-------------+
- * | HEAD 1 | LENGTH 4 | TAG 1 | DATA ODBS n |
+ * | HEAD 1 | LENGTH 4 | TAG 4 | DATA ODBS n |
  * +--------+----------+-------+-------------+
  * </pre>
  * 
@@ -21,7 +21,7 @@ package com.joyzl.network.odbs;
 public abstract class ODBSFrame {
 
 	/** 帧最小长度(字节) */
-	public final static int MIN_FRAME = 1 + 4 + 1;
+	public final static int MIN_FRAME = 1 + 4 + 4;
 	/** 帧最大长度(64M 字节) */
 	public final static int MAX_FRAME = 1024 * 1024 * 64;
 	/** 帧数据最大长度(字节) */

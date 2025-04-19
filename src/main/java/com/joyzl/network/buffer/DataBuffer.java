@@ -19,8 +19,14 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import com.joyzl.codec.BigEndianDataInput;
 import com.joyzl.codec.BigEndianDataOutput;
-import com.joyzl.codec.DataInput;
-import com.joyzl.codec.DataOutput;
+import com.joyzl.codec.LittleEndianDataInput;
+import com.joyzl.codec.LittleEndianDataOutput;
+import com.joyzl.network.codec.BigEndianBCDInput;
+import com.joyzl.network.codec.BigEndianBCDOutput;
+import com.joyzl.network.codec.DataInput;
+import com.joyzl.network.codec.DataOutput;
+import com.joyzl.network.codec.LittleEndianBCDInput;
+import com.joyzl.network.codec.LittleEndianBCDOutput;
 import com.joyzl.network.verifies.EmptyVerifier;
 import com.joyzl.network.verifies.Verifiable;
 import com.joyzl.network.verifies.Verifier;
@@ -32,11 +38,16 @@ import com.joyzl.network.verifies.Verifier;
  * 数据缓存对象内部通过链表连接多个数据单元，默认情况下缓存单元写满数据后会自动从单元池获取单元并连接尾部。
  * 数据缓存对象之间的转移或复制基于内部单元，因此无法保证每个单元正好写满数据，允许中间出现未填满的单元。
  * </p>
+ * <p>
+ * 支持大端和小端编码及解码，默认为大端序，可切换为小端序；每次获取的实例将被重置为大端序。
+ * </p>
  * 
  * @author ZhangXi
  * @date 2021年3月13日
  */
-public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigEndianDataInput, BigEndianDataOutput {
+public class DataBuffer implements Verifiable, DataInput, DataOutput, //
+		BigEndianDataInput, BigEndianDataOutput, LittleEndianDataInput, LittleEndianDataOutput, //
+		BigEndianBCDInput, BigEndianBCDOutput, LittleEndianBCDInput, LittleEndianBCDOutput {
 
 	// 对象实例缓存
 	private final static ConcurrentLinkedQueue<DataBuffer> BYTE_BUFFERS = new ConcurrentLinkedQueue<>();
@@ -48,6 +59,7 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 		} else {
 			// 取消特殊值
 			buffer.length = 0;
+			buffer.bigEndian();
 		}
 		return buffer;
 	}
@@ -1109,5 +1121,380 @@ public final class DataBuffer implements Verifiable, DataInput, DataOutput, BigE
 			unit = unit.next();
 		}
 		return builder.toString();
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
+	// 大小端编码切换支持 ///////////////////////////////////////////////////////////
+
+	private boolean be = true;
+
+	/** 切换为大端编码格式 */
+	public void bigEndian() {
+		be = true;
+	}
+
+	/** 切换为小端编码格式 */
+	public void littleEndian() {
+		be = false;
+	}
+
+	@Override
+	public int readUnsignedShort() throws IOException {
+		if (be) {
+			return BigEndianBCDInput.super.readUnsignedShort();
+		} else {
+			return LittleEndianBCDInput.super.readUnsignedShort();
+		}
+	}
+
+	@Override
+	public int readInt() throws IOException {
+		if (be) {
+			return BigEndianBCDInput.super.readInt();
+		} else {
+			return LittleEndianBCDInput.super.readInt();
+		}
+	}
+
+	@Override
+	public short readShort() throws IOException {
+		if (be) {
+			return BigEndianBCDInput.super.readShort();
+		} else {
+			return LittleEndianBCDInput.super.readShort();
+		}
+	}
+
+	@Override
+	public float readFloat() throws IOException {
+		if (be) {
+			return BigEndianBCDInput.super.readFloat();
+		} else {
+			return LittleEndianBCDInput.super.readFloat();
+		}
+	}
+
+	@Override
+	public long readLong() throws IOException {
+		if (be) {
+			return BigEndianBCDInput.super.readLong();
+		} else {
+			return LittleEndianBCDInput.super.readLong();
+		}
+	}
+
+	@Override
+	public double readDouble() throws IOException {
+		if (be) {
+			return BigEndianBCDInput.super.readDouble();
+		} else {
+			return LittleEndianBCDInput.super.readDouble();
+		}
+	}
+
+	@Override
+	public int readUnsignedMedium() throws IOException {
+		if (be) {
+			return BigEndianBCDInput.super.readUnsignedMedium();
+		} else {
+			return LittleEndianBCDInput.super.readUnsignedMedium();
+		}
+	}
+
+	@Override
+	public long readUnsignedInt() throws IOException {
+		if (be) {
+			return BigEndianBCDInput.super.readUnsignedInt();
+		} else {
+			return LittleEndianBCDInput.super.readUnsignedInt();
+		}
+	}
+
+	@Override
+	public int readMedium() throws IOException {
+		if (be) {
+			return BigEndianBCDInput.super.readMedium();
+		} else {
+			return LittleEndianBCDInput.super.readMedium();
+		}
+	}
+
+	@Override
+	public void writeFloat(float value) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeFloat(value);
+		} else {
+			LittleEndianBCDOutput.super.writeFloat(value);
+		}
+	}
+
+	@Override
+	public void writeMedium(int value) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeMedium(value);
+		} else {
+			LittleEndianBCDOutput.super.writeMedium(value);
+		}
+	}
+
+	@Override
+	public void writeDouble(double value) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeDouble(value);
+		} else {
+			LittleEndianBCDOutput.super.writeDouble(value);
+		}
+	}
+
+	@Override
+	public void writeInt(int value) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeInt(value);
+		} else {
+			LittleEndianBCDOutput.super.writeInt(value);
+		}
+	}
+
+	@Override
+	public void writeLong(long value) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeLong(value);
+		} else {
+			LittleEndianBCDOutput.super.writeLong(value);
+		}
+	}
+
+	@Override
+	public void writeShort(short value) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeShort(value);
+		} else {
+			LittleEndianBCDOutput.super.writeShort(value);
+		}
+	}
+
+	@Override
+	public void writeBCD8421s(int value) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeBCD8421s(value);
+		} else {
+			LittleEndianBCDOutput.super.writeBCD8421s(value);
+		}
+	}
+
+	@Override
+	public void writeBCD8421s(CharSequence value) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeBCD8421s(value);
+		} else {
+			LittleEndianBCDOutput.super.writeBCD8421s(value);
+		}
+	}
+
+	@Override
+	public void writeBCD8421s(CharSequence value, int offset, int length) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeBCD8421s(value, offset, length);
+		} else {
+			LittleEndianBCDOutput.super.writeBCD8421s(value, offset, length);
+		}
+	}
+
+	@Override
+	public void writeBCDs(int value) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeBCDs(value);
+		} else {
+			LittleEndianBCDOutput.super.writeBCDs(value);
+		}
+	}
+
+	@Override
+	public void writeBCDs(CharSequence value) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeBCDs(value);
+		} else {
+			LittleEndianBCDOutput.super.writeBCDs(value);
+		}
+	}
+
+	@Override
+	public void writeBCDs(CharSequence value, int offset, int length) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeBCDs(value, offset, length);
+		} else {
+			LittleEndianBCDOutput.super.writeBCDs(value, offset, length);
+		}
+	}
+
+	@Override
+	public void writeBCD3s(int value) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeBCD3s(value);
+		} else {
+			LittleEndianBCDOutput.super.writeBCD3s(value);
+		}
+	}
+
+	@Override
+	public void writeBCD3s(CharSequence value) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeBCD3s(value);
+		} else {
+			LittleEndianBCDOutput.super.writeBCD3s(value);
+		}
+	}
+
+	@Override
+	public void writeBCD3s(CharSequence value, int offset, int length) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeBCD3s(value, offset, length);
+		} else {
+			LittleEndianBCDOutput.super.writeBCD3s(value, offset, length);
+		}
+	}
+
+	@Override
+	public void writeBCD2421s(int value) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeBCD2421s(value);
+		} else {
+			LittleEndianBCDOutput.super.writeBCD2421s(value);
+		}
+	}
+
+	@Override
+	public void writeBCD2421s(CharSequence value) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeBCD2421s(value);
+		} else {
+			LittleEndianBCDOutput.super.writeBCD2421s(value);
+		}
+	}
+
+	@Override
+	public void writeBCD2421s(CharSequence value, int offset, int length) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeBCD2421s(value, offset, length);
+		} else {
+			LittleEndianBCDOutput.super.writeBCD2421s(value, offset, length);
+		}
+	}
+
+	@Override
+	public String readBCD5421String(int size) throws IOException {
+		if (be) {
+			return BigEndianBCDInput.super.readBCD5421String(size);
+		} else {
+			return LittleEndianBCDInput.super.readBCD5421String(size);
+		}
+	}
+
+	@Override
+	public void writeBCD5421s(int value) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeBCD5421s(value);
+		} else {
+			LittleEndianBCDOutput.super.writeBCD5421s(value);
+		}
+	}
+
+	@Override
+	public void writeBCD5421s(CharSequence value) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeBCD5421s(value);
+		} else {
+			LittleEndianBCDOutput.super.writeBCD5421s(value);
+		}
+	}
+
+	@Override
+	public void writeBCD5421s(CharSequence value, int offset, int length) throws IOException {
+		if (be) {
+			BigEndianBCDOutput.super.writeBCD5421s(value, offset, length);
+		} else {
+			LittleEndianBCDOutput.super.writeBCD5421s(value, offset, length);
+		}
+	}
+
+	@Override
+	public String readBCDString(int size) throws IOException {
+		if (be) {
+			return BigEndianBCDInput.super.readBCDString(size);
+		} else {
+			return LittleEndianBCDInput.super.readBCDString(size);
+		}
+	}
+
+	@Override
+	public int readBCD8421s(int size) throws IOException {
+		if (be) {
+			return BigEndianBCDInput.super.readBCD8421s(size);
+		} else {
+			return LittleEndianBCDInput.super.readBCD8421s(size);
+		}
+	}
+
+	@Override
+	public String readBCD8421String(int size) throws IOException {
+		if (be) {
+			return BigEndianBCDInput.super.readBCD8421String(size);
+		} else {
+			return LittleEndianBCDInput.super.readBCD8421String(size);
+		}
+	}
+
+	@Override
+	public int readBCD2421s(int size) throws IOException {
+		if (be) {
+			return BigEndianBCDInput.super.readBCD2421s(size);
+		} else {
+			return LittleEndianBCDInput.super.readBCD2421s(size);
+		}
+	}
+
+	@Override
+	public String readBCD2421String(int size) throws IOException {
+		if (be) {
+			return BigEndianBCDInput.super.readBCD2421String(size);
+		} else {
+			return LittleEndianBCDInput.super.readBCD2421String(size);
+		}
+	}
+
+	@Override
+	public int readBCD5421s(int size) throws IOException {
+		if (be) {
+			return BigEndianBCDInput.super.readBCD5421s(size);
+		} else {
+			return LittleEndianBCDInput.super.readBCD5421s(size);
+		}
+	}
+
+	@Override
+	public int readBCD3s(int size) throws IOException {
+		if (be) {
+			return BigEndianBCDInput.super.readBCD3s(size);
+		} else {
+			return LittleEndianBCDInput.super.readBCD3s(size);
+		}
+	}
+
+	@Override
+	public String readBCD3String(int size) throws IOException {
+		if (be) {
+			return BigEndianBCDInput.super.readBCD3String(size);
+		} else {
+			return LittleEndianBCDInput.super.readBCD3String(size);
+		}
+	}
+
+	@Override
+	public int readBCDs(int size) throws IOException {
+		if (be) {
+			return BigEndianBCDInput.super.readBCDs(size);
+		} else {
+			return LittleEndianBCDInput.super.readBCDs(size);
+		}
 	}
 }

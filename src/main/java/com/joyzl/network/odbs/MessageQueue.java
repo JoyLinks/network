@@ -1,4 +1,4 @@
-package com.joyzl.network;
+package com.joyzl.network.odbs;
 
 import java.util.Iterator;
 
@@ -18,10 +18,9 @@ import java.util.Iterator;
  * @author ZhangXi 2025年2月27日
  * @param <M>
  */
-public class MessageQueue<M> implements Iterator<M> {
+public class MessageQueue<M> implements Iterator<M>, Iterable<M> {
 
-	// 256*65536 = 16M
-	private final Object[] elements = new Object[255];
+	private final Object[] elements;
 	private int head, foot, size;
 
 	// 为了消除头尾重叠歧义
@@ -30,6 +29,11 @@ public class MessageQueue<M> implements Iterator<M> {
 	// 极端情况：foot在经历255个消息周期后，如果第一个消息还未取出，将导致意外的队列满异常
 
 	public MessageQueue() {
+		this(128);
+	}
+
+	public MessageQueue(int size) {
+		elements = new Object[size];
 	}
 
 	/**
@@ -145,6 +149,7 @@ public class MessageQueue<M> implements Iterator<M> {
 
 	private int index;
 
+	@Override
 	public Iterator<M> iterator() {
 		index = -1;
 		return this;

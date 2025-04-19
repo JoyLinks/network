@@ -359,6 +359,8 @@ public enum HTTPStatus {
 	 */
 	TLS_HANDSHAKE(1015, "TLS Handshake"),
 
+	////////////////////////////////////////////////////////////////////////////////
+
 	/** 链路等待，这是特殊状态 */
 	WAIT(Integer.MIN_VALUE, "WAIT"),
 	/** 链路关闭，这是特殊状态 */

@@ -128,6 +128,16 @@ class V2SecretCache extends V2DeriveSecret {
 		// server_write_key [SecurityParameters.enc_key_length]
 		// client_write_IV [SecurityParameters.fixed_iv_length]
 		// server_write_IV [SecurityParameters.fixed_iv_length]
+
+		// AEAD
+		// fixed_iv_length + record_iv_legnth:8
+		if (type.isAEAD()) {
+			return type.hash() * 2 + type.key() * 2 + (type.iv() - 8) * 2;
+		}
+
+		// Stream
+		// CBC:Block
+		// SecurityParameters.record_iv_length=SecurityParameters.block_size
 		return type.hash() * 2 + type.key() * 2 + type.iv() * 2;
 	}
 
@@ -153,11 +163,25 @@ class V2SecretCache extends V2DeriveSecret {
 
 	/** client_write_IV */
 	public byte[] clientWriteIV(CipherSuiteType type) {
+		if (type.isAEAD()) {
+			// fixed_iv_length+record_iv_legnth:8
+			// 导出的iv位于数组前部，后部分由加解密时填充序号
+			final byte[] iv = new byte[type.iv()];
+			System.arraycopy(block, type.hash() * 2 + type.key() * 2, iv, 0, type.iv() - 8);
+			return iv;
+		}
 		return clientWriteIV(block, type.hash(), type.key(), type.iv());
 	}
 
 	/** server_write_IV */
 	public byte[] serverWriteIV(CipherSuiteType type) {
+		if (type.isAEAD()) {
+			// fixed_iv_length+record_iv_legnth:8
+			// 导出的iv位于数组前部，后部分由加解密时填充序号
+			final byte[] iv = new byte[type.iv()];
+			System.arraycopy(block, type.hash() * 2 + type.key() * 2 + type.iv() - 8, iv, 0, type.iv() - 8);
+			return iv;
+		}
 		return serverWriteIV(block, type.hash(), type.key(), type.iv());
 	}
 

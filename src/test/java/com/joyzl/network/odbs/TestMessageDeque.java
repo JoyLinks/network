@@ -10,8 +10,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.joyzl.network.MessageQueue;
-
 class TestMessageDeque {
 
 	private MessageQueue<Object> deque = new MessageQueue<>();

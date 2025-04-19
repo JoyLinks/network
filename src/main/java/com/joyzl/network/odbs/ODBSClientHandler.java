@@ -5,9 +5,12 @@
  */
 package com.joyzl.network.odbs;
 
+import java.util.Iterator;
+
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.chain.ChainHandler;
+import com.joyzl.network.codec.Binary;
 import com.joyzl.odbs.ODBS;
 import com.joyzl.odbs.ODBSBinary;
 
@@ -31,7 +34,7 @@ public abstract class ODBSClientHandler<M extends ODBSMessage> extends ODBSFrame
 		chain.receive();
 	}
 
-	protected abstract void connected(ODBSClient chain) throws Exception;
+	protected abstract void connected(ODBSClient client) throws Exception;
 
 	@Override
 	public Object decode(ChainChannel chain, DataBuffer reader) throws Exception {
@@ -51,24 +54,62 @@ public abstract class ODBSClientHandler<M extends ODBSMessage> extends ODBSFrame
 			// 数据长度
 			length = reader.readInt();
 			if (length < 0) {
+				// 错误的长度
 				reader.clear();
 				return null;
 			}
 			// 判断帧是否接收完
 			if (reader.readable() >= length) {
-				// TAG
-				length = reader.readUnsignedByte();
+				final ODBSClient client = (ODBSClient) chain;
+
+				// TAG:FINISH|ID
+				length = reader.readInt();
+				final boolean finish = Binary.getBit(length, 31);
+				length = Binary.setBit(length, false, 31);
+
+				// 获取并解码消息
+				// 消息可能须经历多次解码
 				ODBSMessage message = null;
 				if (length > 0) {
-					// 获取实体实例
-					message = ((ODBSClient) chain).take(length);
-					if (message.tag() != length) {
-						throw new IllegalStateException("Message TAG ERROR");
+					if (length % 2 > 0) {
+						message = client.sends().get(length);
+						if (message == null) {
+							reader.clear();
+							return null;
+						} else {
+							message = odbs.readEntity(message, reader);
+							if (finish) {
+								client.sends().remove(length);
+								return message;
+							} else {
+								return null;
+							}
+						}
+					} else {
+						message = client.pushes().get(length);
+						if (message == null) {
+							message = odbs.readEntity(message, reader);
+							message.tag(length);
+							if (finish) {
+								return message;
+							} else {
+								client.pushes().add(message, length);
+								return null;
+							}
+						} else {
+							message = odbs.readEntity(message, reader);
+							if (finish) {
+								client.pushes().remove(length);
+								return message;
+							} else {
+								return null;
+							}
+						}
 					}
+				} else {
+					message = odbs.readEntity(message, reader);
+					return message;
 				}
-				message = (ODBSMessage) odbs.readEntity(message, reader);
-				message.setChain(chain);
-				return message;
 			} else {
 				// 未接收完,需要继续接收剩余字节
 				reader.reset();
@@ -83,25 +124,40 @@ public abstract class ODBSClientHandler<M extends ODBSMessage> extends ODBSFrame
 	@Override
 	@SuppressWarnings("unchecked")
 	public void received(ChainChannel chain, Object message) throws Exception {
-		received((ODBSClient) chain, (M) message);
-		if (message != null) {
-			chain.receive();
+		final ODBSClient client = (ODBSClient) chain;
+		if (message == null) {
+			// 超时：消息已无法响应
+			client.pushes().clear();
+
+			ODBSMessage om;
+			final Iterator<ODBSMessage> iterator = client.sends().iterator();
+			while (iterator.hasNext()) {
+				om = iterator.next();
+				om.setError(ODBSMessage.TIMEOUT);
+				received(client, om);
+				iterator.remove();
+			}
+		} else {
+			((ODBSMessage) message).setChain(chain);
+			received(client, (M) message);
 		}
 	}
 
-	public abstract void received(ODBSClient chain, M message) throws Exception;
+	public abstract void received(ODBSClient client, M message) throws Exception;
 
 	public DataBuffer encode(ChainChannel chain, Object message) throws Exception {
-		final ODBSMessage o = (ODBSMessage) message;
+		final ODBSClient client = (ODBSClient) chain;
 		final DataBuffer writer = DataBuffer.instance();
+		final ODBSMessage om = (ODBSMessage) message;
+
 		// 1Byte
 		writer.write(HEAD);
-		// 4Byte
+		// LENGTH 4Byte 后补
 		writer.writeInt(0);
-		// TAG 1Byte
-		writer.writeByte(o.tag());
+		// TAG 4Byte 后补
+		writer.writeInt(0);
 		// Entity nByte
-		odbs.writeEntity(o, writer);
+		odbs.writeEntity(om, writer);
 
 		int length = writer.readable();
 		if (length > MAX_LENGTH) {
@@ -109,44 +165,72 @@ public abstract class ODBSClientHandler<M extends ODBSMessage> extends ODBSFrame
 			writer.release();
 			throw new IllegalStateException("数据长度" + length + "超过最大值" + MAX_LENGTH);
 		}
+
 		// 长度不包括 HEAD 和 LENGTH 本身
-		length -= 5;
+		length -= MIN_FRAME;
 		writer.set(1, (byte) (length >>> 24));
 		writer.set(2, (byte) (length >>> 16));
 		writer.set(3, (byte) (length >>> 8));
 		writer.set(4, (byte) (length));
+
+		// 消息标识
+		length = client.streams().id();
+		length = Binary.setBit(length, true, 31);
+		writer.set(5, (byte) (length >>> 24));
+		writer.set(6, (byte) (length >>> 16));
+		writer.set(7, (byte) (length >>> 8));
+		writer.set(8, (byte) (length));
+
+		// 标记当前消息已完成
+		client.streams().done();
 		return writer;
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
 	public void sent(ChainChannel chain, Object message) throws Exception {
-		sent((ODBSClient) chain, (M) message);
-		if (message != null) {
-			((ODBSClient) chain).sendNext();
+		final ODBSClient client = (ODBSClient) chain;
+		if (message == null) {
+			// 超时：消息已无法送出
+			client.streams().clear();
+
+			ODBSMessage om;
+			final Iterator<ODBSMessage> iterator = client.sends().iterator();
+			while (iterator.hasNext()) {
+				om = iterator.next();
+				om.setError(ODBSMessage.TIMEOUT);
+				iterator.remove();
+				sent(client, om);
+			}
+		} else {
+			// 消息是否发送完成
+			// 消息可能须经历多次发送
+			if (client.streams().isDone()) {
+				sent(client, (M) message);
+			}
+			client.sendNext();
 		}
 	}
 
-	protected abstract void sent(ODBSClient chain, M message) throws Exception;
+	protected abstract void sent(ODBSClient client, M message) throws Exception;
 
 	public void beat(ChainChannel chain) throws Exception {
 		beat((ODBSClient) chain);
 	}
 
-	protected abstract void beat(ODBSClient chain) throws Exception;
+	protected abstract void beat(ODBSClient client) throws Exception;
 
 	@Override
 	public void disconnected(ChainChannel chain) throws Exception {
 		disconnected((ODBSClient) chain);
 	}
 
-	protected abstract void disconnected(ODBSClient chain) throws Exception;
+	protected abstract void disconnected(ODBSClient client) throws Exception;
 
 	@Override
 	public void error(ChainChannel chain, Throwable e) {
-		chain.close();
 		error((ODBSClient) chain, e);
 	}
 
-	protected abstract void error(ODBSClient chain, Throwable e);
+	protected abstract void error(ODBSClient client, Throwable e);
 }

@@ -58,7 +58,7 @@ public final class Binary {
 		return source;
 	}
 
-	/** 设置字节位 0为false,1为true,左高右低index[32~0] */
+	/** 设置字节位 0为false,1为true,左高右低index[31~0] */
 	public static int setBit(int source, boolean value, int index) {
 		int mask = 1 << index;
 		if (value) {

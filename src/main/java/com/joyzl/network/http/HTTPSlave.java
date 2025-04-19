@@ -7,6 +7,7 @@ package com.joyzl.network.http;
 
 import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.joyzl.network.chain.ChainType;
 import com.joyzl.network.chain.TCPSlave;
@@ -19,54 +20,92 @@ import com.joyzl.network.chain.TCPSlave;
  */
 public class HTTPSlave extends TCPSlave {
 
+	private final ReentrantLock k = new ReentrantLock(true);
+
 	public HTTPSlave(HTTPServer server, AsynchronousSocketChannel channel) throws IOException {
 		super(server, channel);
 	}
 
 	@Override
 	public ChainType type() {
-		return handler.type();
+		return ChainType.TCP_HTTP_SLAVE;
 	}
+	// 1问答模式
+	// 2管道模式
+	// 3多路复用
 
 	@Override
-	public void close() {
+	public void send(Object message) {
+		k.lock();
 		try {
-			request.clearContent();
-		} catch (Exception e) {
-			throw new RuntimeException(e);
+			streams.add(message);
+			if (sendMessage() == null) {
+				sendMessage(message = streams.get());
+			} else {
+				return;
+			}
 		} finally {
-			super.close();
+			k.unlock();
 		}
+		super.send(message);
 	}
 
-	// 服务端提供请求消息暂存以支持消息解码
-	// 在网络传输中可能需要多次接收数据才能完成解码
-	private final Request request = new Request();
-
-	protected Request getRequest() {
-		return request;
+	protected void sendNext() {
+		k.lock();
+		try {
+			if (sendMessage() == null) {
+				sendMessage(streams.get());
+			} else {
+				return;
+			}
+		} finally {
+			k.unlock();
+		}
+		super.send(sendMessage());
 	}
 
 	// WEB Socket
 
-	private WEBSocketHandler handler = WEBSocketHandler.DEFAULT_SLAVE;
+	private WEBSocketHandler webSockethandler;
 
-	/**
-	 * 升级链路为WebSocket，绑定消息处理对象
-	 */
+	/** 升级链路为WebSocket，绑定消息处理对象 */
 	public void upgrade(WEBSocketHandler handler) {
-		if (handler == null) {
-			this.handler = WEBSocketHandler.DEFAULT_SLAVE;
-		} else {
-			this.handler = handler;
-		}
+		webSockethandler = handler;
 	}
 
-	public boolean isUpgraded() {
-		return handler != WEBSocketHandler.DEFAULT_SLAVE;
+	public boolean isWEBSocket() {
+		return webSockethandler != null;
 	}
 
-	public WEBSocketHandler getUpgradedHandler() {
-		return handler;
+	public WEBSocketHandler getWEBSocketHandler() {
+		return webSockethandler;
+	}
+
+	// HTTP2
+
+	private HPACK request, response;
+	private HTTP2Sender streams;
+
+	public boolean isHTTP2() {
+		return streams != null;
+	}
+
+	/** 切换链路为HTTP2 */
+	void upgradeHTTP2() {
+		request = new HPACK();
+		response = new HPACK();
+		streams = new HTTP2Sender();
+	}
+
+	HTTP2Sender streams() {
+		return streams;
+	}
+
+	HPACK requestHPACK() {
+		return request;
+	}
+
+	HPACK responseHPACK() {
+		return response;
 	}
 }

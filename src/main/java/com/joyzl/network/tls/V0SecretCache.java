@@ -98,12 +98,12 @@ class V0SecretCache extends V0DeriveSecret {
 	}
 
 	int keyBlockLength(CipherSuiteType type) {
-		// client_write_MAC_key [SecurityParameters.mac_key_length]
-		// server_write_MAC_key [SecurityParameters.mac_key_length]
-		// client_write_key [SecurityParameters.enc_key_length]
-		// server_write_key [SecurityParameters.enc_key_length]
-		// client_write_IV [SecurityParameters.fixed_iv_length]
-		// server_write_IV [SecurityParameters.fixed_iv_length]
+		// client_write_MAC_secret[SecurityParameters.hash_size]
+		// server_write_MAC_secret[SecurityParameters.hash_size]
+		// client_write_key[SecurityParameters.key_material_length]
+		// server_write_key[SecurityParameters.key_material_length]
+		// client_write_IV[SecurityParameters.IV_size]
+		// server_write_IV[SecurityParameters.IV_size]
 		return type.hash() * 2 + type.key() * 2 + type.iv() * 2;
 	}
 

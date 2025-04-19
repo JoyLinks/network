@@ -18,50 +18,27 @@ import com.joyzl.network.buffer.DataBuffer;
  */
 public abstract class Message {
 
-	public final static int COMMAND = 1;
-	public final static int HEADERS = 2;
-	public final static int CONTENT = 3;
-	public final static int COMPLETE = 100;
+	// 编解码状态，表示当前编解码正在处理的部分
 
-	public final static int CLOSE = 101;
-	public final static int UPGRADE = 102;
+	final static int COMMAND = 1;
+	final static int HEADERS = 2;
+	final static int CONTENT = 3;
+	final static int COMPLETE = 4;
 
 	private int state = COMMAND;
-	private int after;
 
 	/**
 	 * 获取当前消息状态
 	 */
-	public int state() {
+	int state() {
 		return state;
 	}
 
 	/**
 	 * 设置消息状态
 	 */
-	public void state(int value) {
+	void state(int value) {
 		state = value;
-	}
-
-	/**
-	 * 响应后关闭链路
-	 */
-	public void needClose() {
-		after = CLOSE;
-	}
-
-	/**
-	 * 响应后升级链路
-	 */
-	public void needUpgrade() {
-		after = UPGRADE;
-	}
-
-	/**
-	 * 获取响应后动作标识
-	 */
-	public int after() {
-		return after;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
@@ -122,6 +99,5 @@ public abstract class Message {
 	public void reset() throws Exception {
 		close(content);
 		state = COMMAND;
-		after = 0;
 	}
 }

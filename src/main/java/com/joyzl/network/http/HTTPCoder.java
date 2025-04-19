@@ -11,7 +11,6 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Map.Entry;
-import java.util.function.Supplier;
 
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.buffer.DataBufferUnit;
@@ -101,25 +100,6 @@ public class HTTPCoder extends HTTP {
 	 * +-------+------+
 	 * </pre>
 	 */
-
-	/**
-	 * 由于HTTP大量依赖字符编码因此采用线程缓存的StringBuilder辅助
-	 */
-	private static final ThreadLocal<StringBuilder> THREAD_LOCAL_STRING_BUILDER = ThreadLocal.withInitial(new Supplier<>() {
-		@Override
-		public StringBuilder get() {
-			return new StringBuilder(512);
-		}
-	});
-
-	/**
-	 * 获取线程缓存字符串构建类实例
-	 */
-	static StringBuilder getStringBuilder() {
-		final StringBuilder b = THREAD_LOCAL_STRING_BUILDER.get();
-		b.setLength(0);
-		return b;
-	}
 
 	/**
 	 * 读取请求首行，采用 ifString 模式减少 new String()
@@ -531,7 +511,9 @@ public class HTTPCoder extends HTTP {
 	public static boolean writeCommand(DataBuffer buffer, Response response) throws IOException {
 		buffer.writeASCIIs(response.getVersion());
 		buffer.writeASCII(SPACE);
-		buffer.writeASCIIs(Integer.toUnsignedString(response.getStatus()));
+		// 20250403 优化：避免创建临时字符串
+		// buffer.writeASCIIs(Integer.toUnsignedString(response.getStatus()));
+		writeStatus(buffer, response.getStatus());
 		buffer.writeASCII(SPACE);
 		buffer.writeASCIIs(response.getText());
 		buffer.writeASCII(CR);
@@ -947,6 +929,16 @@ public class HTTPCoder extends HTTP {
 				buffer.writeASCII(c);
 			}
 		}
+	}
+
+	/** 将整数输出为ASCII避免创建临时字符串对象 */
+	static void writeStatus(DataBuffer buffer, int value) {
+		// 仅处理三位状态码
+		buffer.writeByte('0' + value / 100);
+		value %= 100;
+		buffer.writeByte('0' + value / 10);
+		value %= 10;
+		buffer.writeByte('0' + value);
 	}
 
 	/**

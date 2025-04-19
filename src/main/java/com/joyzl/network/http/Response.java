@@ -21,16 +21,6 @@ public class Response extends HTTPMessage {
 	private String text = HTTPStatus.OK.text();
 	private Map<String, String> attachHeaders;
 
-	@Override
-	public void setVersion(String value) {
-		super.setVersion(value);
-		// HTTP/1.1 默认长连接
-		// HTTP/1.0 默认短连接
-		if (HTTP.V10 == value) {
-			needClose();
-		}
-	}
-
 	public int getStatus() {
 		return status;
 	}
@@ -62,6 +52,11 @@ public class Response extends HTTPMessage {
 	 */
 	public boolean isChunked() {
 		return Utility.same(TransferEncoding.CHUNKED, getHeader(TransferEncoding.NAME));
+	}
+
+	/** 响应后是否关闭链路 */
+	public boolean isClose() {
+		return Utility.same(Connection.CLOSE, getHeader(Connection.NAME));
 	}
 
 	/**

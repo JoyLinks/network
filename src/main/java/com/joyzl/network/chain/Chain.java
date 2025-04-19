@@ -130,6 +130,7 @@ public abstract class Chain {
 	 */
 	public void setContext(Object value) {
 		if (value == null) {
+			// 链路关联实例采用类型标识因此不能设置null
 			throw new NullPointerException();
 		}
 		if (context == null) {
@@ -140,15 +141,41 @@ public abstract class Chain {
 	}
 
 	/**
+	 * 移除设置的关联对象实例
+	 */
+	@SuppressWarnings("unchecked")
+	public <T> T removeContext(Class<T> cs) {
+		if (context == null) {
+			return null;
+		}
+		if (context.item.getClass() == cs) {
+			final Object item = context.item;
+			context = context.next;
+			return (T) item;
+		} else {
+			Context c = context;
+			while (c.next != null) {
+				if (c.next.item.getClass() == cs) {
+					final Object item = c.next.item;
+					c.next = c.next.next;
+					return (T) item;
+				}
+				c = c.next;
+			}
+			return null;
+		}
+	}
+
+	/**
 	 * 清除链路关联的对象实例，如果对象实现了{@link Closeable}接口将被关闭；<br>
-	 * 链路关闭时此方法被自动调用，通常无须手动清除，特殊情形例外。
+	 * 链路关闭时此方法被自动调用，通常无须手动清除。
 	 */
 	public void clearContext() throws IOException {
 		while (context != null) {
-			if (context.o instanceof Closeable) {
-				((Closeable) context.o).close();
+			if (context.item instanceof Closeable) {
+				((Closeable) context.item).close();
 			}
-			context = context.c;
+			context = context.next;
 		}
 	}
 
@@ -158,31 +185,31 @@ public abstract class Chain {
 	 * @author ZhangXi 2025年3月6日
 	 */
 	private class Context {
-		private Context c;
-		private Object o;
+		private Context next;
+		private Object item;
 
 		public Context(Object value) {
-			o = value;
+			item = value;
 		}
 
 		public void put(Object value) {
-			if (value.getClass() == o.getClass()) {
-				o = value;
-			} else if (c == null) {
-				c = new Context(value);
+			if (value.getClass() == item.getClass()) {
+				item = value;
+			} else if (next == null) {
+				next = new Context(value);
 			} else {
-				c.put(value);
+				next.put(value);
 			}
 		}
 
 		@SuppressWarnings("unchecked")
 		public <T> T get(Class<T> cs) {
-			if (o.getClass() == cs) {
-				return (T) o;
-			} else if (cs.isInstance(o)) {
-				return (T) o;
-			} else if (c != null) {
-				return c.get(cs);
+			if (item.getClass() == cs) {
+				return (T) item;
+			} else if (cs.isInstance(item)) {
+				return (T) item;
+			} else if (next != null) {
+				return next.get(cs);
 			} else {
 				return null;
 			}

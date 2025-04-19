@@ -5,8 +5,10 @@
  */
 package com.joyzl.network.web;
 
+import com.joyzl.network.Utility;
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.chain.ChainChannel;
+import com.joyzl.network.http.Connection;
 import com.joyzl.network.http.ContentType;
 import com.joyzl.network.http.Date;
 import com.joyzl.network.http.FormDataCoder;
@@ -33,9 +35,7 @@ public abstract class WEBServlet extends Servlet {
 
 	@Override
 	public void service(HTTPSlave chain, Request request, Response response) throws Exception {
-		if (request.getVersion() != HTTP.V11 && request.getVersion() != HTTP.V10) {
-			response.setStatus(HTTPStatus.VERSION_NOT_SUPPORTED);
-		} else {
+		if (request.getVersion() == HTTP.V20 || request.getVersion() == HTTP.V11 || request.getVersion() == HTTP.V10) {
 			// 将查询参数合并到请求参数中
 			QueryCoder.parse(request);
 			// 将响应状态默认为 200
@@ -72,13 +72,19 @@ public abstract class WEBServlet extends Servlet {
 				default:
 					response.setStatus(HTTPStatus.BAD_REQUEST);
 			}
+
+			// 设置响应后关闭标志
+			if (Utility.same(Connection.CLOSE, request.getHeader(Connection.NAME))) {
+				response.addHeader(Connection.NAME, Connection.CLOSE);
+			}
+		} else {
+			response.setStatus(HTTPStatus.VERSION_NOT_SUPPORTED);
 		}
 		response(chain, response);
 	}
 
 	protected void response(ChainChannel chain, Response response) {
 		if (response.getStatus() > 0) {
-
 			// 以下默认处理回复发送消息头
 			response.addHeader(SERVER);
 			response.addHeader(DATE);

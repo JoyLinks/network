@@ -93,6 +93,10 @@ public class WEBSocketMessage extends Message {
 		return opcode == BINARY;
 	}
 
+	public boolean isClose() {
+		return opcode == CLOSE;
+	}
+
 	/**
 	 * 获取连接关闭原因代码，仅在CLOSE控制帧有效
 	 */

@@ -366,4 +366,32 @@ class TestHTTPCoder {
 		time = System.currentTimeMillis() - time;
 		System.out.println("CREATE:" + time);
 	}
+
+	@Test
+	void testTime() {
+		long time;
+
+		// 测试instanceof与true/false判断
+		final WEBSocketMessage message = new WEBSocketMessage();
+
+		time = System.currentTimeMillis();
+		for (int index = 0; index < 1000000; index++) {
+			if (message instanceof Message) {
+				;
+			}
+		}
+		time = System.currentTimeMillis() - time;
+		System.out.println("INSTANCEOF:" + time);
+
+		time = System.currentTimeMillis();
+		for (int index = 0; index < 1000000; index++) {
+			if (message.isText()) {
+				;
+			}
+		}
+		time = System.currentTimeMillis() - time;
+		System.out.println("IS:" + time);
+
+		// 结论：无明显差别
+	}
 }

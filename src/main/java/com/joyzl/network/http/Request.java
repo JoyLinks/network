@@ -222,6 +222,20 @@ public class Request extends HTTPMessage {
 		return uriAnchor;
 	}
 
+	/** HTTP2 SCHEME://HOST:PORT/PATH?PARAMETERS#ANCHOR */
+	protected void setScheme(String value) {
+
+	}
+
+	/** HTTP2 SCHEME://HOST(Authority):PORT/PATH?PARAMETERS#ANCHOR */
+	protected void setAuthority(String value) {
+
+	}
+
+	protected String getAuthority() {
+		return null;
+	}
+
 	////////////////////////////////////////////////////////////////////////////////
 
 	private Map<String, String[]> parameters;

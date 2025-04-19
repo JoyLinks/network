@@ -15,10 +15,12 @@ import com.joyzl.network.chain.Chain;
  */
 public abstract class ODBSMessage {
 
+	public final static int TIMEOUT = 0;
+
 	private int tag;
 	private Chain chain;
 
-	int tag() {
+	public int tag() {
 		return tag;
 	}
 
@@ -31,7 +33,7 @@ public abstract class ODBSMessage {
 	 * 主动请求方发送的消息携带着消息的本地序列标识，回复给请求者时需要原样返回序列标识；
 	 * 如果消息需要同时发送给其它链路（群发给非发起方），此时本地序列应忽略。
 	 */
-	public Chain getChain() {
+	public Chain theChain() {
 		return chain;
 	}
 
@@ -40,5 +42,9 @@ public abstract class ODBSMessage {
 	 */
 	void setChain(Chain value) {
 		chain = value;
+	}
+
+	public void setError(int value) {
+		System.out.println("TIMEOUT");
 	}
 }

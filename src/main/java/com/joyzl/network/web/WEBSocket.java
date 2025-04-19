@@ -34,9 +34,7 @@ public abstract class WEBSocket extends Servlet {
 	@Override
 	public void service(HTTPSlave chain, Request request, Response response) throws Exception {
 		if (upgrade(request, response)) {
-			// 升级链路类型为WEBSOCKET
-			response.setContent(create(chain));
-			response.needUpgrade();
+			chain.upgrade(create(chain));
 		}
 	}
 

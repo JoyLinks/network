@@ -37,6 +37,10 @@ class V3CipherSuiter extends CipherSuiter {
 	 * AEAD 随机数
 	 */
 	private byte[] nonce(byte[] IV, long sequence) {
+		// RFC7905:
+		// fixed_iv_length = 12;
+		// record_iv_length = 0;
+
 		final byte[] nonce = new byte[type.iv()];
 		// 1.填充的序列号，左补零
 		Binary.put(nonce, nonce.length - 8, sequence);

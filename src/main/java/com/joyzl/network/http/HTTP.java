@@ -1,5 +1,7 @@
 package com.joyzl.network.http;
 
+import java.util.function.Supplier;
+
 import com.joyzl.network.StringSeeker;
 
 /**
@@ -14,6 +16,7 @@ public class HTTP {
 	public final static String V10 = "HTTP/1.0";
 	public final static String V11 = "HTTP/1.1";
 	public final static String V20 = "HTTP/2";
+	public final static String WS = "WS";
 	public final static StringSeeker VERSIONS = new StringSeeker(new String[] { V10, V11, V20 });
 
 	// METHODS
@@ -36,6 +39,8 @@ public class HTTP {
 	public final static String PUT = "PUT";
 	/** 请求回环测试 */
 	public final static String TRACE = "TRACE";
+	/** 尝试解析HTTP/2 */
+	public final static String PRI = "PRI";
 
 	// WEB DAV
 
@@ -56,7 +61,7 @@ public class HTTP {
 
 	public final static StringSeeker METHODS = new StringSeeker(new String[] {
 			// HTTP BASE
-			CONNECT, DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT, TRACE,
+			CONNECT, DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT, TRACE, PRI,
 			// WEB DAV
 			PROPFIND, PROPPATCH, MKCOL, COPY, MOVE, LOCK, UNLOCK });
 
@@ -132,6 +137,7 @@ public class HTTP {
 	public final static String From = "From";
 	public final static String GetProfile = "GetProfile";
 	public final static String Host = "Host";
+	public final static String HTTP2_Settings = "HTTP2-Settings";
 	public final static String If = "If";
 	public final static String If_Match = "If-Match";
 	public final static String If_Modified_Since = "If-Modified-Since";
@@ -382,4 +388,23 @@ public class HTTP {
 			Warning, //
 			WWW_Authenticate,//
 	});
+
+	/**
+	 * 由于HTTP大量依赖字符编码因此采用线程缓存的StringBuilder辅助
+	 */
+	private static final ThreadLocal<StringBuilder> THREAD_LOCAL_STRING_BUILDER = ThreadLocal.withInitial(new Supplier<>() {
+		@Override
+		public StringBuilder get() {
+			return new StringBuilder(512);
+		}
+	});
+
+	/**
+	 * 获取线程缓存字符串构建类实例
+	 */
+	protected static StringBuilder getStringBuilder() {
+		final StringBuilder b = THREAD_LOCAL_STRING_BUILDER.get();
+		b.setLength(0);
+		return b;
+	}
 }

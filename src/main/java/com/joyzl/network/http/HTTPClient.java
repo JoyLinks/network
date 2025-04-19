@@ -38,9 +38,54 @@ public class HTTPClient extends TCPLink {
 
 	// 客户端提供响应消息暂存以支持消息解码
 	// 在网络传输中可能需要多次接收数据才能完成解码
-	private final Response response = new Response();
+	private Response response = new Response();
 
 	protected Response getResponse() {
 		return response;
+	}
+
+	// WEB Socket
+
+	private WEBSocketHandler webSockethandler;
+
+	/** 升级链路为WebSocket，绑定消息处理对象 */
+	public void upgrade(WEBSocketHandler handler) {
+		webSockethandler = handler;
+	}
+
+	public boolean isWEBSocket() {
+		return webSockethandler != null;
+	}
+
+	public WEBSocketHandler getWEBSocketHandler() {
+		return webSockethandler;
+	}
+
+	// HTTP 2
+
+	private HTTP2Sender<Request> sendStream;
+	private HPACK hpackRequest, hpackResponse;
+
+	public boolean isHTTP2() {
+		return sendStream != null;
+	}
+
+	/** 切换链路为HTTP2 */
+	void upgradeHTTP2() {
+		hpackRequest = new HPACK();
+		hpackResponse = new HPACK();
+		sendStream = new HTTP2Sender<>(false);
+	}
+
+	HTTP2Sender<Request> streams() {
+		return sendStream;
+	}
+
+	HPACK requestHPACK() {
+		return hpackRequest;
+	}
+
+	HPACK responseHPACK() {
+		return hpackResponse;
 	}
 }

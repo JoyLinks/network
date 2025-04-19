@@ -7,20 +7,6 @@ package com.joyzl.network.tls;
  */
 public interface CipherSuite {
 
-	// KeyExchangeAlgorithm
-
-	final static int RSA = 1;
-	final static int DHE = 2;
-	final static int DH = 3;
-
-	final static int PSK = 4;
-	final static int PSK_DHE = 5;
-	final static int ECDH = 6;
-	final static int ECDHE = 7;
-	final static int SRP_SHA = 8;
-	final static int GOSTR341112 = 9;
-	final static int KRB5 = 10;
-
 	// RFC 2246
 
 	short TLS_NULL_WITH_NULL_NULL = 0x0000;

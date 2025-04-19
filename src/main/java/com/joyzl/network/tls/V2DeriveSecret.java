@@ -141,16 +141,16 @@ class V2DeriveSecret extends V2PRF {
 
 	/** TLS 1.2 client_write_IV */
 	protected byte[] clientWriteIV(byte[] block, int macLength, int keyLength, int length) {
-		final byte[] key = new byte[length];
-		System.arraycopy(block, macLength * 2 + keyLength * 2, key, 0, length);
-		return key;
+		final byte[] iv = new byte[length];
+		System.arraycopy(block, macLength * 2 + keyLength * 2, iv, 0, length);
+		return iv;
 	}
 
 	/** TLS 1.2 server_write_IV */
 	protected byte[] serverWriteIV(byte[] block, int macLength, int keyLength, int length) {
-		final byte[] key = new byte[length];
-		System.arraycopy(block, macLength * 2 + keyLength * 2 + length, key, 0, length);
-		return key;
+		final byte[] iv = new byte[length];
+		System.arraycopy(block, macLength * 2 + keyLength * 2 + length, iv, 0, length);
+		return iv;
 	}
 
 	/*-

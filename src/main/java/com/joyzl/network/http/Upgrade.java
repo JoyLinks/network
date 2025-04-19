@@ -14,6 +14,8 @@ package com.joyzl.network.http;
  */
 public final class Upgrade {
 
+	public final static String H2C = "h2c";
+
 	public final static String NAME = HTTP.Upgrade;
 
 }

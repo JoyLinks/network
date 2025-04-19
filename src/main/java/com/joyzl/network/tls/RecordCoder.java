@@ -12,39 +12,39 @@ import com.joyzl.network.buffer.DataBuffer;
 class RecordCoder extends TLS {
 
 	static void encodePlaintextV0(Record record, DataBuffer data, DataBuffer buffer) throws IOException {
-		encodePlaintext(record, data, buffer, TLS.V10);
+		encodePlaintext(record, data, buffer, V10);
 	}
 
 	static void encodePlaintextV1(Record record, DataBuffer data, DataBuffer buffer) throws IOException {
-		encodePlaintext(record, data, buffer, TLS.V11);
+		encodePlaintext(record, data, buffer, V11);
 	}
 
 	static void encodePlaintextV2(Record record, DataBuffer data, DataBuffer buffer) throws IOException {
-		encodePlaintext(record, data, buffer, TLS.V12);
+		encodePlaintext(record, data, buffer, V12);
 	}
 
 	static void encodeV0(ApplicationData message, DataBuffer buffer) throws Exception {
-		encode(message, buffer, TLS.V10);
+		encode(message, buffer, V10);
 	}
 
 	static void encodeV1(ApplicationData message, DataBuffer buffer) throws Exception {
-		encode(message, buffer, TLS.V11);
+		encode(message, buffer, V11);
 	}
 
 	static void encodeV2(ApplicationData message, DataBuffer buffer) throws Exception {
-		encode(message, buffer, TLS.V12);
+		encode(message, buffer, V12);
 	}
 
 	static void encodeV0(ChangeCipherSpec message, DataBuffer buffer) throws Exception {
-		encode(message, buffer, TLS.V10);
+		encode(message, buffer, V10);
 	}
 
 	static void encodeV1(ChangeCipherSpec message, DataBuffer buffer) throws Exception {
-		encode(message, buffer, TLS.V11);
+		encode(message, buffer, V11);
 	}
 
 	static void encodeV2(ChangeCipherSpec message, DataBuffer buffer) throws Exception {
-		encode(message, buffer, TLS.V12);
+		encode(message, buffer, V12);
 	}
 
 	/*-
@@ -241,9 +241,9 @@ class RecordCoder extends TLS {
 
 	static void encodeCiphertext(V0CipherSuiter cipher, Record record, DataBuffer data, DataBuffer buffer) throws Exception {
 		if (cipher.isBlock()) {
-			encodeBlock(cipher, record, data, buffer, TLS.V10);
+			encodeBlock(cipher, record, data, buffer, V10);
 		} else if (cipher.isStream()) {
-			encodeStream(cipher, record, data, buffer, TLS.V10);
+			encodeStream(cipher, record, data, buffer, V10);
 		} else {
 			throw new TLSException(Alert.BAD_RECORD_MAC);
 		}
@@ -542,9 +542,9 @@ class RecordCoder extends TLS {
 
 	static void encodeCiphertext(V1CipherSuiter cipher, Record record, DataBuffer data, DataBuffer buffer) throws Exception {
 		if (cipher.isBlock()) {
-			encodeBlock(cipher, record, data, buffer, TLS.V11);
+			encodeBlock(cipher, record, data, buffer, V11);
 		} else if (cipher.isStream()) {
-			encodeStream(cipher, record, data, buffer, TLS.V11);
+			encodeStream(cipher, record, data, buffer, V11);
 		} else {
 			throw new TLSException(Alert.BAD_RECORD_MAC);
 		}
@@ -574,7 +574,7 @@ class RecordCoder extends TLS {
 			buffer.writeShort(length);
 
 			// opaque IV[SecurityParameters.record_iv_length];
-			TLS.RANDOM.nextBytes(iv);
+			RANDOM.nextBytes(iv);
 			buffer.write(iv);
 
 			// MAC value
@@ -611,7 +611,7 @@ class RecordCoder extends TLS {
 		buffer.writeShort(length);
 
 		// opaque IV[SecurityParameters.record_iv_length];
-		TLS.RANDOM.nextBytes(iv);
+		RANDOM.nextBytes(iv);
 		buffer.write(iv);
 
 		// MAC value
@@ -762,11 +762,11 @@ class RecordCoder extends TLS {
 
 	static void encodeCiphertext(V2CipherSuiter cipher, Record record, DataBuffer data, DataBuffer buffer) throws Exception {
 		if (cipher.isAEAD()) {
-			encodeAEAD(cipher, record, data, buffer, TLS.V12);
+			encodeAEAD(cipher, record, data, buffer);
 		} else if (cipher.isBlock()) {
-			encodeBlock(cipher, record, data, buffer, TLS.V12);
+			encodeBlock(cipher, record, data, buffer, V12);
 		} else if (cipher.isStream()) {
-			encodeStream(cipher, record, data, buffer, TLS.V12);
+			encodeStream(cipher, record, data, buffer, V12);
 		} else {
 			throw new TLSException(Alert.BAD_RECORD_MAC);
 		}
@@ -889,7 +889,7 @@ class RecordCoder extends TLS {
 			buffer.writeShort(length);
 
 			// opaque IV[SecurityParameters.record_iv_length];
-			TLS.RANDOM.nextBytes(iv);
+			RANDOM.nextBytes(iv);
 			buffer.write(iv);
 
 			// MAC value
@@ -926,7 +926,7 @@ class RecordCoder extends TLS {
 		buffer.writeShort(length);
 
 		// opaque IV[SecurityParameters.record_iv_length];
-		TLS.RANDOM.nextBytes(iv);
+		RANDOM.nextBytes(iv);
 		buffer.write(iv);
 
 		// MAC value
@@ -1016,21 +1016,19 @@ class RecordCoder extends TLS {
 	}
 
 	/** TLSCiphertext(GenericAEADCipher) */
-	static void encodeAEAD(V2CipherSuiter cipher, Record record, DataBuffer data, DataBuffer buffer, short version) throws Exception {
+	static void encodeAEAD(V2CipherSuiter cipher, Record record, DataBuffer data, DataBuffer buffer) throws Exception {
 		while (data.readable() > Record.PLAINTEXT_MAX) {
 			// ContentType 1Byte
 			buffer.writeByte(record.contentType());
 			// ProtocolVersion 2Byte
-			buffer.writeShort(version);
+			buffer.writeShort(V12);
 			// length 2Byte(uint16)
-			buffer.writeShort(Record.PLAINTEXT_MAX + cipher.ivLength() + cipher.tagLength());
+			buffer.writeShort(Record.PLAINTEXT_MAX + 8 + cipher.tagLength());
 
 			// opaque nonce_explicit[SecurityParameters.record_iv_length];
-			final byte[] temp = new byte[cipher.ivLength()];
-			TLS.RANDOM.nextBytes(temp);
-			buffer.write(temp);
+			buffer.writeLong(cipher.encryptSequence());
 
-			cipher.encryptAEAD(record.contentType(), version, Record.PLAINTEXT_MAX + cipher.tagLength());
+			cipher.encryptAEAD(record.contentType(), V12, Record.PLAINTEXT_MAX + cipher.tagLength());
 			// opaque content[TLSCompressed.length];
 			cipher.encryptUpdate(data, buffer, Record.PLAINTEXT_MAX);
 			// encrypt end output
@@ -1040,16 +1038,14 @@ class RecordCoder extends TLS {
 		// ContentType 1Byte
 		buffer.writeByte(record.contentType());
 		// ProtocolVersion 2Byte
-		buffer.writeShort(version);
+		buffer.writeShort(V12);
 		// length 2Byte(uint16)
-		buffer.writeShort(data.readable() + cipher.ivLength() + cipher.tagLength());
+		buffer.writeShort(data.readable() + 8 + cipher.tagLength());
 
 		// opaque nonce_explicit[SecurityParameters.record_iv_length];
-		final byte[] temp = new byte[cipher.ivLength()];
-		TLS.RANDOM.nextBytes(temp);
-		buffer.write(temp);
+		buffer.writeLong(cipher.encryptSequence());
 
-		cipher.encryptAEAD(record.contentType(), version, data.readable() + cipher.tagLength());
+		cipher.encryptAEAD(record.contentType(), V12, data.readable() + cipher.tagLength());
 		// opaque content[TLSCompressed.length];
 		cipher.encryptUpdate(data, buffer, data.readable());
 		// encrypt end output
@@ -1196,7 +1192,7 @@ class RecordCoder extends TLS {
 			// ContentType 1Byte
 			buffer.writeByte(Record.APPLICATION_DATA);
 			// ProtocolVersion 2Byte
-			buffer.writeShort(TLS.V12);
+			buffer.writeShort(V12);
 			// length 2Byte(uint16)
 			buffer.writeShort(Record.PLAINTEXT_MAX + 1/* ContentType */ + cipher.tagLength());
 
@@ -1216,7 +1212,7 @@ class RecordCoder extends TLS {
 		// ContentType 1Byte
 		buffer.writeByte(Record.APPLICATION_DATA);
 		// ProtocolVersion 2Byte
-		buffer.writeShort(TLS.V12);
+		buffer.writeShort(V12);
 		// length 2Byte(uint16)
 		buffer.writeShort(data.readable() + cipher.tagLength());
 		// encrypted_record
