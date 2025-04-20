@@ -24,13 +24,17 @@ import com.joyzl.network.Point;
  */
 public class TCPServer extends Server {
 
-	/** MAX pending connections */
+	/** DEFAULT MAX pending connections */
 	private final static int BACKLOG = 512;
 
 	private final SocketAddress local;
 	private final AsynchronousServerSocketChannel server_socket_channel;
 
 	public TCPServer(ChainHandler handler, String host, int port) throws IOException {
+		this(handler, host, port, BACKLOG);
+	}
+
+	public TCPServer(ChainHandler handler, String host, int port, int backlog) throws IOException {
 		super(handler, Point.getPoint(host, port));
 
 		server_socket_channel = AsynchronousServerSocketChannel.open(Executor.channelGroup());
@@ -46,10 +50,10 @@ public class TCPServer extends Server {
 				} else {
 					local = new InetSocketAddress(host, port);
 				}
-				server_socket_channel.bind(new InetSocketAddress(port), BACKLOG);
+				server_socket_channel.bind(new InetSocketAddress(port), backlog);
 			} else {
 				// 随机端口
-				server_socket_channel.bind(null, BACKLOG);
+				server_socket_channel.bind(null, backlog);
 				local = server_socket_channel.getLocalAddress();
 			}
 		} else {

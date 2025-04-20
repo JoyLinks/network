@@ -22,7 +22,7 @@ import com.joyzl.network.odbs.MessageIndex.MessageOddIndex;
  */
 public class ODBSSlave extends TCPSlave {
 
-	private final ReentrantLock k = new ReentrantLock(false);
+	private final ReentrantLock k = new ReentrantLock(true);
 	private final MessageStream<ODBSMessage> streams = new MessageStream<>();
 	private final MessageOddIndex<ODBSMessage> receives = new MessageOddIndex<>();
 	private final MessageEvenIndex<ODBSMessage> pushes = new MessageEvenIndex<>();
@@ -42,7 +42,7 @@ public class ODBSSlave extends TCPSlave {
 			k.lock();
 			try {
 				if (om.tag() > 0) {
-					if (om.theChain() == this) {
+					if (om.chain() == this) {
 						// 响应客户端请求消息，延用标识
 						streams.add(om, om.tag());
 					} else {

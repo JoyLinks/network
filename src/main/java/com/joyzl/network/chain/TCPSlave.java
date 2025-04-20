@@ -168,7 +168,7 @@ public class TCPSlave extends Slave {
 		} else if (size == 0) {
 			// 没有数据并且没有达到流的末端时返回0
 			// 如果用于接收的ByteBuffer缓存满则会出现读零情况
-			// DataBuffer代码存在问题才会导致提供了一个已满的ByteBuffer
+			// 代码存在问题才会导致提供了一个已满的ByteBuffer
 			read.release();
 			read = null;
 			handler().error(this, new IllegalStateException("TCPSlave:零读"));
@@ -191,7 +191,6 @@ public class TCPSlave extends Slave {
 		if (e instanceof AsynchronousCloseException) {
 			// 正在执行通道关闭
 			// 忽略此异常
-			return;
 		} else if (e instanceof InterruptedByTimeoutException) {
 			// 接收数据超时
 			// 通知处理程序
@@ -309,7 +308,6 @@ public class TCPSlave extends Slave {
 		if (e instanceof AsynchronousCloseException) {
 			// 正在执行通道关闭
 			// 忽略此异常
-			return;
 		} else if (e instanceof InterruptedByTimeoutException) {
 			// 发送数据超时
 			// 通知处理程序
@@ -363,6 +361,9 @@ public class TCPSlave extends Slave {
 
 				// 消息中可能有打开的资源
 				// 例如发送未完成的文件
+				// 20250420
+				// 重置时清空关联消息导致处理程序收到空消息通知而被判定为超时
+				// 实际上是由以下清空消息代码执行于通知之前导致
 				if (receiveMessage != null) {
 					try {
 						if (receiveMessage instanceof Closeable) {
@@ -371,7 +372,8 @@ public class TCPSlave extends Slave {
 					} catch (IOException e) {
 						handler().error(this, e);
 					} finally {
-						receiveMessage = null;
+						// 仅关闭不清空
+						// receiveMessage = null;
 					}
 				}
 				if (sendMessage != null) {
@@ -382,9 +384,11 @@ public class TCPSlave extends Slave {
 					} catch (IOException e) {
 						handler().error(this, e);
 					} finally {
-						sendMessage = null;
+						// 仅关闭不清空
+						// sendMessage = null;
 					}
 				}
+
 				try {
 					clearContext();
 				} catch (IOException e) {

@@ -69,7 +69,7 @@ public abstract class ODBSServerHandler<M extends ODBSMessage> extends ODBSFrame
 				// 消息可能须经历多次解码
 				ODBSMessage message = null;
 				if (length > 0) {
-					if (length % 2 > 0) {
+					if ((length & 1) == 1) {
 						message = slave.receives().get(length);
 						if (message == null) {
 							message = odbs.readEntity(message, reader);
@@ -78,7 +78,6 @@ public abstract class ODBSServerHandler<M extends ODBSMessage> extends ODBSFrame
 								return message;
 							} else {
 								slave.receives().add(message, length);
-								return null;
 							}
 						} else {
 							message = odbs.readEntity(message, reader);
@@ -115,7 +114,7 @@ public abstract class ODBSServerHandler<M extends ODBSMessage> extends ODBSFrame
 		if (message == null) {
 			slave.receives().clear();
 		} else {
-			((ODBSMessage) message).setChain(chain);
+			((ODBSMessage) message).chain(chain);
 			received(slave, (M) message);
 		}
 	}

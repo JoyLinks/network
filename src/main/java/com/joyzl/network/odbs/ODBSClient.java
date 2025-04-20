@@ -20,7 +20,7 @@ import com.joyzl.network.odbs.MessageIndex.MessageOddIndex;
  */
 public class ODBSClient extends TCPClient {
 
-	private final ReentrantLock k = new ReentrantLock(false);
+	private final ReentrantLock k = new ReentrantLock(true);
 	private final MessageStream<ODBSMessage> streams = new MessageStream<>();
 	private final MessageOddIndex<ODBSMessage> sends = new MessageOddIndex<>();
 	private final MessageEvenIndex<ODBSMessage> pushes = new MessageEvenIndex<>();
@@ -74,6 +74,15 @@ public class ODBSClient extends TCPClient {
 			k.unlock();
 		}
 		super.send(sendMessage());
+	}
+
+	protected void sendRemove(int id) {
+		k.lock();
+		try {
+			sends.remove(id);
+		} finally {
+			k.unlock();
+		}
 	}
 
 	MessageIndex<ODBSMessage> sends() {

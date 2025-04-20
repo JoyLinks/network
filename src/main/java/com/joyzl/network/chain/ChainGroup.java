@@ -53,11 +53,11 @@ public final class ChainGroup {
 	}
 
 	public static boolean hasServer() {
-		return SERVERS.isEmpty();
+		return !SERVERS.isEmpty();
 	}
 
 	public static boolean hasClient() {
-		return CLIENTS.isEmpty();
+		return !CLIENTS.isEmpty();
 	}
 
 	public final static Server getServer(String key) {

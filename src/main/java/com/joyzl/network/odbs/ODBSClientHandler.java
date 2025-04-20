@@ -5,8 +5,6 @@
  */
 package com.joyzl.network.odbs;
 
-import java.util.Iterator;
-
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.chain.ChainChannel;
 import com.joyzl.network.chain.ChainHandler;
@@ -71,15 +69,16 @@ public abstract class ODBSClientHandler<M extends ODBSMessage> extends ODBSFrame
 				// 消息可能须经历多次解码
 				ODBSMessage message = null;
 				if (length > 0) {
-					if (length % 2 > 0) {
+					if ((length & 1) == 1) {
 						message = client.sends().get(length);
 						if (message == null) {
+							// 错误的消息标识
 							reader.clear();
-							return null;
 						} else {
 							message = odbs.readEntity(message, reader);
 							if (finish) {
-								client.sends().remove(length);
+								// client.sends().remove(length);
+								client.sendRemove(length);
 								return message;
 							} else {
 								return null;
@@ -94,7 +93,6 @@ public abstract class ODBSClientHandler<M extends ODBSMessage> extends ODBSFrame
 								return message;
 							} else {
 								client.pushes().add(message, length);
-								return null;
 							}
 						} else {
 							message = odbs.readEntity(message, reader);
@@ -130,15 +128,15 @@ public abstract class ODBSClientHandler<M extends ODBSMessage> extends ODBSFrame
 			client.pushes().clear();
 
 			ODBSMessage om;
-			final Iterator<ODBSMessage> iterator = client.sends().iterator();
-			while (iterator.hasNext()) {
-				om = iterator.next();
-				om.setError(ODBSMessage.TIMEOUT);
+			client.sends().iterator();
+			while (client.sends().hasNext()) {
+				om = client.sends().next();
+				om.setStatus(ODBSMessage.TIMEOUT);
+				client.sends().remove();
 				received(client, om);
-				iterator.remove();
 			}
 		} else {
-			((ODBSMessage) message).setChain(chain);
+			((ODBSMessage) message).chain(chain);
 			received(client, (M) message);
 		}
 	}
@@ -195,11 +193,11 @@ public abstract class ODBSClientHandler<M extends ODBSMessage> extends ODBSFrame
 			client.streams().clear();
 
 			ODBSMessage om;
-			final Iterator<ODBSMessage> iterator = client.sends().iterator();
-			while (iterator.hasNext()) {
-				om = iterator.next();
-				om.setError(ODBSMessage.TIMEOUT);
-				iterator.remove();
+			client.sends().iterator();
+			while (client.sends().hasNext()) {
+				om = client.sends().next();
+				om.setStatus(ODBSMessage.TIMEOUT);
+				client.sends().remove();
 				sent(client, om);
 			}
 		} else {

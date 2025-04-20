@@ -18,7 +18,7 @@ package com.joyzl.network.odbs;
  * @author ZhangXi 2019年7月15日
  *
  */
-public abstract class ODBSFrame {
+abstract class ODBSFrame {
 
 	/** 帧最小长度(字节) */
 	public final static int MIN_FRAME = 1 + 4 + 4;
@@ -31,4 +31,6 @@ public abstract class ODBSFrame {
 	/** 帧结束标记 */
 	public final static byte FOOT = (byte) 0xEF;
 
+	public final static int MASK_FINISH = 0x80000000;
+	public final static int MASK_TAG = 0x7fffffff;
 }

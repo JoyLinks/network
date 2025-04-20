@@ -141,6 +141,8 @@ public class TCPLink extends Client {
 	protected void connected() {
 		// 连接成功
 		connected = true;
+		receiveMessage = null;
+		sendMessage = null;
 		try {
 			handler().connected(this);
 		} catch (Exception e) {
@@ -236,7 +238,7 @@ public class TCPLink extends Client {
 		} else if (size == 0) {
 			// 没有数据并且没有达到流的末端时返回0
 			// 如果用于接收的ByteBuffer缓存满则会出现读零情况
-			// DataBuffer代码存在问题才会导致提供了一个已满的ByteBuffer
+			// 代码存在问题才会导致提供了一个已满的ByteBuffer
 			read.release();
 			read = null;
 			handler().error(this, new IllegalStateException("TCPLink:零读"));
@@ -259,7 +261,6 @@ public class TCPLink extends Client {
 		if (e instanceof ClosedChannelException) {
 			// 正在执行通道关闭
 			// 忽略此异常
-			return;
 		} else if (e instanceof InterruptedByTimeoutException) {
 			// 接收数据超时
 			// 通知处理程序
@@ -340,9 +341,10 @@ public class TCPLink extends Client {
 				);
 			} else {
 				// 数据已发完
-				// 必须在通知处理对象之前清空当前消息关联
 				write.release();
 				write = null;
+				// 必须在通知处理对象之前清空当前消息关联
+				// 20250420重置时导致最后发送的消息被置空
 				final Object message = sendMessage;
 				sendMessage = null;
 				try {
@@ -377,7 +379,6 @@ public class TCPLink extends Client {
 		if (e instanceof ClosedChannelException) {
 			// 正在执行通道关闭
 			// 忽略此异常
-			return;
 		} else if (e instanceof InterruptedByTimeoutException) {
 			// 发送数据超时
 			// 通知处理程序
@@ -435,6 +436,9 @@ public class TCPLink extends Client {
 
 			// 消息中可能有打开的资源
 			// 例如发送未完成的文件
+			// 20250420
+			// 重置时清空关联消息导致处理程序收到空消息通知而被判定为超时
+			// 实际上是由以下清空消息代码执行于通知之前导致
 			if (receiveMessage != null) {
 				try {
 					if (receiveMessage instanceof Closeable) {
@@ -443,7 +447,8 @@ public class TCPLink extends Client {
 				} catch (IOException e) {
 					handler().error(this, e);
 				} finally {
-					receiveMessage = null;
+					// 仅关闭不清空
+					// receiveMessage = null;
 				}
 			}
 			if (sendMessage != null) {
@@ -454,7 +459,8 @@ public class TCPLink extends Client {
 				} catch (IOException e) {
 					handler().error(this, e);
 				} finally {
-					sendMessage = null;
+					// 仅关闭不清空
+					// sendMessage = null;
 				}
 			}
 		}
