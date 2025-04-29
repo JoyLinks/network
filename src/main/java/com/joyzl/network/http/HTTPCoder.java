@@ -28,7 +28,7 @@ import com.joyzl.network.http.MultipartRange.MultipartRanges;
  * @author ZhangXi
  * @date 2021年10月7日
  */
-public class HTTPCoder extends HTTP {
+public class HTTPCoder extends HTTP1 {
 
 	public final static char CR = '\r';
 	public final static char LF = '\n';

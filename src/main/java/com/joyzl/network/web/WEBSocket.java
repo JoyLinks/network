@@ -7,7 +7,7 @@ package com.joyzl.network.web;
 
 import com.joyzl.network.Utility;
 import com.joyzl.network.http.Connection;
-import com.joyzl.network.http.HTTP;
+import com.joyzl.network.http.HTTP1;
 import com.joyzl.network.http.HTTPSlave;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.Origin;
@@ -68,7 +68,7 @@ public abstract class WEBSocket extends Servlet {
 			response.setStatus(HTTPStatus.UPGRADE_REQUIRED);
 			return false;
 		}
-		if (!value.contains(HTTP.Upgrade)) {
+		if (!value.contains(HTTP1.Upgrade)) {
 			// 浏览器之间存在差异
 			// Chrome connection: Upgrade
 			// FireFox connection: keep-alive,Upgrade
@@ -95,39 +95,39 @@ public abstract class WEBSocket extends Servlet {
 		}
 
 		// Sec-WebSocket-Version: 13
-		value = request.getHeader(HTTP.Sec_WebSocket_Version);
+		value = request.getHeader(HTTP1.Sec_WebSocket_Version);
 		if (!Utility.equal(value, VERSION)) {
 			// 目前仅13版本，未支持其它过渡版本
-			response.addHeader(HTTP.Sec_WebSocket_Version, VERSION);
+			response.addHeader(HTTP1.Sec_WebSocket_Version, VERSION);
 			response.setStatus(HTTPStatus.UPGRADE_REQUIRED);
 			return false;
 		}
 
 		// Sec-WebSocket-Protocol: subprotocols
-		value = request.getHeader(HTTP.Sec_WebSocket_Protocol);
+		value = request.getHeader(HTTP1.Sec_WebSocket_Protocol);
 		value = protocol(value);
 		if (Utility.noEmpty(value)) {
-			response.addHeader(HTTP.Sec_WebSocket_Protocol, value);
+			response.addHeader(HTTP1.Sec_WebSocket_Protocol, value);
 		}
 
 		// Sec-WebSocket-Extensions: permessage-deflate
-		value = request.getHeader(HTTP.Sec_WebSocket_Extensions);
+		value = request.getHeader(HTTP1.Sec_WebSocket_Extensions);
 		value = extensions(value);
 		if (Utility.noEmpty(value)) {
-			response.addHeader(HTTP.Sec_WebSocket_Extensions, value);
+			response.addHeader(HTTP1.Sec_WebSocket_Extensions, value);
 		}
 
 		// Sec-WebSocket-Key: lqy8ApLbw+oVNBkMGrpceg==
 		// Sec-WebSocket-Accept: response-key
-		value = request.getHeader(HTTP.Sec_WebSocket_Key);
+		value = request.getHeader(HTTP1.Sec_WebSocket_Key);
 		if (Utility.isEmpty(value)) {
 			response.setStatus(HTTPStatus.UPGRADE_REQUIRED);
 		}
 
 		response.setStatus(HTTPStatus.SWITCHING_PROTOCOL);
-		response.addHeader(HTTP.Connection, HTTP.Upgrade);
-		response.addHeader(HTTP.Upgrade, WEBSOCKET);
-		response.addHeader(HTTP.Sec_WebSocket_Accept, SecWebSocketAccept.hash(value));
+		response.addHeader(HTTP1.Connection, HTTP1.Upgrade);
+		response.addHeader(HTTP1.Upgrade, WEBSOCKET);
+		response.addHeader(HTTP1.Sec_WebSocket_Accept, SecWebSocketAccept.hash(value));
 		return true;
 	}
 

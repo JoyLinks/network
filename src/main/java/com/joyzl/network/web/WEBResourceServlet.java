@@ -15,7 +15,7 @@ import com.joyzl.network.http.ContentLength;
 import com.joyzl.network.http.ContentRange;
 import com.joyzl.network.http.ContentType;
 import com.joyzl.network.http.ETag;
-import com.joyzl.network.http.HTTP;
+import com.joyzl.network.http.HTTP1;
 import com.joyzl.network.http.HTTPCoder;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.MultipartRange;
@@ -108,13 +108,13 @@ public abstract class WEBResourceServlet extends WEBServlet {
 
 	@Override
 	protected void options(Request request, Response response) throws Exception {
-		response.addHeader(HTTP.Allow, "OPTIONS, GET, HEAD, TRACE");
+		response.addHeader(HTTP1.Allow, "OPTIONS, GET, HEAD, TRACE");
 		response.setStatus(HTTPStatus.OK);
 	}
 
 	@Override
 	protected void delete(Request request, Response response) throws Exception {
-		response.addHeader(HTTP.Allow, "OPTIONS, GET, HEAD, TRACE");
+		response.addHeader(HTTP1.Allow, "OPTIONS, GET, HEAD, TRACE");
 		response.setStatus(HTTPStatus.METHOD_NOT_ALLOWED);
 	}
 
@@ -132,13 +132,13 @@ public abstract class WEBResourceServlet extends WEBServlet {
 
 	@Override
 	protected void put(Request request, Response response) throws Exception {
-		response.addHeader(HTTP.Allow, "OPTIONS, GET, HEAD, TRACE");
+		response.addHeader(HTTP1.Allow, "OPTIONS, GET, HEAD, TRACE");
 		response.setStatus(HTTPStatus.METHOD_NOT_ALLOWED);
 	}
 
 	@Override
 	protected void patch(Request request, Response response) throws Exception {
-		response.addHeader(HTTP.Allow, "OPTIONS, GET, HEAD, TRACE");
+		response.addHeader(HTTP1.Allow, "OPTIONS, GET, HEAD, TRACE");
 		response.setStatus(HTTPStatus.METHOD_NOT_ALLOWED);
 	}
 
@@ -163,14 +163,14 @@ public abstract class WEBResourceServlet extends WEBServlet {
 				// Multiple Files
 				response.setStatus(HTTPStatus.MULTIPLE_CHOICE);
 				response.addHeader(ContentType.NAME, MIMEType.TEXT_HTML);
-				response.addHeader(HTTP.Alternates, resource.getContentType());
+				response.addHeader(HTTP1.Alternates, resource.getContentType());
 				response.addHeader(TransferEncoding.NAME, TransferEncoding.CHUNKED);
 			} else {
 				// DIR / DIR Browse
 				if (request.pathLength() != resource.getContentLocation().length()) {
 					// 目录重定向 /dir 且存在 重定向 /dir/
 					response.setStatus(HTTPStatus.MOVED_PERMANENTLY);
-					response.addHeader(HTTP.Location, resource.getContentLocation());
+					response.addHeader(HTTP1.Location, resource.getContentLocation());
 					response.addHeader(ContentLength.NAME, "0");
 				} else {
 					if (resource.getContentType() == null) {
@@ -214,13 +214,13 @@ public abstract class WEBResourceServlet extends WEBServlet {
 		// 公共头部分
 		response.addHeader(ContentType.NAME, resource.getContentType());
 		response.addHeader(CacheControl.NAME, CacheControl.NO_CACHE);
-		response.addHeader(HTTP.Content_Language, resource.getContentLanguage());
-		response.addHeader(HTTP.Content_Location, resource.getContentLocation());
-		response.addHeader(HTTP.Last_Modified, resource.getLastModified());
+		response.addHeader(HTTP1.Content_Language, resource.getContentLanguage());
+		response.addHeader(HTTP1.Content_Location, resource.getContentLocation());
+		response.addHeader(HTTP1.Last_Modified, resource.getLastModified());
 		response.addHeader(ETag.NAME, resource.getETag());
 
 		// ETAG不同则返回资源 RFC7232
-		String value = request.getHeader(HTTP.If_None_Match);
+		String value = request.getHeader(HTTP1.If_None_Match);
 		if (Utility.noEmpty(value)) {
 			if (Utility.equal(value, resource.getETag())) {
 				response.setStatus(HTTPStatus.NOT_MODIFIED);
@@ -232,7 +232,7 @@ public abstract class WEBResourceServlet extends WEBServlet {
 		}
 
 		// ETAG相同则返回资源 RFC7232
-		value = request.getHeader(HTTP.If_Match);
+		value = request.getHeader(HTTP1.If_Match);
 		if (Utility.noEmpty(value)) {
 			if (Utility.equal(value, resource.getETag())) {
 				response.setStatus(HTTPStatus.OK);
@@ -244,7 +244,7 @@ public abstract class WEBResourceServlet extends WEBServlet {
 		}
 
 		// 修改时间有更新返回文件内容
-		value = request.getHeader(HTTP.If_Modified_Since);
+		value = request.getHeader(HTTP1.If_Modified_Since);
 		if (Utility.noEmpty(value)) {
 			if (Utility.equal(value, resource.getLastModified())) {
 				response.setStatus(HTTPStatus.NOT_MODIFIED);
@@ -256,7 +256,7 @@ public abstract class WEBResourceServlet extends WEBServlet {
 		}
 
 		// 修改时间未更新返回文件内容
-		value = request.getHeader(HTTP.If_Unmodified_Since);
+		value = request.getHeader(HTTP1.If_Unmodified_Since);
 		if (Utility.noEmpty(value)) {
 			if (Utility.equal(value, resource.getLastModified())) {
 				response.setStatus(HTTPStatus.OK);
@@ -270,7 +270,7 @@ public abstract class WEBResourceServlet extends WEBServlet {
 		// RANGE部分请求
 		final Range range = Range.parse(request.getHeader(Range.NAME));
 		if (range != null) {
-			value = request.getHeader(HTTP.If_Range);
+			value = request.getHeader(HTTP1.If_Range);
 			if (Utility.noEmpty(value)) {
 				// Last-Modified/ETag相同时Range生效
 				if (Utility.equal(value, resource.getETag())) {
@@ -320,7 +320,7 @@ public abstract class WEBResourceServlet extends WEBServlet {
 			// Transfer-Encoding: chunked
 			response.addHeader(TransferEncoding.NAME, TransferEncoding.CHUNKED);
 			// Accept-Ranges: bytes
-			response.addHeader(HTTP.Accept_Ranges, Range.UNIT);
+			response.addHeader(HTTP1.Accept_Ranges, Range.UNIT);
 		}
 		if (content) {
 			response.setContent(resource.getData(encoding));
@@ -357,7 +357,7 @@ public abstract class WEBResourceServlet extends WEBServlet {
 				final ByteRange byterange = range.getRanges().get(0);
 				if (byterange.valid(length, BLOCK_BYTES, MAX_BYTES)) {
 					// Accept-Ranges: bytes
-					response.addHeader(HTTP.Accept_Ranges, Range.UNIT);
+					response.addHeader(HTTP1.Accept_Ranges, Range.UNIT);
 					// Content-Length:9
 					response.addHeader(ContentLength.NAME, Long.toString(byterange.getSize()));
 					// Content-Encoding: br/gzip/deflate
@@ -405,7 +405,7 @@ public abstract class WEBResourceServlet extends WEBServlet {
 				// 206
 				response.setStatus(HTTPStatus.PARTIAL_CONTENT);
 				// Accept-Ranges: bytes
-				response.addHeader(HTTP.Accept_Ranges, Range.UNIT);
+				response.addHeader(HTTP1.Accept_Ranges, Range.UNIT);
 				// Content-Length:9
 				response.addHeader(ContentLength.NAME, Integer.toString(parts.length()));
 				// Content-Type: multipart/byteranges;

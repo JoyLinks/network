@@ -19,7 +19,7 @@ import com.joyzl.network.http.MultipartFile.MultipartFiles;
  */
 public class Request extends HTTPMessage {
 
-	private String method = HTTP.GET;
+	private String method = HTTP1.GET;
 	private String url;
 	private int uriHost = -1, uriPort, uriPath = -1, uriQuery, uriAnchor;
 

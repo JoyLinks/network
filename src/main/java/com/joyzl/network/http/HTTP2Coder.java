@@ -420,7 +420,7 @@ public class HTTP2Coder extends HTTP2 {
 							// 超过并发数
 							return new Goaway(id, REFUSED_STREAM);
 						}
-						im.put(id, request = new Request(id, HTTP.V20));
+						im.put(id, request = new Request(id, HTTP1.V20));
 					}
 					if (isPriority(flag)) {
 						length -= 5;
@@ -555,7 +555,7 @@ public class HTTP2Coder extends HTTP2 {
 					hpack.add(name, value);
 				} else {
 					readString(buffer, builder);
-					name = HTTP.HEADERS.get(builder);
+					name = HTTP1.HEADERS.get(builder);
 					readString(buffer, builder);
 					value = builder.toString();
 					hpack.add(name, value);
@@ -564,7 +564,7 @@ public class HTTP2Coder extends HTTP2 {
 				index = readVarint(buffer, flag, 4);
 				if (index == 0) {
 					readString(buffer, builder);
-					name = HTTP.HEADERS.get(builder);
+					name = HTTP1.HEADERS.get(builder);
 					readString(buffer, builder);
 					value = builder.toString();
 				} else {
@@ -574,7 +574,7 @@ public class HTTP2Coder extends HTTP2 {
 				index = readVarint(buffer, flag, 4);
 				if (index == 0) {
 					readString(buffer, builder);
-					name = HTTP.HEADERS.get(builder);
+					name = HTTP1.HEADERS.get(builder);
 					readString(buffer, builder);
 					value = builder.toString();
 				} else {
@@ -635,7 +635,7 @@ public class HTTP2Coder extends HTTP2 {
 					hpack.add(name, value);
 				} else if (index == 0) {
 					readString(buffer, builder);
-					name = HTTP.HEADERS.get(builder);
+					name = HTTP1.HEADERS.get(builder);
 					readString(buffer, builder);
 					value = builder.toString();
 					hpack.add(name, value);
@@ -646,7 +646,7 @@ public class HTTP2Coder extends HTTP2 {
 				index = readVarint(buffer, flag, 4);
 				if (index == 0) {
 					readString(buffer, builder);
-					name = HTTP.HEADERS.get(builder);
+					name = HTTP1.HEADERS.get(builder);
 					readString(buffer, builder);
 					value = builder.toString();
 				} else {
@@ -656,7 +656,7 @@ public class HTTP2Coder extends HTTP2 {
 				index = readVarint(buffer, flag, 4);
 				if (index == 0) {
 					readString(buffer, builder);
-					name = HTTP.HEADERS.get(builder);
+					name = HTTP1.HEADERS.get(builder);
 					readString(buffer, builder);
 					value = builder.toString();
 				} else {

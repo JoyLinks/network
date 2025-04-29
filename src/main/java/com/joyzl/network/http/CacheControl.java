@@ -42,7 +42,7 @@ import com.joyzl.network.Utility;
  */
 public final class CacheControl extends Header {
 
-	public final static String NAME = HTTP.Cache_Control;
+	public final static String NAME = HTTP1.Cache_Control;
 	public final static String MAX_AGE = "max-age";
 	public final static String MAX_STALE = "max-stale";
 	public final static String MIN_FRESH = "min-fresh";
@@ -73,7 +73,7 @@ public final class CacheControl extends Header {
 
 	@Override
 	public String getHeaderName() {
-		return HTTP.Cache_Control;
+		return HTTP1.Cache_Control;
 	}
 
 	@Override

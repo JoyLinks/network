@@ -31,14 +31,14 @@ import com.joyzl.network.Utility;
  */
 public final class Range extends Header {
 
-	public final static String NAME = HTTP.Range;
+	public final static String NAME = HTTP1.Range;
 	public final static String UNIT = "bytes";
 
 	private final List<ByteRange> ranges = new ArrayList<>();
 
 	@Override
 	public String getHeaderName() {
-		return HTTP.Range;
+		return HTTP1.Range;
 	}
 
 	@Override

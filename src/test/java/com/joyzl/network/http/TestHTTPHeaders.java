@@ -45,37 +45,37 @@ class TestHTTPHeaders {
 	@Test
 	void testIfString() {
 		final List<StringBuilder> samples = new ArrayList<>();
-		for (int i = 0; i < HTTP.HEADERS.size(); i++) {
+		for (int i = 0; i < HTTP1.HEADERS.size(); i++) {
 			samples.add(new StringBuilder(HEADERS[i]));
 		}
 
 		String name;
 		for (int i = 0; i < samples.size(); i++) {
-			name = HTTP.HEADERS.get(samples.get(i));
+			name = HTTP1.HEADERS.get(samples.get(i));
 			assertTrue(name == HEADERS[i]);
 		}
 		for (int i = 0; i < samples.size(); i++) {
-			name = HTTP.HEADERS.get(samples.get(i).toString().toLowerCase());
+			name = HTTP1.HEADERS.get(samples.get(i).toString().toLowerCase());
 			assertTrue(name == HEADERS[i]);
 		}
 		for (int i = 0; i < samples.size(); i++) {
-			name = HTTP.HEADERS.get(samples.get(i).toString().toUpperCase());
+			name = HTTP1.HEADERS.get(samples.get(i).toString().toUpperCase());
 			assertTrue(name == HEADERS[i]);
 		}
 		for (int i = 0; i < samples.size(); i++) {
-			name = HTTP.HEADERS.get(samples.get(i).substring(0, samples.get(i).length() - 1));
+			name = HTTP1.HEADERS.get(samples.get(i).substring(0, samples.get(i).length() - 1));
 			assertTrue(name != HEADERS[i]);
 		}
 
 		// 无匹配情形
-		name = HTTP.HEADERS.get("X");
+		name = HTTP1.HEADERS.get("X");
 		assertTrue(name.equals("X"));
-		name = HTTP.HEADERS.get("XX");
+		name = HTTP1.HEADERS.get("XX");
 		assertTrue(name.equals("XX"));
 
 		// MAP
 		final Map<String, String> map = new HashMap<>();
-		for (int i = 0; i < HTTP.HEADERS.size(); i++) {
+		for (int i = 0; i < HTTP1.HEADERS.size(); i++) {
 			map.put(HEADERS[i], HEADERS[i]);
 		}
 
@@ -94,7 +94,7 @@ class TestHTTPHeaders {
 		time = System.currentTimeMillis();
 		while (size-- > 0) {
 			for (int i = 0; i < samples.size(); i++) {
-				name = HTTP.HEADERS.get(samples.get(i));
+				name = HTTP1.HEADERS.get(samples.get(i));
 			}
 		}
 		time = System.currentTimeMillis() - time;
@@ -345,164 +345,164 @@ class TestHTTPHeaders {
 	}
 
 	final static String[] HEADERS = new String[] { //
-			HTTP.Accept, //
-			HTTP.Accept_Additions, //
-			HTTP.Accept_Charset, //
-			HTTP.Accept_Encoding, //
-			HTTP.Accept_Features, //
-			HTTP.Accept_Language, //
-			HTTP.Accept_Ranges, //
-			HTTP.Access_Control_Allow_Credentials, //
-			HTTP.Access_Control_Allow_Headers, //
-			HTTP.Access_Control_Allow_Methods, //
-			HTTP.Access_Control_Allow_Origin, //
-			HTTP.Access_Control_Expose_Headers, //
-			HTTP.Access_Control_Max_Age, //
-			HTTP.Access_Control_Request_Headers, //
-			HTTP.Access_Control_Request_Method, //
-			HTTP.Age, //
-			HTTP.A_IM, //
-			HTTP.Allow, //
-			HTTP.Alternates, //
-			HTTP.Alt_Svc, //
-			HTTP.Authentication_Info, //
-			HTTP.Authorization, //
-			HTTP.Cache_Control, //
-			HTTP.C_Ext, //
-			HTTP.Clear_Site_Data, //
-			HTTP.C_Man, //
-			HTTP.Connection, //
-			HTTP.Content_Base, //
-			HTTP.Content_Disposition, //
-			HTTP.Content_Encoding, //
-			HTTP.Content_ID, //
-			HTTP.Content_Language, //
-			HTTP.Content_Length, //
-			HTTP.Content_Location, //
-			HTTP.Content_MD5, //
-			HTTP.Content_Range, //
-			HTTP.Content_Script_Type, //
-			HTTP.Content_Security_Policy, //
-			HTTP.Content_Security_Policy_Report_Only, //
-			HTTP.Content_Style_Type, //
-			HTTP.Content_Type, //
-			HTTP.Content_Version, //
-			HTTP.Cookie, //
-			HTTP.Cookie2, //
-			HTTP.C_Opt, //
-			HTTP.C_PEP, //
-			HTTP.C_PEP_Info, //
-			HTTP.Cross_Origin_Embedder_Policy, //
-			HTTP.Cross_Origin_Opener_Policy, //
-			HTTP.Cross_Origin_Resource_Policy, //
-			HTTP.Date, //
-			HTTP.DAV, //
-			HTTP.Default_Style, //
-			HTTP.Delta_Base, //
-			HTTP.Depth, //
-			HTTP.Derived_From, //
-			HTTP.Destination, //
-			HTTP.Differential_ID, //
-			HTTP.Digest, //
-			HTTP.Downlink, //
-			HTTP.ECT, //
-			HTTP.ETag, //
-			HTTP.Expect, //
-			HTTP.Expect_CT, //
-			HTTP.Expires, //
-			HTTP.Ext, //
-			HTTP.Forwarded, //
-			HTTP.From, //
-			HTTP.GetProfile, //
-			HTTP.Host, //
-			HTTP.If, //
-			HTTP.If_Match, //
-			HTTP.If_Modified_Since, //
-			HTTP.If_None_Match, //
-			HTTP.If_Range, //
-			HTTP.If_Unmodified_Since, //
-			HTTP.IM, //
-			HTTP.Keep_Alive, //
-			HTTP.Label, //
-			HTTP.Last_Event_ID, //
-			HTTP.Last_Modified, //
-			HTTP.Link, //
-			HTTP.Location, //
-			HTTP.Lock_Token, //
-			HTTP.Man, //
-			HTTP.Max_Forwards, //
-			HTTP.Meter, //
-			HTTP.MIME_Version, //
-			HTTP.Negotiate, //
-			HTTP.Opt, //
-			HTTP.Ordering_Type, //
-			HTTP.Origin, //
-			HTTP.Overwrite, //
-			HTTP.P3P, //
-			HTTP.PEP, //
-			HTTP.Pep_Info, //
-			HTTP.Permissions_Policy, //
-			HTTP.PICS_Label, //
-			HTTP.Ping_From, //
-			HTTP.Ping_To, //
-			HTTP.Position, //
-			HTTP.Pragma, //
-			HTTP.ProfileObject, //
-			HTTP.Protocol, //
-			HTTP.Protocol_Info, //
-			HTTP.Protocol_Query, //
-			HTTP.Protocol_Request, //
-			HTTP.Proxy_Authenticate, //
-			HTTP.Proxy_Authentication_Info, //
-			HTTP.Proxy_Authorization, //
-			HTTP.Proxy_Features, //
-			HTTP.Proxy_Instruction, //
-			HTTP.Public, //
-			HTTP.Range, //
-			HTTP.Referer, //
-			HTTP.Referrer_Policy, //
-			HTTP.Refresh, //
-			HTTP.Report_To, //
-			HTTP.Retry_After, //
-			HTTP.RTT, //
-			HTTP.Safe, //
-			HTTP.Sec_Fetch_Dest, //
-			HTTP.Sec_Fetch_Mode, //
-			HTTP.Sec_Fetch_Site, //
-			HTTP.Sec_Fetch_User, //
-			HTTP.Security_Scheme, //
-			HTTP.Sec_WebSocket_Accept, //
-			HTTP.Sec_WebSocket_Extensions, //
-			HTTP.Sec_WebSocket_Key, //
-			HTTP.Sec_WebSocket_Protocol, //
-			HTTP.Sec_WebSocket_Version, //
-			HTTP.Server, //
-			HTTP.Server_Timing, //
-			HTTP.Service_Worker_Navigation_Preload, //
-			HTTP.Set_Cookie, //
-			HTTP.Set_Cookie2, //
-			HTTP.SetProfile, //
-			HTTP.SoapAction, //
-			HTTP.SourceMap, //
-			HTTP.Status_URI, //
-			HTTP.Strict_Transport_Security, //
-			HTTP.Surrogate_Capability, //
-			HTTP.Surrogate_Control, //
-			HTTP.TCN, //
-			HTTP.TE, //
-			HTTP.Timeout, //
-			HTTP.Timing_Allow_Origin, //
-			HTTP.Trailer, //
-			HTTP.Transfer_Encoding, //
-			HTTP.Upgrade, //
-			HTTP.Upgrade_Insecure_Requests, //
-			HTTP.URI, //
-			HTTP.User_Agent, //
-			HTTP.Variant_Vary, //
-			HTTP.Vary, //
-			HTTP.Via, //
-			HTTP.Want_Digest, //
-			HTTP.Warning, //
-			HTTP.WWW_Authenticate,//
+			HTTP1.Accept, //
+			HTTP1.Accept_Additions, //
+			HTTP1.Accept_Charset, //
+			HTTP1.Accept_Encoding, //
+			HTTP1.Accept_Features, //
+			HTTP1.Accept_Language, //
+			HTTP1.Accept_Ranges, //
+			HTTP1.Access_Control_Allow_Credentials, //
+			HTTP1.Access_Control_Allow_Headers, //
+			HTTP1.Access_Control_Allow_Methods, //
+			HTTP1.Access_Control_Allow_Origin, //
+			HTTP1.Access_Control_Expose_Headers, //
+			HTTP1.Access_Control_Max_Age, //
+			HTTP1.Access_Control_Request_Headers, //
+			HTTP1.Access_Control_Request_Method, //
+			HTTP1.Age, //
+			HTTP1.A_IM, //
+			HTTP1.Allow, //
+			HTTP1.Alternates, //
+			HTTP1.Alt_Svc, //
+			HTTP1.Authentication_Info, //
+			HTTP1.Authorization, //
+			HTTP1.Cache_Control, //
+			HTTP1.C_Ext, //
+			HTTP1.Clear_Site_Data, //
+			HTTP1.C_Man, //
+			HTTP1.Connection, //
+			HTTP1.Content_Base, //
+			HTTP1.Content_Disposition, //
+			HTTP1.Content_Encoding, //
+			HTTP1.Content_ID, //
+			HTTP1.Content_Language, //
+			HTTP1.Content_Length, //
+			HTTP1.Content_Location, //
+			HTTP1.Content_MD5, //
+			HTTP1.Content_Range, //
+			HTTP1.Content_Script_Type, //
+			HTTP1.Content_Security_Policy, //
+			HTTP1.Content_Security_Policy_Report_Only, //
+			HTTP1.Content_Style_Type, //
+			HTTP1.Content_Type, //
+			HTTP1.Content_Version, //
+			HTTP1.Cookie, //
+			HTTP1.Cookie2, //
+			HTTP1.C_Opt, //
+			HTTP1.C_PEP, //
+			HTTP1.C_PEP_Info, //
+			HTTP1.Cross_Origin_Embedder_Policy, //
+			HTTP1.Cross_Origin_Opener_Policy, //
+			HTTP1.Cross_Origin_Resource_Policy, //
+			HTTP1.Date, //
+			HTTP1.DAV, //
+			HTTP1.Default_Style, //
+			HTTP1.Delta_Base, //
+			HTTP1.Depth, //
+			HTTP1.Derived_From, //
+			HTTP1.Destination, //
+			HTTP1.Differential_ID, //
+			HTTP1.Digest, //
+			HTTP1.Downlink, //
+			HTTP1.ECT, //
+			HTTP1.ETag, //
+			HTTP1.Expect, //
+			HTTP1.Expect_CT, //
+			HTTP1.Expires, //
+			HTTP1.Ext, //
+			HTTP1.Forwarded, //
+			HTTP1.From, //
+			HTTP1.GetProfile, //
+			HTTP1.Host, //
+			HTTP1.If, //
+			HTTP1.If_Match, //
+			HTTP1.If_Modified_Since, //
+			HTTP1.If_None_Match, //
+			HTTP1.If_Range, //
+			HTTP1.If_Unmodified_Since, //
+			HTTP1.IM, //
+			HTTP1.Keep_Alive, //
+			HTTP1.Label, //
+			HTTP1.Last_Event_ID, //
+			HTTP1.Last_Modified, //
+			HTTP1.Link, //
+			HTTP1.Location, //
+			HTTP1.Lock_Token, //
+			HTTP1.Man, //
+			HTTP1.Max_Forwards, //
+			HTTP1.Meter, //
+			HTTP1.MIME_Version, //
+			HTTP1.Negotiate, //
+			HTTP1.Opt, //
+			HTTP1.Ordering_Type, //
+			HTTP1.Origin, //
+			HTTP1.Overwrite, //
+			HTTP1.P3P, //
+			HTTP1.PEP, //
+			HTTP1.Pep_Info, //
+			HTTP1.Permissions_Policy, //
+			HTTP1.PICS_Label, //
+			HTTP1.Ping_From, //
+			HTTP1.Ping_To, //
+			HTTP1.Position, //
+			HTTP1.Pragma, //
+			HTTP1.ProfileObject, //
+			HTTP1.Protocol, //
+			HTTP1.Protocol_Info, //
+			HTTP1.Protocol_Query, //
+			HTTP1.Protocol_Request, //
+			HTTP1.Proxy_Authenticate, //
+			HTTP1.Proxy_Authentication_Info, //
+			HTTP1.Proxy_Authorization, //
+			HTTP1.Proxy_Features, //
+			HTTP1.Proxy_Instruction, //
+			HTTP1.Public, //
+			HTTP1.Range, //
+			HTTP1.Referer, //
+			HTTP1.Referrer_Policy, //
+			HTTP1.Refresh, //
+			HTTP1.Report_To, //
+			HTTP1.Retry_After, //
+			HTTP1.RTT, //
+			HTTP1.Safe, //
+			HTTP1.Sec_Fetch_Dest, //
+			HTTP1.Sec_Fetch_Mode, //
+			HTTP1.Sec_Fetch_Site, //
+			HTTP1.Sec_Fetch_User, //
+			HTTP1.Security_Scheme, //
+			HTTP1.Sec_WebSocket_Accept, //
+			HTTP1.Sec_WebSocket_Extensions, //
+			HTTP1.Sec_WebSocket_Key, //
+			HTTP1.Sec_WebSocket_Protocol, //
+			HTTP1.Sec_WebSocket_Version, //
+			HTTP1.Server, //
+			HTTP1.Server_Timing, //
+			HTTP1.Service_Worker_Navigation_Preload, //
+			HTTP1.Set_Cookie, //
+			HTTP1.Set_Cookie2, //
+			HTTP1.SetProfile, //
+			HTTP1.SoapAction, //
+			HTTP1.SourceMap, //
+			HTTP1.Status_URI, //
+			HTTP1.Strict_Transport_Security, //
+			HTTP1.Surrogate_Capability, //
+			HTTP1.Surrogate_Control, //
+			HTTP1.TCN, //
+			HTTP1.TE, //
+			HTTP1.Timeout, //
+			HTTP1.Timing_Allow_Origin, //
+			HTTP1.Trailer, //
+			HTTP1.Transfer_Encoding, //
+			HTTP1.Upgrade, //
+			HTTP1.Upgrade_Insecure_Requests, //
+			HTTP1.URI, //
+			HTTP1.User_Agent, //
+			HTTP1.Variant_Vary, //
+			HTTP1.Vary, //
+			HTTP1.Via, //
+			HTTP1.Want_Digest, //
+			HTTP1.Warning, //
+			HTTP1.WWW_Authenticate,//
 	};
 }

@@ -18,7 +18,7 @@ import java.util.Random;
 import com.joyzl.network.Utility;
 import com.joyzl.network.http.Authorization;
 import com.joyzl.network.http.ContentType;
-import com.joyzl.network.http.HTTP;
+import com.joyzl.network.http.HTTP1;
 import com.joyzl.network.http.HTTPCoder;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.Request;
@@ -267,7 +267,7 @@ public class AuthenticateDigest extends Authenticate {
 		// nc
 		builder.append(",nc=");
 		builder.append(nc);
-		response.addHeader(HTTP.Authentication_Info, builder.toString());
+		response.addHeader(HTTP1.Authentication_Info, builder.toString());
 	}
 
 	/**
@@ -313,7 +313,7 @@ public class AuthenticateDigest extends Authenticate {
 		// stale 不设置，服务端始终设置true
 		// charset 不设置，默认UTF-8
 		// userhash 不设置，默认 false
-		response.addHeader(HTTP.WWW_Authenticate, builder.toString());
+		response.addHeader(HTTP1.WWW_Authenticate, builder.toString());
 		// TEST cs531a5
 		response.addHeader(ContentType.NAME, "text/html");
 		response.addHeader(TransferEncoding.NAME, TransferEncoding.CHUNKED);

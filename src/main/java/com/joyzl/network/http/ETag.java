@@ -26,7 +26,7 @@ import com.joyzl.network.Utility;
  */
 public final class ETag {
 
-	public final static String NAME = HTTP.ETag;
+	public final static String NAME = HTTP1.ETag;
 
 	/**
 	 * 生成弱算法值

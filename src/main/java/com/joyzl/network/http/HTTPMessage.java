@@ -18,7 +18,7 @@ import com.joyzl.network.codec.Binary;
  */
 public class HTTPMessage extends Message {
 
-	private String version = HTTP.V11;
+	private String version = HTTP1.V11;
 	private final Map<String, String> headers = new HashMap<>();
 
 	// HTTP 2

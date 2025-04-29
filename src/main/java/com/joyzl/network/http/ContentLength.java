@@ -15,7 +15,7 @@ import com.joyzl.network.Utility;
  */
 public final class ContentLength extends Header {
 
-	public final static String NAME = HTTP.Content_Length;
+	public final static String NAME = HTTP1.Content_Length;
 
 	private int length;
 
@@ -28,7 +28,7 @@ public final class ContentLength extends Header {
 
 	@Override
 	public final String getHeaderName() {
-		return HTTP.Content_Length;
+		return HTTP1.Content_Length;
 	}
 
 	@Override

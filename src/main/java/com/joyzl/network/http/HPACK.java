@@ -105,99 +105,99 @@ class HPACK extends HTTP2 {
 			// return 13;
 			// case STATUS:
 			// return 14;
-			case HTTP.Accept_Charset:
+			case HTTP1.Accept_Charset:
 				return 15;
-			case HTTP.Accept_Encoding:
+			case HTTP1.Accept_Encoding:
 				return 16;
-			case HTTP.Accept_Language:
+			case HTTP1.Accept_Language:
 				return 17;
-			case HTTP.Accept_Ranges:
+			case HTTP1.Accept_Ranges:
 				return 18;
-			case HTTP.Accept:
+			case HTTP1.Accept:
 				return 19;
-			case HTTP.Access_Control_Allow_Origin:
+			case HTTP1.Access_Control_Allow_Origin:
 				return 20;
-			case HTTP.Age:
+			case HTTP1.Age:
 				return 21;
-			case HTTP.Allow:
+			case HTTP1.Allow:
 				return 22;
-			case HTTP.Authorization:
+			case HTTP1.Authorization:
 				return 23;
-			case HTTP.Cache_Control:
+			case HTTP1.Cache_Control:
 				return 24;
-			case HTTP.Content_Disposition:
+			case HTTP1.Content_Disposition:
 				return 25;
-			case HTTP.Content_Encoding:
+			case HTTP1.Content_Encoding:
 				return 26;
-			case HTTP.Content_Language:
+			case HTTP1.Content_Language:
 				return 27;
-			case HTTP.Content_Length:
+			case HTTP1.Content_Length:
 				return 28;
-			case HTTP.Content_Location:
+			case HTTP1.Content_Location:
 				return 29;
-			case HTTP.Content_Range:
+			case HTTP1.Content_Range:
 				return 30;
-			case HTTP.Content_Type:
+			case HTTP1.Content_Type:
 				return 31;
-			case HTTP.Cookie:
+			case HTTP1.Cookie:
 				return 32;
-			case HTTP.Date:
+			case HTTP1.Date:
 				return 33;
-			case HTTP.ETag:
+			case HTTP1.ETag:
 				return 34;
-			case HTTP.Expect:
+			case HTTP1.Expect:
 				return 35;
-			case HTTP.Expires:
+			case HTTP1.Expires:
 				return 36;
-			case HTTP.From:
+			case HTTP1.From:
 				return 37;
-			case HTTP.Host:
+			case HTTP1.Host:
 				return 38;
-			case HTTP.If_Match:
+			case HTTP1.If_Match:
 				return 39;
-			case HTTP.If_Modified_Since:
+			case HTTP1.If_Modified_Since:
 				return 40;
-			case HTTP.If_None_Match:
+			case HTTP1.If_None_Match:
 				return 41;
-			case HTTP.If_Range:
+			case HTTP1.If_Range:
 				return 42;
-			case HTTP.If_Unmodified_Since:
+			case HTTP1.If_Unmodified_Since:
 				return 43;
-			case HTTP.Last_Modified:
+			case HTTP1.Last_Modified:
 				return 44;
-			case HTTP.Link:
+			case HTTP1.Link:
 				return 45;
-			case HTTP.Location:
+			case HTTP1.Location:
 				return 46;
-			case HTTP.Max_Forwards:
+			case HTTP1.Max_Forwards:
 				return 47;
-			case HTTP.Proxy_Authenticate:
+			case HTTP1.Proxy_Authenticate:
 				return 48;
-			case HTTP.Proxy_Authorization:
+			case HTTP1.Proxy_Authorization:
 				return 49;
-			case HTTP.Range:
+			case HTTP1.Range:
 				return 50;
-			case HTTP.Referer:
+			case HTTP1.Referer:
 				return 51;
-			case HTTP.Refresh:
+			case HTTP1.Refresh:
 				return 52;
-			case HTTP.Retry_After:
+			case HTTP1.Retry_After:
 				return 53;
-			case HTTP.Server:
+			case HTTP1.Server:
 				return 54;
-			case HTTP.Set_Cookie:
+			case HTTP1.Set_Cookie:
 				return 55;
-			case HTTP.Strict_Transport_Security:
+			case HTTP1.Strict_Transport_Security:
 				return 56;
-			case HTTP.Transfer_Encoding:
+			case HTTP1.Transfer_Encoding:
 				return 57;
-			case HTTP.User_Agent:
+			case HTTP1.User_Agent:
 				return 58;
-			case HTTP.Vary:
+			case HTTP1.Vary:
 				return 59;
-			case HTTP.Via:
+			case HTTP1.Via:
 				return 60;
-			case HTTP.WWW_Authenticate:
+			case HTTP1.WWW_Authenticate:
 				return 61;
 			default:
 				return 0;
@@ -260,53 +260,53 @@ class HPACK extends HTTP2 {
 			new Item(STATUS, "400"), //
 			new Item(STATUS, "404"), //
 			new Item(STATUS, "500"), //
-			new Item(HTTP.Accept_Charset, null), //
-			new Item(HTTP.Accept_Encoding, "gzip, deflate"), //
-			new Item(HTTP.Accept_Language, null), //
-			new Item(HTTP.Accept_Ranges, null), //
-			new Item(HTTP.Accept, null), //
-			new Item(HTTP.Access_Control_Allow_Origin, null), //
-			new Item(HTTP.Age, null), //
-			new Item(HTTP.Allow, null), //
-			new Item(HTTP.Authorization, null), //
-			new Item(HTTP.Cache_Control, null), //
-			new Item(HTTP.Content_Disposition, null), //
-			new Item(HTTP.Content_Encoding, null), //
-			new Item(HTTP.Content_Language, null), //
-			new Item(HTTP.Content_Length, null), //
-			new Item(HTTP.Content_Location, null), //
-			new Item(HTTP.Content_Range, null), //
-			new Item(HTTP.Content_Type, null), //
-			new Item(HTTP.Cookie, null), //
-			new Item(HTTP.Date, null), //
-			new Item(HTTP.ETag, null), //
-			new Item(HTTP.Expect, null), //
-			new Item(HTTP.Expires, null), //
-			new Item(HTTP.From, null), //
-			new Item(HTTP.Host, null), //
-			new Item(HTTP.If_Match, null), //
-			new Item(HTTP.If_Modified_Since, null), //
-			new Item(HTTP.If_None_Match, null), //
-			new Item(HTTP.If_Range, null), //
-			new Item(HTTP.If_Unmodified_Since, null), //
-			new Item(HTTP.Last_Modified, null), //
-			new Item(HTTP.Link, null), //
-			new Item(HTTP.Location, null), //
-			new Item(HTTP.Max_Forwards, null), //
-			new Item(HTTP.Proxy_Authenticate, null), //
-			new Item(HTTP.Proxy_Authorization, null), //
-			new Item(HTTP.Range, null), //
-			new Item(HTTP.Referer, null), //
-			new Item(HTTP.Refresh, null), //
-			new Item(HTTP.Retry_After, null), //
-			new Item(HTTP.Server, null), //
-			new Item(HTTP.Set_Cookie, null), //
-			new Item(HTTP.Strict_Transport_Security, null), //
-			new Item(HTTP.Transfer_Encoding, null), //
-			new Item(HTTP.User_Agent, null), //
-			new Item(HTTP.Vary, null), //
-			new Item(HTTP.Via, null), //
-			new Item(HTTP.WWW_Authenticate, null), //
+			new Item(HTTP1.Accept_Charset, null), //
+			new Item(HTTP1.Accept_Encoding, "gzip, deflate"), //
+			new Item(HTTP1.Accept_Language, null), //
+			new Item(HTTP1.Accept_Ranges, null), //
+			new Item(HTTP1.Accept, null), //
+			new Item(HTTP1.Access_Control_Allow_Origin, null), //
+			new Item(HTTP1.Age, null), //
+			new Item(HTTP1.Allow, null), //
+			new Item(HTTP1.Authorization, null), //
+			new Item(HTTP1.Cache_Control, null), //
+			new Item(HTTP1.Content_Disposition, null), //
+			new Item(HTTP1.Content_Encoding, null), //
+			new Item(HTTP1.Content_Language, null), //
+			new Item(HTTP1.Content_Length, null), //
+			new Item(HTTP1.Content_Location, null), //
+			new Item(HTTP1.Content_Range, null), //
+			new Item(HTTP1.Content_Type, null), //
+			new Item(HTTP1.Cookie, null), //
+			new Item(HTTP1.Date, null), //
+			new Item(HTTP1.ETag, null), //
+			new Item(HTTP1.Expect, null), //
+			new Item(HTTP1.Expires, null), //
+			new Item(HTTP1.From, null), //
+			new Item(HTTP1.Host, null), //
+			new Item(HTTP1.If_Match, null), //
+			new Item(HTTP1.If_Modified_Since, null), //
+			new Item(HTTP1.If_None_Match, null), //
+			new Item(HTTP1.If_Range, null), //
+			new Item(HTTP1.If_Unmodified_Since, null), //
+			new Item(HTTP1.Last_Modified, null), //
+			new Item(HTTP1.Link, null), //
+			new Item(HTTP1.Location, null), //
+			new Item(HTTP1.Max_Forwards, null), //
+			new Item(HTTP1.Proxy_Authenticate, null), //
+			new Item(HTTP1.Proxy_Authorization, null), //
+			new Item(HTTP1.Range, null), //
+			new Item(HTTP1.Referer, null), //
+			new Item(HTTP1.Refresh, null), //
+			new Item(HTTP1.Retry_After, null), //
+			new Item(HTTP1.Server, null), //
+			new Item(HTTP1.Set_Cookie, null), //
+			new Item(HTTP1.Strict_Transport_Security, null), //
+			new Item(HTTP1.Transfer_Encoding, null), //
+			new Item(HTTP1.User_Agent, null), //
+			new Item(HTTP1.Vary, null), //
+			new Item(HTTP1.Via, null), //
+			new Item(HTTP1.WWW_Authenticate, null), //
 	};
 
 	static class Item {

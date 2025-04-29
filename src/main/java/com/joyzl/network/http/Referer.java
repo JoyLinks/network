@@ -18,7 +18,7 @@ import com.joyzl.network.Utility;
  */
 public final class Referer extends Header {
 
-	public final static String NAME = HTTP.Referer;
+	public final static String NAME = HTTP1.Referer;
 
 	private String url;
 
@@ -31,7 +31,7 @@ public final class Referer extends Header {
 
 	@Override
 	public String getHeaderName() {
-		return HTTP.Referer;
+		return HTTP1.Referer;
 	}
 
 	@Override

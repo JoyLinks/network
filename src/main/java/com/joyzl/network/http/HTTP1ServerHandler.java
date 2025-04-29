@@ -74,7 +74,7 @@ public abstract class HTTP1ServerHandler implements ChainGenericsHandler<HTTPSla
 			slave.send(response);
 		} else {
 			final Request request = (Request) message;
-			if (request.getMethod() == HTTP.PRI) {
+			if (request.getMethod() == HTTP1.PRI) {
 				// HTTP2连接前奏，执行基于HTTP1的PRI(SM)请求
 				slave.upgradeHTTP2();
 				final Settings settings = new Settings();
@@ -87,7 +87,7 @@ public abstract class HTTP1ServerHandler implements ChainGenericsHandler<HTTPSla
 				// Connection: Upgrade, HTTP2-Settings
 				// HTTP2-Settings: <base64>
 				// Upgrade: h2c
-				final String text = request.getHeader(HTTP.HTTP2_Settings);
+				final String text = request.getHeader(HTTP1.HTTP2_Settings);
 				if (text != null && text.length() > 0) {
 					final Settings settings = HTTP2Coder.readSettings(text);
 					if (settings != null && settings.valid()) {

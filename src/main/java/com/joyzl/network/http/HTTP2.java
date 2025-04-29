@@ -1,6 +1,6 @@
 package com.joyzl.network.http;
 
-public class HTTP2 extends HTTP {
+public class HTTP2 extends HTTP1 {
 
 	// Pseudo-Header Fields
 
@@ -81,7 +81,7 @@ public class HTTP2 extends HTTP {
 		RESPONSE_SWITCHING_PROTOCOL.addHeader(Upgrade, "h2c");
 
 		// 棱镜计划 PRISM
-		REQUEST_PREFACE.setVersion(HTTP.V20);
+		REQUEST_PREFACE.setVersion(HTTP1.V20);
 		REQUEST_PREFACE.setMethod("PRI");
 		REQUEST_PREFACE.setUrl("*");
 		REQUEST_PREFACE.setContent("SM");

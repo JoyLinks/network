@@ -13,7 +13,7 @@ package com.joyzl.network.http;
  */
 public final class Connection extends Header {
 
-	public final static String NAME = HTTP.Connection;
+	public final static String NAME = HTTP1.Connection;
 	public final static String CLOSE = "close";
 	public final static String KEEP_ALIVE = "keep-alive";
 
@@ -28,7 +28,7 @@ public final class Connection extends Header {
 
 	@Override
 	public String getHeaderName() {
-		return HTTP.Connection;
+		return HTTP1.Connection;
 	}
 
 	@Override

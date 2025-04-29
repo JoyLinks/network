@@ -34,13 +34,13 @@ import java.util.Map;
 public final class Date extends Header {
 
 	public final static ZoneId GMT = ZoneId.of("GMT");
-	public final static String NAME = HTTP.Date;
+	public final static String NAME = HTTP1.Date;
 
 	private ZonedDateTime value;
 
 	@Override
 	public String getHeaderName() {
-		return HTTP.Date;
+		return HTTP1.Date;
 	}
 
 	@Override

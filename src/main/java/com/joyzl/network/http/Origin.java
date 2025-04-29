@@ -13,5 +13,5 @@ package com.joyzl.network.http;
  */
 public final class Origin {
 
-	public final static String NAME = HTTP.Origin;
+	public final static String NAME = HTTP1.Origin;
 }

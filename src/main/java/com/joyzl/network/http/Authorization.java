@@ -24,7 +24,7 @@ import com.joyzl.network.Utility;
  */
 public final class Authorization extends Header {
 
-	public final static String NAME = HTTP.Authorization;
+	public final static String NAME = HTTP1.Authorization;
 
 	private String value;
 
@@ -37,7 +37,7 @@ public final class Authorization extends Header {
 
 	@Override
 	public String getHeaderName() {
-		return HTTP.Authorization;
+		return HTTP1.Authorization;
 	}
 
 	@Override

@@ -7,7 +7,7 @@ package com.joyzl.network.http;
  */
 public class ServerTiming extends Header {
 
-	public final static String NAME = HTTP.Server_Timing;
+	public final static String NAME = HTTP1.Server_Timing;
 	public final static String total = "total";
 	public final static String cache = "cache";
 	public final static String miss = "miss";
@@ -29,7 +29,7 @@ public class ServerTiming extends Header {
 
 	@Override
 	public String getHeaderName() {
-		return HTTP.Server_Timing;
+		return HTTP1.Server_Timing;
 	}
 
 	@Override

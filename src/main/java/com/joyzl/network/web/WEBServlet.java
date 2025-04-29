@@ -12,7 +12,7 @@ import com.joyzl.network.http.Connection;
 import com.joyzl.network.http.ContentType;
 import com.joyzl.network.http.Date;
 import com.joyzl.network.http.FormDataCoder;
-import com.joyzl.network.http.HTTP;
+import com.joyzl.network.http.HTTP1;
 import com.joyzl.network.http.HTTPCoder;
 import com.joyzl.network.http.HTTPSlave;
 import com.joyzl.network.http.HTTPStatus;
@@ -35,38 +35,38 @@ public abstract class WEBServlet extends Servlet {
 
 	@Override
 	public void service(HTTPSlave chain, Request request, Response response) throws Exception {
-		if (request.getVersion() == HTTP.V20 || request.getVersion() == HTTP.V11 || request.getVersion() == HTTP.V10) {
+		if (request.getVersion() == HTTP1.V20 || request.getVersion() == HTTP1.V11 || request.getVersion() == HTTP1.V10) {
 			// 将查询参数合并到请求参数中
 			QueryCoder.parse(request);
 			// 将响应状态默认为 200
 			// response.setStatus(HTTPStatus.OK);
 			switch (request.getMethod()) {
-				case HTTP.GET:
+				case HTTP1.GET:
 					get((Request) request, (Response) response);
 					break;
-				case HTTP.HEAD:
+				case HTTP1.HEAD:
 					head((Request) request, (Response) response);
 					break;
-				case HTTP.POST:
+				case HTTP1.POST:
 					FormDataCoder.read(request);
 					post((Request) request, (Response) response);
 					break;
-				case HTTP.PUT:
+				case HTTP1.PUT:
 					put((Request) request, (Response) response);
 					break;
-				case HTTP.PATCH:
+				case HTTP1.PATCH:
 					patch((Request) request, (Response) response);
 					break;
-				case HTTP.DELETE:
+				case HTTP1.DELETE:
 					delete((Request) request, (Response) response);
 					break;
-				case HTTP.TRACE:
+				case HTTP1.TRACE:
 					trace((Request) request, (Response) response);
 					break;
-				case HTTP.OPTIONS:
+				case HTTP1.OPTIONS:
 					options((Request) request, (Response) response);
 					break;
-				case HTTP.CONNECT:
+				case HTTP1.CONNECT:
 					connect((Request) request, (Response) response);
 					break;
 				default:

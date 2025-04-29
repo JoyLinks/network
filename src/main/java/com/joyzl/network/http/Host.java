@@ -19,7 +19,7 @@ import com.joyzl.network.Utility;
  */
 public final class Host extends Header {
 
-	public final static String NAME = HTTP.Host;
+	public final static String NAME = HTTP1.Host;
 
 	private String host;
 	private int port;
@@ -38,7 +38,7 @@ public final class Host extends Header {
 
 	@Override
 	public String getHeaderName() {
-		return HTTP.Host;
+		return HTTP1.Host;
 	}
 
 	@Override

@@ -6,7 +6,7 @@
 package com.joyzl.network.web;
 
 import com.joyzl.network.Utility;
-import com.joyzl.network.http.HTTP;
+import com.joyzl.network.http.HTTP1;
 import com.joyzl.network.http.HTTPSlave;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.Request;
@@ -40,26 +40,26 @@ public abstract class CROSServlet extends WEBServlet {
 		// 浏览器预检请求时报告可能使用的方法
 		// value = request.getHeader(HTTP.Access_Control_Request_Method);
 
-		response.addHeader(HTTP.Access_Control_Allow_Methods, allowMethods());
-		response.addHeader(HTTP.Access_Control_Allow_Headers, allowHeaders());
-		response.addHeader(HTTP.Access_Control_Expose_Headers, exposeHeaders());
-		response.addHeader(HTTP.Access_Control_Max_Age, maxAge());
+		response.addHeader(HTTP1.Access_Control_Allow_Methods, allowMethods());
+		response.addHeader(HTTP1.Access_Control_Allow_Headers, allowHeaders());
+		response.addHeader(HTTP1.Access_Control_Expose_Headers, exposeHeaders());
+		response.addHeader(HTTP1.Access_Control_Max_Age, maxAge());
 		if (allowCredentials()) {
-			response.addHeader(HTTP.Access_Control_Allow_Credentials, "true");
+			response.addHeader(HTTP1.Access_Control_Allow_Credentials, "true");
 		}
 	}
 
 	protected void checkOrigin(Request request, Response response) {
-		String value = request.getHeader(HTTP.Origin);
+		String value = request.getHeader(HTTP1.Origin);
 		if (Utility.equal(ANY, allowOrigin())) {
 			// 宽松默认，如果允许所有，即便缺失Origin标头也通过
 			// 客户端程序在不严格时缺失Origin标头
-			response.addHeader(HTTP.Access_Control_Allow_Origin, ANY);
+			response.addHeader(HTTP1.Access_Control_Allow_Origin, ANY);
 		} else {
 			if (Utility.noEmpty(value)) {
 				if (allowOrigin() != null) {
 					if (value.contains(allowOrigin())) {
-						response.addHeader(HTTP.Access_Control_Allow_Origin, value);
+						response.addHeader(HTTP1.Access_Control_Allow_Origin, value);
 					}
 				}
 			}

@@ -27,7 +27,7 @@ public class TestHPACK {
 		assertEquals(hpack.findValue(1, null), 1);
 
 		assertEquals(hpack.findName(HPACK.METHOD), 2);
-		assertEquals(hpack.findValue(2, HTTP.POST), 3);
+		assertEquals(hpack.findValue(2, HTTP1.POST), 3);
 
 		assertEquals(hpack.findName(HPACK.PATH), 4);
 		assertEquals(hpack.findValue(4, "/"), 4);

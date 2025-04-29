@@ -23,7 +23,7 @@ import com.joyzl.network.web.MIMEType;
  */
 public final class ContentType extends Header {
 
-	public final static String NAME = HTTP.Content_Type;
+	public final static String NAME = HTTP1.Content_Type;
 
 	final static String CHARSET = "charset";
 	final static String BOUNDARY = "boundary";
@@ -46,7 +46,7 @@ public final class ContentType extends Header {
 
 	@Override
 	public String getHeaderName() {
-		return HTTP.Content_Type;
+		return HTTP1.Content_Type;
 	}
 
 	@Override

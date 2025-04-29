@@ -1,6 +1,6 @@
 package com.joyzl.network.web;
 
-import com.joyzl.network.http.HTTP;
+import com.joyzl.network.http.HTTP1;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.Request;
 import com.joyzl.network.http.Response;
@@ -38,7 +38,7 @@ public abstract class Authenticate {
 			}
 		}
 		response.setStatus(HTTPStatus.METHOD_NOT_ALLOWED);
-		response.addHeader(HTTP.Allow, String.join(", ", methods));
+		response.addHeader(HTTP1.Allow, String.join(", ", methods));
 		return false;
 	}
 

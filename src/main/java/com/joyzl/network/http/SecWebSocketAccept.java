@@ -18,7 +18,7 @@ import java.util.Base64;
  */
 public final class SecWebSocketAccept extends Header {
 
-	public final static String NAME = HTTP.Sec_WebSocket_Accept;
+	public final static String NAME = HTTP1.Sec_WebSocket_Accept;
 	public final static String GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
 	private String key;
@@ -33,7 +33,7 @@ public final class SecWebSocketAccept extends Header {
 
 	@Override
 	public String getHeaderName() {
-		return HTTP.Sec_WebSocket_Accept;
+		return HTTP1.Sec_WebSocket_Accept;
 	}
 
 	@Override

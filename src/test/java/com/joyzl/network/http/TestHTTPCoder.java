@@ -44,13 +44,13 @@ class TestHTTPCoder {
 	@Test
 	void testCommand() throws IOException {
 		Request request = new Request();
-		request.setMethod(HTTP.GET);
-		request.setVersion(HTTP.V11);
+		request.setMethod(HTTP1.GET);
+		request.setVersion(HTTP1.V11);
 		request.setURL("SCHEME://HOST:80/PATH?PARAMETERS#ANCHOR");
 		HTTPCoder.writeCommand(buffer, request);
 		HTTPCoder.readCommand(buffer, request);
-		assertEquals(request.getMethod(), HTTP.GET);
-		assertEquals(request.getVersion(), HTTP.V11);
+		assertEquals(request.getMethod(), HTTP1.GET);
+		assertEquals(request.getVersion(), HTTP1.V11);
 		assertEquals(request.getURL(), "SCHEME://HOST:80/PATH?PARAMETERS#ANCHOR");
 		assertEquals(request.getScheme(), "SCHEME");
 		assertEquals(request.getHost(), "HOST");
@@ -59,17 +59,17 @@ class TestHTTPCoder {
 		assertEquals(request.getQuery(), "?PARAMETERS");
 		assertEquals(request.getAnchor(), "#ANCHOR");
 		assertEquals(request.pathLength(), 5);
-		assertTrue(HTTP.V11 == request.getVersion());
-		assertTrue(HTTP.GET == request.getMethod());
+		assertTrue(HTTP1.V11 == request.getVersion());
+		assertTrue(HTTP1.GET == request.getMethod());
 
 		request = new Request();
-		request.setMethod(HTTP.POST);
-		request.setVersion(HTTP.V11);
+		request.setMethod(HTTP1.POST);
+		request.setVersion(HTTP1.V11);
 		request.setURL("/background.png");
 		HTTPCoder.writeCommand(buffer, request);
 		HTTPCoder.readCommand(buffer, request);
-		assertEquals(request.getMethod(), HTTP.POST);
-		assertEquals(request.getVersion(), HTTP.V11);
+		assertEquals(request.getMethod(), HTTP1.POST);
+		assertEquals(request.getVersion(), HTTP1.V11);
 		assertEquals(request.getURL(), "/background.png");
 		assertEquals(request.getScheme(), null);
 		assertEquals(request.getHost(), null);
@@ -78,17 +78,17 @@ class TestHTTPCoder {
 		assertEquals(request.getQuery(), null);
 		assertEquals(request.getAnchor(), null);
 		assertEquals(request.pathLength(), 15);
-		assertTrue(HTTP.V11 == request.getVersion());
-		assertTrue(HTTP.POST == request.getMethod());
+		assertTrue(HTTP1.V11 == request.getVersion());
+		assertTrue(HTTP1.POST == request.getMethod());
 
 		request = new Request();
-		request.setMethod(HTTP.PUT);
-		request.setVersion(HTTP.V11);
+		request.setMethod(HTTP1.PUT);
+		request.setVersion(HTTP1.V11);
 		request.setURL("http://www.joyzl.org/docs/Web/HTTP/Messages");
 		HTTPCoder.writeCommand(buffer, request);
 		HTTPCoder.readCommand(buffer, request);
-		assertEquals(request.getMethod(), HTTP.PUT);
-		assertEquals(request.getVersion(), HTTP.V11);
+		assertEquals(request.getMethod(), HTTP1.PUT);
+		assertEquals(request.getVersion(), HTTP1.V11);
 		assertEquals(request.getURL(), "http://www.joyzl.org/docs/Web/HTTP/Messages");
 		assertEquals(request.getScheme(), "http");
 		assertEquals(request.getHost(), "www.joyzl.org");
@@ -97,17 +97,17 @@ class TestHTTPCoder {
 		assertEquals(request.getQuery(), null);
 		assertEquals(request.getAnchor(), null);
 		assertEquals(request.pathLength(), 23);
-		assertTrue(HTTP.V11 == request.getVersion());
-		assertTrue(HTTP.PUT == request.getMethod());
+		assertTrue(HTTP1.V11 == request.getVersion());
+		assertTrue(HTTP1.PUT == request.getMethod());
 
 		request = new Request();
-		request.setMethod(HTTP.GET);
-		request.setVersion(HTTP.V11);
+		request.setMethod(HTTP1.GET);
+		request.setVersion(HTTP1.V11);
 		request.setURL("http://192.168.2.15/a1-test/2/index.html");
 		HTTPCoder.writeCommand(buffer, request);
 		HTTPCoder.readCommand(buffer, request);
-		assertEquals(request.getMethod(), HTTP.GET);
-		assertEquals(request.getVersion(), HTTP.V11);
+		assertEquals(request.getMethod(), HTTP1.GET);
+		assertEquals(request.getVersion(), HTTP1.V11);
 		assertEquals(request.getURL(), "http://192.168.2.15/a1-test/2/index.html");
 		assertEquals(request.getScheme(), "http");
 		assertEquals(request.getHost(), "192.168.2.15");
@@ -116,17 +116,17 @@ class TestHTTPCoder {
 		assertEquals(request.getQuery(), null);
 		assertEquals(request.getAnchor(), null);
 		assertEquals(request.pathLength(), 21);
-		assertTrue(HTTP.V11 == request.getVersion());
-		assertTrue(HTTP.GET == request.getMethod());
+		assertTrue(HTTP1.V11 == request.getVersion());
+		assertTrue(HTTP1.GET == request.getMethod());
 
 		request = new Request();
-		request.setMethod(HTTP.CONNECT);
-		request.setVersion(HTTP.V11);
+		request.setMethod(HTTP1.CONNECT);
+		request.setVersion(HTTP1.V11);
 		request.setURL("developer.mozilla.org:80");
 		HTTPCoder.writeCommand(buffer, request);
 		HTTPCoder.readCommand(buffer, request);
-		assertEquals(request.getMethod(), HTTP.CONNECT);
-		assertEquals(request.getVersion(), HTTP.V11);
+		assertEquals(request.getMethod(), HTTP1.CONNECT);
+		assertEquals(request.getVersion(), HTTP1.V11);
 		assertEquals(request.getURL(), "developer.mozilla.org:80");
 		assertEquals(request.getScheme(), null);
 		assertEquals(request.getHost(), "developer.mozilla.org");
@@ -135,17 +135,17 @@ class TestHTTPCoder {
 		assertEquals(request.getQuery(), null);
 		assertEquals(request.getAnchor(), null);
 		assertEquals(request.pathLength(), 0);
-		assertTrue(HTTP.V11 == request.getVersion());
-		assertTrue(HTTP.CONNECT == request.getMethod());
+		assertTrue(HTTP1.V11 == request.getVersion());
+		assertTrue(HTTP1.CONNECT == request.getMethod());
 
 		request = new Request();
-		request.setMethod(HTTP.OPTIONS);
-		request.setVersion(HTTP.V11);
+		request.setMethod(HTTP1.OPTIONS);
+		request.setVersion(HTTP1.V11);
 		request.setURL("*");
 		HTTPCoder.writeCommand(buffer, request);
 		HTTPCoder.readCommand(buffer, request);
-		assertEquals(request.getMethod(), HTTP.OPTIONS);
-		assertEquals(request.getVersion(), HTTP.V11);
+		assertEquals(request.getMethod(), HTTP1.OPTIONS);
+		assertEquals(request.getVersion(), HTTP1.V11);
 		assertEquals(request.getURL(), "*");
 		assertEquals(request.getScheme(), null);
 		assertEquals(request.getHost(), null);
@@ -154,8 +154,8 @@ class TestHTTPCoder {
 		assertEquals(request.getQuery(), null);
 		assertEquals(request.getAnchor(), null);
 		assertEquals(request.pathLength(), 0);
-		assertTrue(HTTP.V11 == request.getVersion());
-		assertTrue(HTTP.OPTIONS == request.getMethod());
+		assertTrue(HTTP1.V11 == request.getVersion());
+		assertTrue(HTTP1.OPTIONS == request.getMethod());
 
 		request = new Request();
 		request.setMethod("M");
@@ -192,14 +192,14 @@ class TestHTTPCoder {
 	@Test
 	void testResponseCommand() throws IOException {
 		// 测试样本
-		request.setMethod(HTTP.GET);
+		request.setMethod(HTTP1.GET);
 		request.setURL("/test");
 		request.setVersion("HTTP/1.1");
 
 		HTTPCoder.writeCommand(buffer, request);
 		HTTPCoder.readCommand(buffer, request);
 
-		assertEquals(request.getMethod(), HTTP.GET);
+		assertEquals(request.getMethod(), HTTP1.GET);
 		assertEquals(request.getURL(), "/test");
 		assertEquals(request.getVersion(), "HTTP/1.1");
 	}
@@ -248,60 +248,60 @@ class TestHTTPCoder {
 		final StringBuilder builder = new StringBuilder();
 
 		builder.setLength(0);
-		builder.append(HTTP.GET);
-		assertEquals(HTTP.METHODS.get(builder), HTTP.GET);
+		builder.append(HTTP1.GET);
+		assertEquals(HTTP1.METHODS.get(builder), HTTP1.GET);
 
 		builder.setLength(0);
-		builder.append(HTTP.PUT);
-		assertEquals(HTTP.METHODS.get(builder), HTTP.PUT);
+		builder.append(HTTP1.PUT);
+		assertEquals(HTTP1.METHODS.get(builder), HTTP1.PUT);
 
 		builder.setLength(0);
-		builder.append(HTTP.HEAD);
-		assertEquals(HTTP.METHODS.get(builder), HTTP.HEAD);
+		builder.append(HTTP1.HEAD);
+		assertEquals(HTTP1.METHODS.get(builder), HTTP1.HEAD);
 
 		builder.setLength(0);
-		builder.append(HTTP.POST);
-		assertEquals(HTTP.METHODS.get(builder), HTTP.POST);
+		builder.append(HTTP1.POST);
+		assertEquals(HTTP1.METHODS.get(builder), HTTP1.POST);
 
 		builder.setLength(0);
-		builder.append(HTTP.OPTIONS);
-		assertEquals(HTTP.METHODS.get(builder), HTTP.OPTIONS);
+		builder.append(HTTP1.OPTIONS);
+		assertEquals(HTTP1.METHODS.get(builder), HTTP1.OPTIONS);
 
 		builder.setLength(0);
-		builder.append(HTTP.CONNECT);
-		assertEquals(HTTP.METHODS.get(builder), HTTP.CONNECT);
+		builder.append(HTTP1.CONNECT);
+		assertEquals(HTTP1.METHODS.get(builder), HTTP1.CONNECT);
 
 		builder.setLength(0);
-		builder.append(HTTP.DELETE);
-		assertEquals(HTTP.METHODS.get(builder), HTTP.DELETE);
+		builder.append(HTTP1.DELETE);
+		assertEquals(HTTP1.METHODS.get(builder), HTTP1.DELETE);
 
 		builder.setLength(0);
-		builder.append(HTTP.PATCH);
-		assertEquals(HTTP.METHODS.get(builder), HTTP.PATCH);
+		builder.append(HTTP1.PATCH);
+		assertEquals(HTTP1.METHODS.get(builder), HTTP1.PATCH);
 
 		builder.setLength(0);
-		builder.append(HTTP.TRACE);
-		assertEquals(HTTP.METHODS.get(builder), HTTP.TRACE);
+		builder.append(HTTP1.TRACE);
+		assertEquals(HTTP1.METHODS.get(builder), HTTP1.TRACE);
 
 		builder.setLength(0);
 		builder.append("TEST");
-		assertEquals(HTTP.METHODS.get(builder), "TEST");
+		assertEquals(HTTP1.METHODS.get(builder), "TEST");
 
 		builder.setLength(0);
 		builder.append("HTTP/2.2");
-		assertEquals(HTTP.VERSIONS.get(builder), "HTTP/2.2");
+		assertEquals(HTTP1.VERSIONS.get(builder), "HTTP/2.2");
 
 		builder.setLength(0);
-		builder.append(HTTP.V10);
-		assertEquals(HTTP.VERSIONS.get(builder), HTTP.V10);
+		builder.append(HTTP1.V10);
+		assertEquals(HTTP1.VERSIONS.get(builder), HTTP1.V10);
 
 		builder.setLength(0);
-		builder.append(HTTP.V20);
-		assertEquals(HTTP.VERSIONS.get(builder), HTTP.V20);
+		builder.append(HTTP1.V20);
+		assertEquals(HTTP1.VERSIONS.get(builder), HTTP1.V20);
 
 		builder.setLength(0);
-		builder.append(HTTP.V11);
-		assertEquals(HTTP.VERSIONS.get(builder), HTTP.V11);
+		builder.append(HTTP1.V11);
+		assertEquals(HTTP1.VERSIONS.get(builder), HTTP1.V11);
 
 		// toString
 		long time = System.currentTimeMillis();
@@ -314,7 +314,7 @@ class TestHTTPCoder {
 		// ifString
 		time = System.currentTimeMillis();
 		for (int index = 0; index < 1000000; index++) {
-			HTTP.VERSIONS.get(builder);
+			HTTP1.VERSIONS.get(builder);
 		}
 		time = System.currentTimeMillis() - time;
 		System.out.println("ifString:" + time);

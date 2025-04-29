@@ -15,14 +15,14 @@ import com.joyzl.network.Utility;
  */
 public final class Pragma extends Header {
 
-	public final static String NAME = HTTP.Pragma;
+	public final static String NAME = HTTP1.Pragma;
 	public final static String NO_CACHE = "no-cache";
 
 	private String control;
 
 	@Override
 	public String getHeaderName() {
-		return HTTP.Pragma;
+		return HTTP1.Pragma;
 	}
 
 	@Override

@@ -25,13 +25,13 @@ import com.joyzl.network.Utility;
  */
 public final class WWWAuthenticate extends Header {
 
-	public final static String NAME = HTTP.WWW_Authenticate;
+	public final static String NAME = HTTP1.WWW_Authenticate;
 
 	private String value;
 
 	@Override
 	public String getHeaderName() {
-		return HTTP.WWW_Authenticate;
+		return HTTP1.WWW_Authenticate;
 	}
 
 	@Override

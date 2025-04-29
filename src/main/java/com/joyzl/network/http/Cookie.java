@@ -35,13 +35,13 @@ import com.joyzl.network.Utility;
  */
 public class Cookie extends Header {
 
-	public final static String NAME = HTTP.Cookie;
+	public final static String NAME = HTTP1.Cookie;
 
 	private final Map<String, String> arguments = new HashMap<>();
 
 	@Override
 	public final String getHeaderName() {
-		return HTTP.Cookie;
+		return HTTP1.Cookie;
 	}
 
 	@Override

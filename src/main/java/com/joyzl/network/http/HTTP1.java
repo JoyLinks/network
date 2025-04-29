@@ -9,7 +9,7 @@ import com.joyzl.network.StringSeeker;
  * 
  * @author ZhangXi 2024年11月18日
  */
-public class HTTP {
+public class HTTP1 {
 
 	// VERSIONS
 
