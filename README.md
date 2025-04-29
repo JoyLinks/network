@@ -311,11 +311,11 @@ Executor.shutdown();
 
 #### 参与贡献
 
-中翌智联 www.joyzl.com
+www.joyzl.com
 
-华腾智联 www.huatens.com
+www.huatens.com
 
-张希 ZhangXi
+ZhangXi
 
 
 感谢以下网站贡献的资源

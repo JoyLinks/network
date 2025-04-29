@@ -5,6 +5,10 @@
  */
 package com.joyzl.network.http;
 
+import java.util.concurrent.locks.ReentrantLock;
+
+import com.joyzl.network.IndexMap;
+import com.joyzl.network.LinkQueue;
 import com.joyzl.network.chain.ChainType;
 import com.joyzl.network.chain.TCPLink;
 
@@ -16,6 +20,8 @@ import com.joyzl.network.chain.TCPLink;
  */
 public class HTTPClient extends TCPLink {
 
+	private final ReentrantLock k = new ReentrantLock(true);
+
 	public HTTPClient(HTTPClientHandler handler, String host, int port) {
 		super(handler, host, port);
 	}
@@ -25,60 +31,33 @@ public class HTTPClient extends TCPLink {
 		return ChainType.TCP_HTTP_CLIENT;
 	}
 
-	@Override
-	public void close() {
-		try {
-			response.clearContent();
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		} finally {
-			super.close();
-		}
-	}
-
-	// 客户端提供响应消息暂存以支持消息解码
-	// 在网络传输中可能需要多次接收数据才能完成解码
-	private Response response = new Response();
-
-	protected Response getResponse() {
-		return response;
-	}
-
-	// WEB Socket
-
-	private WEBSocketHandler webSockethandler;
-
-	/** 升级链路为WebSocket，绑定消息处理对象 */
-	public void upgrade(WEBSocketHandler handler) {
-		webSockethandler = handler;
-	}
-
-	public boolean isWEBSocket() {
-		return webSockethandler != null;
-	}
-
-	public WEBSocketHandler getWEBSocketHandler() {
-		return webSockethandler;
-	}
-
 	// HTTP 2
-
-	private HTTP2Sender<Request> sendStream;
+	private final IndexMap<Response> messages = new IndexMap<>();
+	private final Stream<Message> stream = new Stream<>();
 	private HPACK hpackRequest, hpackResponse;
+	private int id = 1;
+
+	private int nextId() {
+		// 客户端使用奇数流编号
+		return id += 2;
+	}
 
 	public boolean isHTTP2() {
-		return sendStream != null;
+		return hpackRequest != null && hpackResponse != null;
 	}
 
 	/** 切换链路为HTTP2 */
 	void upgradeHTTP2() {
 		hpackRequest = new HPACK();
 		hpackResponse = new HPACK();
-		sendStream = new HTTP2Sender<>(false);
 	}
 
-	HTTP2Sender<Request> streams() {
-		return sendStream;
+	IndexMap<Response> messages() {
+		return messages;
+	}
+
+	Stream<Message> stream() {
+		return stream;
 	}
 
 	HPACK requestHPACK() {
@@ -87,5 +66,127 @@ public class HTTPClient extends TCPLink {
 
 	HPACK responseHPACK() {
 		return hpackResponse;
+	}
+
+	// HTTP 1.1 1.0
+	// 提供缓存请求消息支持
+	// 请求消息可能需要多次接收数据解码才能完成
+	private LinkQueue<Message> queue = new LinkQueue<>();
+	private Response response;
+
+	protected LinkQueue<Message> queue() {
+		return queue;
+	}
+
+	protected Response getResponse() {
+		return response;
+	}
+
+	protected void setResponse(Response value) {
+		response = value;
+	}
+
+	// WEB Socket
+	private WEBSocketHandler webSockethandler;
+
+	/** 升级链路为WebSocket，绑定消息处理对象 */
+	public void upgrade(WEBSocketHandler handler) {
+		webSockethandler = handler;
+	}
+
+	public WEBSocketHandler getWEBSocketHandler() {
+		return webSockethandler;
+	}
+
+	public boolean isWEBSocket() {
+		return webSockethandler != null;
+	}
+
+	@Override
+	public void send(Object message) {
+		if (message instanceof Message m) {
+			if (isHTTP2()) {
+				k.lock();
+				try {
+					if (message instanceof Request request) {
+						request.id(nextId());
+					}
+					if (stream.isEmpty()) {
+						stream.add(m);
+						if (sendMessage() == null) {
+							sendMessage(message = stream.stream());
+						} else {
+							return;
+						}
+					} else {
+						stream.add(m);
+						return;
+					}
+				} finally {
+					k.unlock();
+				}
+				super.send(message);
+			} else {
+				k.lock();
+				try {
+					if (queue.isEmpty()) {
+						queue.add(m);
+						if (sendMessage() == null) {
+							sendMessage(message = queue.read());
+						} else {
+							return;
+						}
+					} else {
+						queue.add(m);
+						return;
+					}
+				} finally {
+					k.unlock();
+				}
+				super.send(message);
+			}
+		} else {
+			throw new IllegalArgumentException("HTTP:无效的消息对象类型");
+		}
+	}
+
+	protected void sendNext(boolean complete) {
+		if (isHTTP2()) {
+			k.lock();
+			try {
+				if (complete) {
+					stream.remove();
+				}
+				if (stream.isEmpty()) {
+					return;
+				}
+				if (sendMessage() == null) {
+					sendMessage(stream.stream());
+				} else {
+					return;
+				}
+			} finally {
+				k.unlock();
+			}
+			super.send(sendMessage());
+		} else {
+			k.lock();
+			try {
+				if (complete) {
+					queue.next();
+				}
+				if (queue.isEmpty()) {
+					return;
+				}
+				if (sendMessage() == null) {
+					sendMessage(queue.read());
+				} else {
+					return;
+				}
+			} finally {
+				k.unlock();
+			}
+			super.send(sendMessage());
+		}
 	}
 }

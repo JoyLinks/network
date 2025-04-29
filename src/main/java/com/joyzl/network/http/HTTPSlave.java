@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.joyzl.network.LinkQueue;
 import com.joyzl.network.chain.ChainType;
 import com.joyzl.network.chain.TCPSlave;
 
@@ -30,42 +31,65 @@ public class HTTPSlave extends TCPSlave {
 	public ChainType type() {
 		return ChainType.TCP_HTTP_SLAVE;
 	}
-	// 1问答模式
-	// 2管道模式
-	// 3多路复用
 
-	@Override
-	public void send(Object message) {
-		k.lock();
-		try {
-			streams.add(message);
-			if (sendMessage() == null) {
-				sendMessage(message = streams.get());
-			} else {
-				return;
-			}
-		} finally {
-			k.unlock();
-		}
-		super.send(message);
+	// HTTP2
+	private HTTP2Index<Request> messages;
+	private Stream<Message> stream;
+	private HPACK hpackRequest, hpackResponse;
+	private int id = 2;
+
+	public int nextId() {
+		// 服务端使用偶数流编号
+		return id += 2;
 	}
 
-	protected void sendNext() {
-		k.lock();
-		try {
-			if (sendMessage() == null) {
-				sendMessage(streams.get());
-			} else {
-				return;
-			}
-		} finally {
-			k.unlock();
-		}
-		super.send(sendMessage());
+	public boolean isHTTP2() {
+		return hpackRequest != null && hpackResponse != null;
+	}
+
+	/** 切换链路为HTTP2 */
+	protected void upgradeHTTP2() {
+		messages = new HTTP2Index<>(100);
+		stream = new Stream<>(100);
+		hpackRequest = new HPACK();
+		hpackResponse = new HPACK();
+	}
+
+	protected HTTP2Index<Request> messages() {
+		return messages;
+	}
+
+	protected Stream<Message> stream() {
+		return stream;
+	}
+
+	protected HPACK requestHPACK() {
+		return hpackRequest;
+	}
+
+	protected HPACK responseHPACK() {
+		return hpackResponse;
+	}
+
+	// HTTP 1.1 1.0
+	// 提供缓存请求消息支持
+	// 请求消息可能需要多次接收数据解码才能完成
+	private LinkQueue<Message> queue = new LinkQueue<>();
+	private Request request;
+
+	protected LinkQueue<Message> queue() {
+		return queue;
+	}
+
+	protected Request getRequest() {
+		return request;
+	}
+
+	protected void setRequest(Request value) {
+		request = value;
 	}
 
 	// WEB Socket
-
 	private WEBSocketHandler webSockethandler;
 
 	/** 升级链路为WebSocket，绑定消息处理对象 */
@@ -81,31 +105,91 @@ public class HTTPSlave extends TCPSlave {
 		return webSockethandler;
 	}
 
-	// HTTP2
-
-	private HPACK request, response;
-	private HTTP2Sender streams;
-
-	public boolean isHTTP2() {
-		return streams != null;
+	@Override
+	public void send(Object message) {
+		if (message instanceof Message m) {
+			if (isHTTP2()) {
+				k.lock();
+				try {
+					if (m.id() < 0) {
+						m.id(nextId());
+					}
+					if (stream.isEmpty()) {
+						stream.add(m);
+						if (sendMessage() == null) {
+							sendMessage(m = stream.stream());
+						} else {
+							return;
+						}
+					} else {
+						stream.add(m);
+						return;
+					}
+				} finally {
+					k.unlock();
+				}
+				super.send(message);
+			} else {
+				k.lock();
+				try {
+					if (queue.isEmpty()) {
+						queue.add(m);
+						if (sendMessage() == null) {
+							sendMessage(m = queue.read());
+						} else {
+							return;
+						}
+					} else {
+						queue.add(m);
+						return;
+					}
+				} finally {
+					k.unlock();
+				}
+				super.send(message);
+			}
+		} else {
+			throw new IllegalArgumentException("HTTP:无效的消息对象类型");
+		}
 	}
 
-	/** 切换链路为HTTP2 */
-	void upgradeHTTP2() {
-		request = new HPACK();
-		response = new HPACK();
-		streams = new HTTP2Sender();
-	}
-
-	HTTP2Sender streams() {
-		return streams;
-	}
-
-	HPACK requestHPACK() {
-		return request;
-	}
-
-	HPACK responseHPACK() {
-		return response;
+	protected void sendNext(boolean complete) {
+		if (isHTTP2()) {
+			k.lock();
+			try {
+				if (complete) {
+					stream.remove();
+				}
+				if (stream.isEmpty()) {
+					return;
+				}
+				if (sendMessage() == null) {
+					sendMessage(stream.stream());
+				} else {
+					return;
+				}
+			} finally {
+				k.unlock();
+			}
+			super.send(sendMessage());
+		} else {
+			k.lock();
+			try {
+				if (complete) {
+					queue.poll();
+				}
+				if (queue.isEmpty()) {
+					return;
+				}
+				if (sendMessage() == null) {
+					sendMessage(queue.peek());
+				} else {
+					return;
+				}
+			} finally {
+				k.unlock();
+			}
+			super.send(sendMessage());
+		}
 	}
 }

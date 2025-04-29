@@ -7,10 +7,9 @@ package com.joyzl.network.odbs;
 
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.joyzl.network.IndexMap;
 import com.joyzl.network.chain.ChainType;
 import com.joyzl.network.chain.TCPClient;
-import com.joyzl.network.odbs.MessageIndex.MessageEvenIndex;
-import com.joyzl.network.odbs.MessageIndex.MessageOddIndex;
 
 /**
  * 基于TCP Odbs连接的客户端
@@ -21,12 +20,22 @@ import com.joyzl.network.odbs.MessageIndex.MessageOddIndex;
 public class ODBSClient extends TCPClient {
 
 	private final ReentrantLock k = new ReentrantLock(true);
-	private final MessageStream<ODBSMessage> streams = new MessageStream<>();
-	private final MessageOddIndex<ODBSMessage> sends = new MessageOddIndex<>();
-	private final MessageEvenIndex<ODBSMessage> pushes = new MessageEvenIndex<>();
+	private final MessageStream<ODBSMessage> sends = new MessageStream<>();
+	private final IndexMap<ODBSMessage> receives = new IndexMap<>();
+	private int id = 1;
 
 	public ODBSClient(ODBSClientHandler<?> h, String host, int port) {
 		super(h, host, port);
+	}
+
+	/** 生成自增奇数编号，溢出后归1 */
+	private int oddId() {
+		int i = id;
+		id += 2;
+		if (id <= 0) {
+			id = 2;
+		}
+		return i;
 	}
 
 	@Override
@@ -41,32 +50,35 @@ public class ODBSClient extends TCPClient {
 			try {
 				// 发送客户端请求消息
 				// 每次生成新的消息标识
-				om.tag(sends.add(om));
-				streams.add(om, om.tag());
+				om.tag(oddId());
+				receives.put(om.tag(), om);
 
-				if (streams.size() == 1 && sendMessage() == null) {
-					sendMessage(message = streams.stream());
+				sends.add(om, om.tag());
+				if (sends.size() == 1 && sendMessage() == null) {
+					sendMessage(message = sends.stream());
 				} else {
 					return;
 				}
 			} finally {
 				k.unlock();
 			}
+			super.send(message);
+		} else {
+			throw new IllegalArgumentException("无效的消息对象类型");
 		}
-		super.send(message);
 	}
 
 	protected void sendNext() {
 		k.lock();
 		try {
-			if (streams.isDone()) {
-				streams.remove();
+			if (sends.isDone()) {
+				sends.remove();
 			}
-			if (streams.isEmpty()) {
+			if (sends.isEmpty()) {
 				return;
 			}
 			if (sendMessage() == null) {
-				sendMessage(streams.stream());
+				sendMessage(sends.stream());
 			} else {
 				return;
 			}
@@ -79,21 +91,17 @@ public class ODBSClient extends TCPClient {
 	protected void sendRemove(int id) {
 		k.lock();
 		try {
-			sends.remove(id);
+			receives.remove(id);
 		} finally {
 			k.unlock();
 		}
 	}
 
-	MessageIndex<ODBSMessage> sends() {
+	IndexMap<ODBSMessage> receives() {
+		return receives;
+	}
+
+	MessageStream<ODBSMessage> sends() {
 		return sends;
-	}
-
-	MessageIndex<ODBSMessage> pushes() {
-		return pushes;
-	}
-
-	MessageStream<ODBSMessage> streams() {
-		return streams;
 	}
 }

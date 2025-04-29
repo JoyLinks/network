@@ -9,36 +9,6 @@ import com.joyzl.network.chain.ChainType;
  */
 public interface WEBSocketHandler {
 
-	/**
-	 * HTTP Chain 内部使用的默认实例，用户不应使用此实例
-	 */
-	final static WEBSocketHandler DEFAULT_SLAVE = new WEBSocketHandler() {
-		@Override
-		public ChainType type() {
-			return ChainType.TCP_HTTP_SLAVE;
-		}
-
-		@Override
-		public void received(HTTPSlave slave, WEBSocketMessage message) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public void connected(HTTPSlave slave) throws Exception {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public void disconnected(HTTPSlave slave) throws Exception {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public void sent(HTTPSlave slave, WEBSocketMessage message) throws Exception {
-			throw new UnsupportedOperationException();
-		}
-	};
-
 	default ChainType type() {
 		return ChainType.TCP_HTTP_SLAVE_WEB_SOCKET;
 	};

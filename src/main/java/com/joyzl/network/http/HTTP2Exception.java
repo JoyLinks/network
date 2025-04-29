@@ -9,10 +9,11 @@ public class HTTP2Exception extends IOException {
 	private final int error;
 
 	public HTTP2Exception(int error) {
+		super(HTTP2.errorText(error));
 		this.error = error;
 	}
 
-	public int getError() {
+	public int getErrorCode() {
 		return error;
 	}
 }

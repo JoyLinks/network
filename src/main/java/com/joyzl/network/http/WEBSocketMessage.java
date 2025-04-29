@@ -59,6 +59,13 @@ public class WEBSocketMessage extends Message {
 	private byte opcode;
 	private short status;
 
+	public WEBSocketMessage() {
+	}
+
+	public WEBSocketMessage(byte opcode) {
+		this.opcode = opcode;
+	}
+
 	/**
 	 * 获取消息类型
 	 * 

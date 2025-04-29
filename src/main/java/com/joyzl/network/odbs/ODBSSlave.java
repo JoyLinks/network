@@ -9,10 +9,9 @@ import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.joyzl.network.IndexMap;
 import com.joyzl.network.chain.ChainType;
 import com.joyzl.network.chain.TCPSlave;
-import com.joyzl.network.odbs.MessageIndex.MessageEvenIndex;
-import com.joyzl.network.odbs.MessageIndex.MessageOddIndex;
 
 /**
  * TCP从连接，由TCPServer创建
@@ -23,12 +22,22 @@ import com.joyzl.network.odbs.MessageIndex.MessageOddIndex;
 public class ODBSSlave extends TCPSlave {
 
 	private final ReentrantLock k = new ReentrantLock(true);
-	private final MessageStream<ODBSMessage> streams = new MessageStream<>();
-	private final MessageOddIndex<ODBSMessage> receives = new MessageOddIndex<>();
-	private final MessageEvenIndex<ODBSMessage> pushes = new MessageEvenIndex<>();
+	private final MessageStream<ODBSMessage> sends = new MessageStream<>();
+	private final IndexMap<ODBSMessage> receives = new IndexMap<>();
+	private int id = 2;
 
 	public ODBSSlave(ODBSServer server, AsynchronousSocketChannel channel) throws IOException {
 		super(server, channel);
+	}
+
+	/** 生成自增偶数编号，溢出后归2 */
+	private int evenId() {
+		int i = id;
+		id += 2;
+		if (id <= 0) {
+			id = 2;
+		}
+		return i;
 	}
 
 	@Override
@@ -44,44 +53,43 @@ public class ODBSSlave extends TCPSlave {
 				if (om.tag() > 0) {
 					if (om.chain() == this) {
 						// 响应客户端请求消息，延用标识
-						streams.add(om, om.tag());
+						sends.add(om, om.tag());
 					} else {
 						// 客户端响应被转发，新建标识
 						// 客户端响应被广播，新建标识
-						streams.add(om, pushes.add(om));
+						sends.add(om, evenId());
 					}
 				} else {
 					// 发送服务端推送消息，新建标识
 					// 发送服务端广播消息，新建标识
-					streams.add(om, pushes.add(om));
+					sends.add(om, evenId());
 				}
 
-				if (streams.size() == 1 && sendMessage() == null) {
-					sendMessage(message = streams.stream());
+				if (sends.size() == 1 && sendMessage() == null) {
+					sendMessage(message = sends.stream());
 				} else {
 					return;
 				}
 			} finally {
 				k.unlock();
 			}
+			super.send(message);
+		} else {
+			throw new IllegalArgumentException("无效的消息对象类型");
 		}
-		super.send(message);
 	}
 
 	protected void sendNext() {
 		k.lock();
 		try {
-			if (streams.isDone()) {
-				if (streams.id() % 2 == 0) {
-					pushes.remove(streams.id());
-				}
-				streams.remove();
+			if (sends.isDone()) {
+				sends.remove();
 			}
-			if (streams.isEmpty()) {
+			if (sends.isEmpty()) {
 				return;
 			}
 			if (sendMessage() == null) {
-				sendMessage(streams.stream());
+				sendMessage(sends.stream());
 			} else {
 				return;
 			}
@@ -91,15 +99,11 @@ public class ODBSSlave extends TCPSlave {
 		super.send(sendMessage());
 	}
 
-	MessageIndex<ODBSMessage> receives() {
+	IndexMap<ODBSMessage> receives() {
 		return receives;
 	}
 
-	MessageIndex<ODBSMessage> pushes() {
-		return pushes;
-	}
-
-	MessageStream<ODBSMessage> streams() {
-		return streams;
+	MessageStream<ODBSMessage> sends() {
+		return sends;
 	}
 }

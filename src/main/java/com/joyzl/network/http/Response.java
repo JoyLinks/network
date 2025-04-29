@@ -21,6 +21,13 @@ public class Response extends HTTPMessage {
 	private String text = HTTPStatus.OK.text();
 	private Map<String, String> attachHeaders;
 
+	public Response() {
+	}
+
+	public Response(HTTPStatus status) {
+		setStatus(status);
+	}
+
 	public int getStatus() {
 		return status;
 	}

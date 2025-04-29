@@ -7,17 +7,44 @@ package com.joyzl.network.http;
  */
 class Ping extends Message {
 
+	private boolean ack = false;
 	private final long value;
 
 	public Ping() {
+		super(0, COMPLETE);
 		value = System.currentTimeMillis();
 	}
 
 	public Ping(long value) {
+		super(0, COMPLETE);
 		this.value = value;
+	}
+
+	public Ping(boolean ack, long value) {
+		super(0, COMPLETE);
+		this.value = value;
+		this.ack = ack;
+	}
+
+	public Ping forACK() {
+		ack = true;
+		return this;
 	}
 
 	public long getValue() {
 		return value;
+	}
+
+	public boolean isACK() {
+		return ack;
+	}
+
+	@Override
+	public String toString() {
+		if (ack) {
+			return "PING:ACK " + value;
+		} else {
+			return "PING:" + value;
+		}
 	}
 }

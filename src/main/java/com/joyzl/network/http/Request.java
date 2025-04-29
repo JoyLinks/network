@@ -20,9 +20,15 @@ import com.joyzl.network.http.MultipartFile.MultipartFiles;
 public class Request extends HTTPMessage {
 
 	private String method = HTTP.GET;
-
 	private String url;
 	private int uriHost = -1, uriPort, uriPath = -1, uriQuery, uriAnchor;
+
+	public Request() {
+	}
+
+	public Request(int id, String version) {
+		super(id, version);
+	}
 
 	public String getMethod() {
 		return method;

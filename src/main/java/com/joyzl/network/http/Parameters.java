@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 /**
- * 键值对集合,键不区分大小写
+ * 键值对集合，键不区分大小写
  * 
  * @author ZhangXi
  * @date 2021年10月16日

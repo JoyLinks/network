@@ -7,14 +7,14 @@ package com.joyzl.network.http;
  */
 class HPACK extends HTTP2 {
 
-	/** 帧头列表的最大数量 */
-	private int maxHeaderListSize = Integer.MAX_VALUE;
-
 	// User-Agent 应索引
 	// Cookie 应永不索引
 
 	private final Table table = new Table();
-	private int max = Integer.MAX_VALUE;
+	private int max = Settings.DEFAULT_HEADER_TABLE_SIZE;
+
+	public HPACK() {
+	}
 
 	/** 获取指定索引头名 */
 	public String getName(int index) {
@@ -71,14 +71,6 @@ class HPACK extends HTTP2 {
 		while (table.size() > max) {
 			table.remove();
 		}
-	}
-
-	public int getMaxHeaderListSize() {
-		return maxHeaderListSize;
-	}
-
-	public void setMaxHeaderListSize(int value) {
-		maxHeaderListSize = value;
 	}
 
 	final static int STATIC_TABLE_SIZE = 61;
@@ -490,5 +482,35 @@ class HPACK extends HTTP2 {
 				items = news;
 			}
 		}
+	}
+
+	/** 头列表帧的最大数量 */
+	private int maxHeaderListSize = Integer.MAX_VALUE;
+	/** 帧最大有效负载 */
+	private int maxFrameSize = Settings.DEFAULT_FRAME_SIZE;
+	private int windowSize = Settings.DEFAULT_WINDOW_SIZE;
+
+	public int getMaxHeaderListSize() {
+		return maxHeaderListSize;
+	}
+
+	public void setMaxHeaderListSize(int value) {
+		maxHeaderListSize = value;
+	}
+
+	public void setMaxFrameSize(int value) {
+		maxFrameSize = value;
+	}
+
+	public int getMaxFrameSize() {
+		return maxFrameSize;
+	}
+
+	public void setWindowSize(int value) {
+		windowSize = value;
+	}
+
+	public int getWindowSize() {
+		return windowSize;
 	}
 }

@@ -1,4 +1,4 @@
-package com.joyzl.network.odbs;
+package com.joyzl.network;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -10,9 +10,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class TestMessageDeque {
+class TestIndexQueue {
 
-	private MessageQueue<Object> deque = new MessageQueue<>();
+	private IndexQueue<Object> deque = new IndexQueue<>();
 
 	@BeforeEach
 	void setUp() throws Exception {
@@ -28,25 +28,25 @@ class TestMessageDeque {
 		// EMPTY
 
 		assertEquals(deque.size(), 0);
-		assertEquals(deque.queue(), 0);
+		assertEquals(deque.peek(), null);
 		assertEquals(deque.poll(), null);
 
 		// LITTEL
 
 		deque.add(1);
 		assertEquals(deque.size(), 1);
-		assertEquals(deque.queue(), 1);
+		assertEquals(deque.peek(), 1);
 		assertEquals(deque.poll(), 1);
 		assertEquals(deque.size(), 0);
 		assertEquals(deque.queue(), 0);
 
 		// MORE
 
-		for (int index = 0; index < 255; index++) {
+		for (int index = 0; index < deque.capacity(); index++) {
 			deque.add(index);
 		}
-		assertEquals(deque.size(), 255);
-		assertEquals(deque.queue(), 255);
+		assertEquals(deque.size(), deque.capacity());
+		assertEquals(deque.peek(), 0);
 		try {
 			deque.add(0);
 			fail("应抛出异常");
@@ -54,29 +54,33 @@ class TestMessageDeque {
 			assertNotNull(e);
 		}
 
-		for (int index = 0; index < 255; index++) {
+		for (int index = 0; index < deque.capacity(); index++) {
+			assertEquals(deque.peek(), index);
 			assertEquals(deque.poll(), index);
 		}
 		assertEquals(deque.size(), 0);
-		assertEquals(deque.queue(), 0);
 		assertEquals(deque.poll(), null);
+		assertEquals(deque.peek(), null);
 
-		for (int index = 0; index < 100; index++) {
+		for (int index = 0; index < deque.capacity() / 2; index++) {
 			deque.add(index);
 		}
-		assertEquals(deque.size(), 100);
-		assertEquals(deque.queue(), 100);
+		assertEquals(deque.size(), deque.capacity() / 2);
+		assertEquals(deque.peek(), 0);
 
-		for (int index = 0; index < 100; index++) {
+		for (int index = 0; index < deque.capacity() / 2; index++) {
+			assertEquals(deque.peek(), index);
 			assertEquals(deque.poll(), index);
 		}
 		assertEquals(deque.size(), 0);
+		assertEquals(deque.poll(), null);
+		assertEquals(deque.peek(), null);
 
-		for (int index = 0; index < 255; index++) {
+		for (int index = 0; index < deque.capacity(); index++) {
 			deque.add(index);
 		}
-		assertEquals(deque.size(), 255);
-		assertEquals(deque.queue(), 255);
+		assertEquals(deque.size(), deque.capacity());
+		assertEquals(deque.peek(), 0);
 		try {
 			deque.add(0);
 			fail("应抛出异常");
@@ -84,15 +88,14 @@ class TestMessageDeque {
 			assertNotNull(e);
 		}
 
-		for (int index = 0; index < 255; index++) {
+		for (int index = 0; index < deque.capacity(); index++) {
 			assertEquals(deque.poll(), index);
 		}
 		assertEquals(deque.size(), 0);
 		assertEquals(deque.poll(), null);
-		assertEquals(deque.queue(), 0);
+		assertEquals(deque.peek(), null);
 	}
 
-	@Test
 	void testAddPeekTake() {
 		// EMPTY
 
@@ -120,7 +123,7 @@ class TestMessageDeque {
 
 		assertEquals(deque.peek(), 1);
 		assertEquals(deque.size(), 1);
-		assertEquals(deque.queue(), 0);
+		assertEquals(deque.queue(), 1);
 
 		assertEquals(deque.take(tag), 1);
 		assertEquals(deque.size(), 0);
@@ -172,10 +175,10 @@ class TestMessageDeque {
 
 		// MORE
 
-		for (int index = 0; index < 255; index++) {
+		for (int index = 0; index < deque.capacity(); index++) {
 			deque.add(index);
 		}
-		assertEquals(deque.size(), 255);
+		assertEquals(deque.size(), deque.capacity());
 
 		int size = 0;
 		iterator = deque.iterator();
@@ -185,6 +188,6 @@ class TestMessageDeque {
 			size++;
 		}
 		assertEquals(deque.size(), 0);
-		assertEquals(size, 255);
+		assertEquals(size, deque.capacity());
 	}
 }

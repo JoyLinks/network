@@ -567,7 +567,7 @@ public class DataBuffer implements Verifiable, DataInput, DataOutput, //
 	 * @see {@link #transfer(DataBuffer, int)}
 	 */
 	public void append(DataBuffer source, int length) {
-		source.transfer(this);
+		source.transfer(this, length);
 	}
 
 	/**

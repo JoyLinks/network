@@ -1,7 +1,9 @@
-package com.joyzl.network.odbs;
+package com.joyzl.network.http;
 
 import java.io.Closeable;
 import java.io.IOException;
+
+import com.joyzl.network.odbs.MessageIndex;
 
 /**
  * 消息发送流，链表模式实现；<br>
@@ -11,12 +13,12 @@ import java.io.IOException;
  * 如果消息包含资源（文件或输入流）且实现了Closeable接口，清空流时将自动关闭。
  * </p>
  * <p>
- * {@link MessageStream}对象用于流式发送，{@link MessageIndex}用于流式接收。
+ * {@link Stream}对象用于流式发送，{@link MessageIndex}用于流式接收。
  * </p>
  * 
  * @author ZhangXi 2025年4月11日
  */
-public class MessageStream<M> {
+public class Stream<M> {
 
 	// head始终为存储值头部,foot为已存储值节点的下一个节点
 	// 移除值时空闲的节点将移除并连接到foot之后
@@ -27,19 +29,19 @@ public class MessageStream<M> {
 	// prev和next用于流式发送，分别记录上一个节点和当前节点
 	// 上一个节点用于移除当前流消息时将断开的后续节点连接在一起
 
-	private final int capacity;
+	private int capacity;
 	private Item<M> head, foot;
 	private Item<M> prev, next;
 	private boolean done;
 	private int size;
 
 	/** 默认容量初始化消息流 */
-	public MessageStream() {
+	public Stream() {
 		this(128);
 	}
 
 	/** 指定容量初始化消息流 */
-	public MessageStream(int capacity) {
+	public Stream(int capacity) {
 		this.capacity = capacity;
 		head = foot = new Item<>();
 		capacity--;
@@ -61,11 +63,10 @@ public class MessageStream<M> {
 	}
 
 	/** 添加消息 */
-	public void add(M m, int id) {
+	public void add(M m) {
 		if (foot.next == null) {
 			throw new IllegalStateException("FULL");
 		} else {
-			foot.id = id;
 			foot.value = m;
 			foot = foot.next;
 			size++;
@@ -131,19 +132,6 @@ public class MessageStream<M> {
 	}
 
 	/**
-	 * 获取当前消息标识，既stream()获取的消息
-	 * <p>
-	 * 消息流对象为每个存入的消息提供了独立的消息标识，这有助于消息实例用于多发场景；<br>
-	 * 从客户端收到的消息关联客户端分配的奇数标识，回复时采用相同的消息标识；<br>
-	 * 当此消息实例还要被转发给其他客户端或群发到多个客户端时，需要新的消息标识，<br>
-	 * 此时新的偶数消息标识由特定链路分配，同时还要保留原来的消息标识。
-	 * </p>
-	 */
-	public int id() {
-		return next.id;
-	}
-
-	/**
 	 * 标记当前消息已完成，既stream()获取的消息
 	 * <p>
 	 * 此方法辅助流式发送时标记状态，如果消息不具备编码状态标记可采用此方法，而无须改变消息类结构；<br>
@@ -179,6 +167,10 @@ public class MessageStream<M> {
 		}
 	}
 
+	public void capacity(int value) {
+		this.capacity = value;
+	}
+
 	public int capacity() {
 		return capacity;
 	}
@@ -186,6 +178,5 @@ public class MessageStream<M> {
 	static class Item<M> {
 		Item<M> next;
 		M value;
-		int id;
 	}
 }

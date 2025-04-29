@@ -367,7 +367,9 @@ public class HTTPCoder extends HTTP {
 	public static boolean readContent(DataBuffer buffer, Request request) throws IOException {
 		String value = request.getHeader(ContentLength.NAME);
 		if (value == null || value.length() == 0) {
-			return true;
+			// 没有指定长度，全部当字符串处理，CRLF结束
+			// HTTP2连接前奏出现此情形
+			return readContentText(buffer, request);
 		}
 		final int length = Integer.parseUnsignedInt(value);
 		if (length == 0) {
@@ -478,6 +480,43 @@ public class HTTPCoder extends HTTP {
 	 */
 	public static boolean readContentMultipart(DataBuffer buffer, Message message) throws IOException {
 		// TODO read byteranges
+		return false;
+	}
+
+	/**
+	 * 读取内容为字符串以CRLF结束
+	 */
+	public static boolean readContentText(DataBuffer buffer, Message message) throws IOException {
+		// PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n
+
+		if (buffer.readable() == 0) {
+			return true;
+		}
+		if (buffer.readable() >= 2) {
+			final StringBuilder builder = getStringBuilder();
+			int c;
+			buffer.mark();
+			while (buffer.readable() > 1) {
+				c = buffer.readByte();
+				if (c == CR) {
+					c = buffer.readByte();
+					if (c == LF) {
+						message.setContent(builder.toString());
+						// 丢弃残留CRLF如果有
+						if (buffer.readable() > 1) {
+							if (buffer.get(0) == CR) {
+								if (buffer.get(1) == LF) {
+									buffer.skipBytes(2);
+								}
+							}
+						}
+						return true;
+					}
+				}
+				builder.append((char) c);
+			}
+			buffer.reset();
+		}
 		return false;
 	}
 
@@ -611,7 +650,6 @@ public class HTTPCoder extends HTTP {
 	 */
 	public static boolean writeContent(DataBuffer buffer, Response response) throws IOException {
 		if (response.getContent() == null) {
-			// HEAD
 			return true;
 		}
 		if (buffer.readable() >= BLOCK_BYTES) {

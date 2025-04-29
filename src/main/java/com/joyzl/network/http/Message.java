@@ -6,6 +6,8 @@
 package com.joyzl.network.http;
 
 import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collection;
 
 import com.joyzl.network.buffer.DataBuffer;
@@ -25,12 +27,25 @@ public abstract class Message {
 	final static int CONTENT = 3;
 	final static int COMPLETE = 4;
 
-	private int state = COMMAND;
+	private int state = 0;
+	private int id = -1;
+
+	public Message() {
+	}
+
+	public Message(int id) {
+		this.id = id;
+	}
+
+	public Message(int id, int state) {
+		this.state = state;
+		this.id = id;
+	}
 
 	/**
-	 * 获取当前消息状态
+	 * 获取消息状态
 	 */
-	int state() {
+	public int state() {
 		return state;
 	}
 
@@ -39,6 +54,16 @@ public abstract class Message {
 	 */
 	void state(int value) {
 		state = value;
+	}
+
+	/** 获取流标识 */
+	public int id() {
+		return id;
+	}
+
+	/** 设置流标识 */
+	void id(int value) {
+		id = value;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
@@ -59,6 +84,28 @@ public abstract class Message {
 	 */
 	public Object getContent() {
 		return content;
+	}
+
+	/**
+	 * 获取消息内容大小（估计字节数）
+	 */
+	public int getContentSize() throws IOException {
+		if (content == null) {
+			return 0;
+		}
+		if (content instanceof DataBuffer) {
+			return ((DataBuffer) content).readable();
+		}
+		if (content instanceof InputStream) {
+			return ((InputStream) content).available();
+		}
+		if (content instanceof CharSequence) {
+			return ((CharSequence) content).length();
+		}
+		if (content instanceof byte[]) {
+			return ((byte[]) content).length;
+		}
+		return -1;
 	}
 
 	/**

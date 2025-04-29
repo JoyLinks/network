@@ -19,8 +19,16 @@ import com.joyzl.network.chain.TCPServer;
  */
 public class HTTPServer extends TCPServer {
 
+	public HTTPServer(HTTPServerHandler handler, String host, int port, int backlog) throws IOException {
+		super(handler, host, port, backlog);
+	}
+
 	public HTTPServer(HTTPServerHandler handler, String host, int port) throws IOException {
 		super(handler, host, port);
+	}
+
+	public HTTPServer(HTTPServerHandler handler, int port) throws IOException {
+		super(handler, null, port);
 	}
 
 	@Override

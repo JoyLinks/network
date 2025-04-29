@@ -22,9 +22,16 @@ public class HTTPMessage extends Message {
 	private final Map<String, String> headers = new HashMap<>();
 
 	// HTTP 2
-	private int stream;
 	private int dependency;
 	private int weight;
+
+	public HTTPMessage() {
+	}
+
+	public HTTPMessage(int id, String version) {
+		super(id);
+		this.version = version;
+	}
 
 	@Override
 	public void reset() throws Exception {
@@ -62,14 +69,6 @@ public class HTTPMessage extends Message {
 
 	public void clearHeaders() {
 		headers.clear();
-	}
-
-	int getStream() {
-		return stream & 0x7fffffff;
-	}
-
-	void setStream(int value) {
-		stream = value;
 	}
 
 	boolean isExclusive() {
