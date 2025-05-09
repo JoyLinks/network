@@ -7,13 +7,13 @@ import java.util.Iterator;
 
 import org.junit.jupiter.api.Test;
 
-import com.joyzl.network.odbs.MessageIndex.MessageOddIndex;
+import com.joyzl.network.odbs.ODBSIndex.MessageOddIndex;
 
-public class TestMessageIndex {
+public class TestODBSIndex {
 
 	@Test
 	void testIndex() {
-		final MessageIndex<Message> client = new MessageIndex<>();
+		final ODBSIndex<Message> client = new ODBSIndex<>();
 
 		Message message1 = new Message();
 		message1.id = client.add(message1);
@@ -73,11 +73,11 @@ public class TestMessageIndex {
 
 	@Test
 	void testIndexFlip() throws IOException {
-		final MessageIndex<Message> indexs = new MessageIndex<>();
+		final ODBSIndex<Message> indexs = new ODBSIndex<>();
 		final Message message = new Message();
 
 		long time = System.currentTimeMillis();
-		for (int index = 0; index < MessageIndex.MAX; index++) {
+		for (int index = 0; index < ODBSIndex.MAX; index++) {
 			message.id = indexs.add(message);
 			indexs.remove(message.id);
 		}
@@ -85,7 +85,7 @@ public class TestMessageIndex {
 		System.out.println("MessageIndex Add&Remove:" + time / Integer.MAX_VALUE + "ms");
 
 		message.id = indexs.add(message);
-		assertEquals(message.id, MessageIndex.MAX);
+		assertEquals(message.id, ODBSIndex.MAX);
 		message.id = indexs.add(message);
 		assertEquals(message.id, 0);
 	}
@@ -96,7 +96,7 @@ public class TestMessageIndex {
 		final Message message = new Message();
 
 		long time = System.currentTimeMillis();
-		for (int index = 0; index < MessageIndex.MAX; index++) {
+		for (int index = 0; index < ODBSIndex.MAX; index++) {
 			message.id = indexs.add(message);
 			indexs.remove(message.id);
 		}
@@ -111,7 +111,7 @@ public class TestMessageIndex {
 
 	@Test
 	void testIterator() {
-		final MessageIndex<Message> stream = new MessageIndex<>();
+		final ODBSIndex<Message> stream = new ODBSIndex<>();
 
 		// 添加消息
 		Message message = null;

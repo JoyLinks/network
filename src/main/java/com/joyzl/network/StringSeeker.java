@@ -2,6 +2,7 @@ package com.joyzl.network;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Iterator;
 
 /**
  * 字符串常量查找，不区分大小写；
@@ -12,7 +13,7 @@ import java.util.Comparator;
  * 
  * @author ZhangXi 2024年11月22日
  */
-public class StringSeeker {
+public class StringSeeker implements Iterable<String> {
 
 	/** 相同长度分组，每组按字符排序 */
 	private final String[][] constants;
@@ -228,4 +229,31 @@ public class StringSeeker {
 			return a.length() - b.length();
 		}
 	};
+
+	@Override
+	public Iterator<String> iterator() {
+		return new Iterator<String>() {
+			private int d1 = 0, d2 = 0;
+
+			@Override
+			public boolean hasNext() {
+				if (d1 < constants.length) {
+					if (d2 < constants[d1].length) {
+						return true;
+					}
+				}
+				return false;
+			}
+
+			@Override
+			public String next() {
+				final String value = constants[d1][d2++];
+				if (d2 >= constants[d1].length) {
+					d2 = 0;
+					d1++;
+				}
+				return value;
+			}
+		};
+	}
 }

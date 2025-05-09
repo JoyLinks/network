@@ -5,9 +5,11 @@ import java.io.IOException;
 import java.util.Iterator;
 
 /**
- * 固定数量的消息队列；提供基础队列功能顺序添加，顺序获取，顺序取出；<br>
- * 消息顺序获取并发送，消息驻留队列中，直至取出；<br>
- * 消息队列的容量固定，内部持有一个数组缓存消息；<br>
+ * 数组实现具有固定空间的消息队列；提供基础队列功能先进先出；存入消息将自动分配索引，可通过索引取出消息；<br>
+ * 只能通过索引取出已读取过的消息，
+ * <p>
+ * 如果消息包含资源（文件或输入流）且实现了Closeable接口，清空队列时将自动关闭。
+ * </p>
  * <p>
  * 如果需要确保线程安全应通过额外的机制实现，此类的所有方法均不是线程安全的。
  * </p>
@@ -19,14 +21,11 @@ public class IndexQueue<M> implements Iterable<M> {
 
 	private final int max;
 	private final M[] elements;
+	/**
+	 * 为了消除头尾重叠歧义，索引范围为0 ~ max，实际索引通过模除获得 index % elements.length
+	 * 存储形式：[head|read-foot]
+	 */
 	private int read, head, foot;
-
-	// 为了消除头尾重叠歧义
-	// 索引范围为0 ~ elements.length * 2 - 1
-	// 实际索引通过模除获得 foot % elements.length
-	// 问答模式：发送（读取1）-应答（取出1）
-	// 管道模式：发送（读取1）-发送（读取2）-应答（取出1）-应答（取出2）
-	// [head|read-foot]
 
 	public IndexQueue() {
 		this(64, Integer.MAX_VALUE);
@@ -34,22 +33,18 @@ public class IndexQueue<M> implements Iterable<M> {
 
 	@SuppressWarnings("unchecked")
 	public IndexQueue(int capacity, int max) {
+		if (max < capacity) {
+			throw new IllegalArgumentException("标识范围无效");
+		}
 		elements = (M[]) new Object[capacity];
 		this.max = max;
 	}
 
 	/**
-	 * 最大可用标识1~max，当标识到达最大值时将自动翻转为1
+	 * 最大可用标识0~max，当标识到达最大值时将自动翻转为0
 	 */
 	public int max() {
 		return max;
-	}
-
-	/**
-	 * 消息数量，包括未取出的消息
-	 */
-	public int size() {
-		return foot > head ? foot - head : head - foot;
 	}
 
 	/**
@@ -74,10 +69,29 @@ public class IndexQueue<M> implements Iterable<M> {
 	}
 
 	/**
+	 * 消息数量，包括未取出的消息
+	 */
+	public int size() {
+		if (foot > head) {
+			return foot - head;
+		}
+		if (foot < head) {
+			return max - head + foot;
+		}
+		return 0;
+	}
+
+	/**
 	 * 排队消息数量，所有未发送消息，不含未取出的消息
 	 */
 	public int queue() {
-		return foot > read ? foot - read : read - foot;
+		if (foot > read) {
+			return foot - read;
+		}
+		if (foot < read) {
+			return max - read + foot;
+		}
+		return 0;
 	}
 
 	/**
@@ -87,13 +101,23 @@ public class IndexQueue<M> implements Iterable<M> {
 		int index = foot % elements.length;
 		if (elements[index] == null) {
 			elements[index] = m;
-			foot++;
+			index = foot++;
 			if (foot == max) {
 				foot = 0;
 			}
 			return index;
 		}
 		throw new IllegalStateException("Message Deque FULL");
+	}
+
+	/**
+	 * 获取队列中首部的消息，通过此方法获取的消息将驻留队列中
+	 */
+	public M peek() {
+		if (head == foot) {
+			return null;
+		}
+		return elements[head % elements.length];
 	}
 
 	/**
@@ -120,25 +144,29 @@ public class IndexQueue<M> implements Iterable<M> {
 	}
 
 	/**
-	 * 获取队列中首部的消息，通过此方法获取的消息将驻留队列中
-	 */
-	public M peek() {
-		if (head == foot) {
-			return null;
-		}
-		return elements[head % elements.length];
-	}
-
-	/**
 	 * 根据标记取出消息，不能取出未读取的消息
 	 * 
 	 * @param index
 	 * @return 如果消息已取出则返回空
 	 */
 	public M take(int index) {
-		if (index < head || index > read || index >= foot) {
+		if (index < head || index >= foot) {
 			throw new IndexOutOfBoundsException();
 		}
+		if (index == head) {
+			return poll();
+		}
+		if (index + 1 == foot) {
+			index = index % elements.length;
+			final M m = elements[index];
+			elements[index] = null;
+			foot--;
+			if (read >= foot) {
+				read = foot;
+			}
+			return m;
+		}
+
 		final M m = elements[index];
 		if (m != null) {
 			elements[index] = null;

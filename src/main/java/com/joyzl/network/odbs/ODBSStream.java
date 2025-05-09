@@ -11,12 +11,12 @@ import java.io.IOException;
  * 如果消息包含资源（文件或输入流）且实现了Closeable接口，清空流时将自动关闭。
  * </p>
  * <p>
- * {@link MessageStream}对象用于流式发送，{@link MessageIndex}用于流式接收。
+ * {@link ODBSStream}对象用于流式发送，{@link ODBSIndex}用于流式接收。
  * </p>
  * 
  * @author ZhangXi 2025年4月11日
  */
-public class MessageStream<M> {
+public class ODBSStream<M> {
 
 	// head始终为存储值头部,foot为已存储值节点的下一个节点
 	// 移除值时空闲的节点将移除并连接到foot之后
@@ -34,12 +34,12 @@ public class MessageStream<M> {
 	private int size;
 
 	/** 默认容量初始化消息流 */
-	public MessageStream() {
+	public ODBSStream() {
 		this(128);
 	}
 
 	/** 指定容量初始化消息流 */
-	public MessageStream(int capacity) {
+	public ODBSStream(int capacity) {
 		this.capacity = capacity;
 		head = foot = new Item<>();
 		capacity--;

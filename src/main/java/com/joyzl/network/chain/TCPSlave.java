@@ -1,10 +1,10 @@
 /*-
  * www.joyzl.net
- * 中翌智联（重庆）科技有限公司
+ * 重庆骄智科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
  */
 /**
- * 中翌智联（重庆）科技有限公司
+ * 重庆骄智科技有限公司
  */
 package com.joyzl.network.chain;
 

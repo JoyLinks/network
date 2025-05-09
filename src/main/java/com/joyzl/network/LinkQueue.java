@@ -5,10 +5,18 @@ import java.io.IOException;
 import java.util.Iterator;
 
 /**
- * 链表模式实现的消息队列；添加消息存入链表，保持顺序，可从头部取出；<br>
- * 读取位置位于头部，可多次读取，直至移动到下一个位置，读取和移动不会移除消息；
+ * 链表模式实现具有固定存储空间的消息队列；添加消息存入链表，保持先进先出顺序，可从头部取出；<br>
+ * 提供额外读取支持，读取位置位于头部，可多次读取，直至移动到下一个位置，读取和移动不会移除消息；
+ * 读取和队列存取是两个工作模式，可从头部读取直至尾部；也可以从头部取出直至尾部全部取出。
  * <p>
- * 如果消息包含资源（文件或输入流）且实现了Closeable接口，清空流时将自动关闭。
+ * 此集合与标准Queue队列类似，但功能更加简化，专为消息排队发送并等待响应的情形而设计。
+ * 消息请求通过读模式顺序发出，并已相同的顺序响应，通过队列模式获取头部消息匹配响应。
+ * </p>
+ * <p>
+ * 如果消息包含资源（文件或输入流）且实现了Closeable接口，清空队列时将自动关闭。
+ * </p>
+ * <p>
+ * 如果需要确保线程安全应通过额外的机制实现，此类的所有方法均不是线程安全的。
  * </p>
  * 
  * @author ZhangXi 2025年4月11日
@@ -33,6 +41,9 @@ public class LinkQueue<M> implements Iterable<M> {
 
 	/** 指定容量初始化消息流 */
 	public LinkQueue(int capacity) {
+		if (capacity < 1) {
+			throw new IllegalArgumentException("队列容量无效");
+		}
 		this.capacity = capacity;
 		read = head = foot = new Item<>();
 		capacity--;
@@ -54,7 +65,7 @@ public class LinkQueue<M> implements Iterable<M> {
 		return capacity;
 	}
 
-	/** 是否无消息 */
+	/** 是否空 */
 	public boolean isEmpty() {
 		return head == foot;
 	}

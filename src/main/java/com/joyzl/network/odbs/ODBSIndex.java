@@ -20,23 +20,23 @@ import java.util.Iterator;
  * 如果消息包含资源（文件或输入流）且实现了Closeable接口，清空流时将自动关闭。
  * </p>
  * <p>
- * {@link MessageStream}对象用于流式发送，{@link MessageIndex}用于流式接收。
+ * {@link ODBSStream}对象用于流式发送，{@link ODBSIndex}用于流式接收。
  * </p>
  * 
  * @author ZhangXi 2025年4月11日
  */
-public class MessageIndex<M> implements Iterator<M>, Iterable<M> {
+public class ODBSIndex<M> implements Iterator<M>, Iterable<M> {
 
 	final static int MAX = Integer.MAX_VALUE / 2;
 	private final M[] elements;
 	private int capacity, size, index = 0;
 
-	public MessageIndex() {
+	public ODBSIndex() {
 		this(128);
 	}
 
 	@SuppressWarnings("unchecked")
-	public MessageIndex(int capacity) {
+	public ODBSIndex(int capacity) {
 		elements = (M[]) new Object[capacity];
 		this.capacity = capacity;
 	}
@@ -195,7 +195,7 @@ public class MessageIndex<M> implements Iterator<M>, Iterable<M> {
 		return index * 2 + 2;
 	}
 
-	static class MessageOddIndex<M> extends MessageIndex<M> {
+	static class MessageOddIndex<M> extends ODBSIndex<M> {
 
 		public M get(int i) {
 			return super.get(oddIndex(i));
@@ -214,7 +214,7 @@ public class MessageIndex<M> implements Iterator<M>, Iterable<M> {
 		}
 	}
 
-	static class MessageEvenIndex<M> extends MessageIndex<M> {
+	static class MessageEvenIndex<M> extends ODBSIndex<M> {
 
 		public M get(int i) {
 			return super.get(evenIndex(i));

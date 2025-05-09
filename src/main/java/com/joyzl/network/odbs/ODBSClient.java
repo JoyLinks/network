@@ -1,6 +1,6 @@
 /*-
  * www.joyzl.net
- * 中翌智联（重庆）科技有限公司
+ * 重庆骄智科技有限公司
  * Copyright © JOY-Links Company. All rights reserved.
  */
 package com.joyzl.network.odbs;
@@ -20,7 +20,7 @@ import com.joyzl.network.chain.TCPClient;
 public class ODBSClient extends TCPClient {
 
 	private final ReentrantLock k = new ReentrantLock(true);
-	private final MessageStream<ODBSMessage> sends = new MessageStream<>();
+	private final ODBSStream<ODBSMessage> sends = new ODBSStream<>();
 	private final IndexMap<ODBSMessage> receives = new IndexMap<>();
 	private int id = 1;
 
@@ -101,7 +101,7 @@ public class ODBSClient extends TCPClient {
 		return receives;
 	}
 
-	MessageStream<ODBSMessage> sends() {
+	ODBSStream<ODBSMessage> sends() {
 		return sends;
 	}
 }

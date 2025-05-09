@@ -8,11 +8,11 @@ import java.io.IOException;
 
 import org.junit.jupiter.api.Test;
 
-class TestMessageStream {
+class TestODBSStream {
 
 	@Test
 	void testAddRemove() throws IOException {
-		final MessageStream<Message> stream = new MessageStream<>(3);
+		final ODBSStream<Message> stream = new ODBSStream<>(3);
 
 		final Message message1 = new Message(1);
 		final Message message2 = new Message(2);
@@ -67,7 +67,7 @@ class TestMessageStream {
 
 	@Test
 	void testStream() throws IOException {
-		final MessageStream<Message> stream = new MessageStream<>(3);
+		final ODBSStream<Message> stream = new ODBSStream<>(3);
 
 		final Message message1 = new Message(1);
 		final Message message2 = new Message(2);

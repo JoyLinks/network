@@ -3,8 +3,6 @@ package com.joyzl.network.http;
 import java.io.Closeable;
 import java.io.IOException;
 
-import com.joyzl.network.odbs.MessageIndex;
-
 /**
  * 消息发送流，链表模式实现；<br>
  * 添加消息存入链表，保持顺序，可指定关联标识，可多次获取发送，直至移除；<br>
@@ -13,7 +11,7 @@ import com.joyzl.network.odbs.MessageIndex;
  * 如果消息包含资源（文件或输入流）且实现了Closeable接口，清空流时将自动关闭。
  * </p>
  * <p>
- * {@link Stream}对象用于流式发送，{@link MessageIndex}用于流式接收。
+ * {@link Stream}对象用于流式发送，{@link IndexMap}用于流式接收。
  * </p>
  * 
  * @author ZhangXi 2025年4月11日
