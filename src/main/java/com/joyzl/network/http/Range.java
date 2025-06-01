@@ -53,14 +53,14 @@ public final class Range extends Header {
 		for (int index = 0; index < ranges.size(); index++) {
 			range = ranges.get(index);
 			if (sb.length() > 0) {
-				sb.append(HTTPCoder.COMMA);
-				sb.append(HTTPCoder.SPACE);
+				sb.append(HTTP1Coder.COMMA);
+				sb.append(HTTP1Coder.SPACE);
 			} else {
 				sb.append(UNIT);
-				sb.append(HTTPCoder.EQUAL);
+				sb.append(HTTP1Coder.EQUAL);
 			}
 			sb.append(range.getStart());
-			sb.append(HTTPCoder.MINUS);
+			sb.append(HTTP1Coder.MINUS);
 			if (range.getEnd() > 0) {
 				sb.append(range.getEnd());
 			}
@@ -76,13 +76,13 @@ public final class Range extends Header {
 		// bytes=100-200, 201-300
 
 		if (value.startsWith(UNIT)) {
-			int start = value.indexOf(HTTPCoder.EQUAL, UNIT.length());
+			int start = value.indexOf(HTTP1Coder.EQUAL, UNIT.length());
 			if (start > 0) {
 				int minus, end;
 				do {
-					minus = value.indexOf(HTTPCoder.MINUS, ++start);
+					minus = value.indexOf(HTTP1Coder.MINUS, ++start);
 					if (minus > 0) {
-						end = value.indexOf(HTTPCoder.COMMA, minus + 1);
+						end = value.indexOf(HTTP1Coder.COMMA, minus + 1);
 						if (end < 0) {
 							end = value.length();
 						}

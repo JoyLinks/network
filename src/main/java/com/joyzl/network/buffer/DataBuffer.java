@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.nio.channels.ByteChannel;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
@@ -495,11 +496,11 @@ public class DataBuffer implements Verifiable, DataInput, DataOutput, //
 	}
 
 	/**
-	 * 转移所有字节到通道(DataBuffer > FileChannel)，不参与校验
+	 * 转移所有字节到通道(DataBuffer > ByteChannel)，不参与校验
 	 * 
 	 * @param target 打开的文件通道
 	 */
-	public final void transfer(FileChannel target) throws IOException {
+	public final void transfer(ByteChannel target) throws IOException {
 		erase();
 		while (length > 0) {
 			if (read.isEmpty()) {
@@ -511,12 +512,12 @@ public class DataBuffer implements Verifiable, DataInput, DataOutput, //
 	}
 
 	/**
-	 * 转移指定字节到通道(DataBuffer > FileChannel)，不参与校验
+	 * 转移指定字节到通道(DataBuffer > ByteChannel)，不参与校验
 	 * 
 	 * @param target 打开的文件通道
 	 * @param len 字节数量
 	 */
-	public final void transfer(FileChannel target, int len) throws IOException {
+	public final void transfer(ByteChannel target, int len) throws IOException {
 		if (len <= 0 || len > length) {
 			throw new IllegalArgumentException("DataBuffer:Argument OVERFLOW");
 		}

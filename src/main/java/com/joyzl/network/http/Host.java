@@ -44,7 +44,7 @@ public final class Host extends Header {
 	@Override
 	public String getHeaderValue() {
 		if (port > 0) {
-			return host + HTTPCoder.COLON + port;
+			return host + HTTP1Coder.COLON + port;
 		}
 		return host;
 	}
@@ -52,7 +52,7 @@ public final class Host extends Header {
 	@Override
 	public void setHeaderValue(String value) {
 		int index;
-		if ((index = value.indexOf(HTTPCoder.COLON)) > 0) {
+		if ((index = value.indexOf(HTTP1Coder.COLON)) > 0) {
 			host = value.substring(0, index);
 			port = Integer.parseInt(value, index + 1, value.length(), 10);
 		} else {

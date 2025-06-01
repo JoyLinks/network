@@ -19,11 +19,11 @@ public class MultipartRange {
 	public MultipartRange(long total, long start, long end) {
 		StringBuilder sb = new StringBuilder();
 		sb.append(ContentRange.UNIT);
-		sb.append(HTTPCoder.SPACE);
+		sb.append(HTTP1Coder.SPACE);
 		sb.append(start);
-		sb.append(HTTPCoder.MINUS);
+		sb.append(HTTP1Coder.MINUS);
 		sb.append(end);
-		sb.append(HTTPCoder.SLASH);
+		sb.append(HTTP1Coder.SLASH);
 		sb.append(total);
 		contentRange = sb.toString();
 		size = end - start + 1;

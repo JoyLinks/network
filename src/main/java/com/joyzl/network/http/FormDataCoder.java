@@ -24,7 +24,7 @@ import com.joyzl.network.web.MIMEType;
  * 
  * @author ZhangXi 2024年11月20日
  */
-public class FormDataCoder extends HTTPCoder {
+public class FormDataCoder extends HTTP1Coder {
 	/*-
 	 * RFC7578  Returning Values from Forms: multipart/form-data
 	 * 
@@ -213,10 +213,10 @@ public class FormDataCoder extends HTTPCoder {
 				if (item.getKey() != null && item.getValue() != null) {
 					for (index = 0; index < item.getValue().length; index++) {
 						if (size > 0) {
-							buffer.write(HTTPCoder.AND);
+							buffer.write(HTTP1Coder.AND);
 						}
 						percentEncode(buffer, item.getKey(), true);
-						buffer.writeASCII(HTTPCoder.EQUAL);
+						buffer.writeASCII(HTTP1Coder.EQUAL);
 						value = item.getValue()[index];
 						if (value != null && value.length() > 0) {
 							percentEncode(buffer, value, true);

@@ -16,6 +16,7 @@ import com.joyzl.network.Utility;
 public final class ContentLength extends Header {
 
 	public final static String NAME = HTTP1.Content_Length;
+	public final static String ZERO = "0";
 
 	private int length;
 

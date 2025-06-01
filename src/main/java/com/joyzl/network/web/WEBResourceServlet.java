@@ -16,7 +16,7 @@ import com.joyzl.network.http.ContentRange;
 import com.joyzl.network.http.ContentType;
 import com.joyzl.network.http.ETag;
 import com.joyzl.network.http.HTTP1;
-import com.joyzl.network.http.HTTPCoder;
+import com.joyzl.network.http.HTTP1Coder;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.MultipartRange;
 import com.joyzl.network.http.MultipartRange.MultipartRanges;
@@ -98,9 +98,9 @@ public abstract class WEBResourceServlet extends WEBServlet {
 	// 如果请求资源需要重定向，例如请求目录 /eno 将其重定向为 /eno/
 
 	// 建议分块大小
-	private int BLOCK_BYTES = HTTPCoder.BLOCK_BYTES;
+	private int BLOCK_BYTES = HTTP1Coder.BLOCK_BYTES;
 	// 最大请求大小
-	private int MAX_BYTES = HTTPCoder.BLOCK_BYTES * 1024;
+	private int MAX_BYTES = HTTP1Coder.BLOCK_BYTES * 1024;
 	// 最多请求分块
 	private int PART_MAX = MAX_BYTES / BLOCK_BYTES;
 	// 强制分块请求
@@ -313,7 +313,7 @@ public abstract class WEBResourceServlet extends WEBServlet {
 		// Content-Encoding: br/gzip/deflate
 		response.addHeader(ContentEncoding.NAME, encoding);
 
-		if (length < HTTPCoder.BLOCK_BYTES) {
+		if (length < HTTP1Coder.BLOCK_BYTES) {
 			// Content-Length:9
 			response.addHeader(ContentLength.NAME, Long.toString(length));
 		} else {

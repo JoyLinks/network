@@ -21,6 +21,10 @@ public class Request extends HTTPMessage {
 
 	private String method = HTTP1.GET;
 	private String url;
+	// SCHEME://HOST:PORT/PATH?QUERY#ANCHOR
+	// SCHEME=0~HOST-3(://)
+	// HOST=HOST~PORT-1(:) / HOST~PATH
+	// PATH=PATH~Query / PATH~END
 	private int uriHost = -1, uriPort, uriPath = -1, uriQuery, uriAnchor;
 
 	public Request() {
@@ -40,18 +44,18 @@ public class Request extends HTTPMessage {
 
 	@Override
 	public String toString() {
-		return method + HTTPCoder.SPACE + getVersion() + HTTPCoder.SPACE + url;
+		return method + HTTP1Coder.SPACE + getVersion() + HTTP1Coder.SPACE + url;
 	}
 
 	/**
-	 * SCHEME://HOST:PORT/PATH?PARAMETERS#ANCHOR
+	 * SCHEME://HOST:PORT/PATH?QUERY#ANCHOR
 	 */
 	public String getURL() {
 		return url;
 	}
 
 	/**
-	 * 设置URL并解析各个字段位置 SCHEME://HOST:PORT/PATH?PARAMETERS#ANCHOR
+	 * 设置URL并解析各个字段位置 SCHEME://HOST:PORT/PATH?QUERY#ANCHOR
 	 */
 	public void setURL(String value) {
 		url = value;
@@ -62,9 +66,14 @@ public class Request extends HTTPMessage {
 			if (uriHost >= 0) {
 				uriHost += 3;
 				uriPort = value.indexOf(':', uriHost);
+				if (uriPort > 0) {
+					uriPort += 1;
+				}
+				uriPath = value.indexOf('/', uriHost);
 				uriQuery = value.indexOf('?', uriHost);
 				uriAnchor = value.indexOf('#', uriHost);
 			} else {
+				uriPath = 0;
 				uriQuery = value.indexOf('?');
 				uriAnchor = value.indexOf('#');
 			}
@@ -72,7 +81,7 @@ public class Request extends HTTPMessage {
 	}
 
 	/**
-	 * SCHEME://HOST:PORT/PATH?PARAMETERS#ANCHOR
+	 * SCHEME://HOST:PORT/PATH?QUERY#ANCHOR
 	 */
 	public String getScheme() {
 		if (uriHost > 0) {
@@ -82,14 +91,14 @@ public class Request extends HTTPMessage {
 	}
 
 	/**
-	 * SCHEME://HOST:PORT/PATH?PARAMETERS#ANCHOR
+	 * SCHEME://HOST:PORT/PATH?QUERY#ANCHOR
 	 */
 	public String getHost() {
 		if (uriHost >= 0) {
-			if (uriPort > 0) {
+			if (uriPort > uriHost) {
 				return url.substring(uriHost, uriPort - 1);
 			} else //
-			if (uriPath > 0) {
+			if (uriPath > uriHost) {
 				return url.substring(uriHost, uriPath);
 			}
 		}
@@ -97,7 +106,7 @@ public class Request extends HTTPMessage {
 	}
 
 	/**
-	 * SCHEME://HOST:PORT/PATH?PARAMETERS#ANCHOR
+	 * SCHEME://HOST:PORT/PATH?QUERY#ANCHOR
 	 */
 	public int getPort() {
 		if (uriPort > 0) {
@@ -110,7 +119,7 @@ public class Request extends HTTPMessage {
 	}
 
 	/**
-	 * SCHEME://HOST:PORT/PATH?PARAMETERS#ANCHOR
+	 * SCHEME://HOST:PORT/PATH?QUERY#ANCHOR
 	 */
 	public String getPath() {
 		if (uriPath == 0) {
@@ -135,7 +144,7 @@ public class Request extends HTTPMessage {
 	}
 
 	/**
-	 * SCHEME://HOST:PORT/PATH?PARAMETERS#ANCHOR
+	 * SCHEME://HOST:PORT/PATH?QUERY#ANCHOR
 	 */
 	public String getQuery() {
 		if (uriQuery > 0) {
@@ -148,7 +157,7 @@ public class Request extends HTTPMessage {
 	}
 
 	/**
-	 * SCHEME://HOST:PORT/PATH?PARAMETERS#ANCHOR
+	 * SCHEME://HOST:PORT/PATH?QUERY#ANCHOR
 	 */
 	public String getAnchor() {
 		if (uriAnchor > 0) {
@@ -160,8 +169,8 @@ public class Request extends HTTPMessage {
 	/**
 	 * 检查URL中的path部分是否与指定的路径匹配，此方法用于避免前缀匹配时创建新字符串对象
 	 */
-	public boolean pathStart(String path) {
-		return url.startsWith(path, uriPath);
+	public boolean pathStart(String base) {
+		return url.startsWith(base, uriPath);
 	}
 
 	/**
@@ -228,12 +237,12 @@ public class Request extends HTTPMessage {
 		return uriAnchor;
 	}
 
-	/** HTTP2 SCHEME://HOST:PORT/PATH?PARAMETERS#ANCHOR */
+	/** HTTP2 SCHEME://HOST:PORT/PATH?QUERY#ANCHOR */
 	protected void setScheme(String value) {
 
 	}
 
-	/** HTTP2 SCHEME://HOST(Authority):PORT/PATH?PARAMETERS#ANCHOR */
+	/** HTTP2 SCHEME://HOST(Authority):PORT/PATH?QUERY#ANCHOR */
 	protected void setAuthority(String value) {
 
 	}

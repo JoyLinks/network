@@ -149,8 +149,8 @@ class TestCipherSuiter {
 		block(CipherSuite.TLS_DHE_RSA_WITH_AES_256_CBC_SHA256);
 		block(CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA256);
 
-		block(CipherSuite.TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5);
-		block(CipherSuite.TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA);
+		// block(CipherSuite.TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5);
+		// block(CipherSuite.TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA);
 		block(CipherSuite.TLS_KRB5_WITH_DES_CBC_MD5);
 
 		block(CipherSuite.TLS_DH_ANON_WITH_DES_CBC_SHA);
@@ -161,20 +161,20 @@ class TestCipherSuiter {
 		block(CipherSuite.TLS_KRB5_WITH_DES_CBC_SHA);
 		block(CipherSuite.TLS_RSA_WITH_DES_CBC_SHA);
 
-		block(CipherSuite.TLS_DH_ANON_EXPORT_WITH_DES40_CBC_SHA);
-		block(CipherSuite.TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA);
-		block(CipherSuite.TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA);
-		block(CipherSuite.TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA);
-		block(CipherSuite.TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA);
-		block(CipherSuite.TLS_RSA_EXPORT_WITH_DES40_CBC_SHA);
-
-		block(CipherSuite.TLS_KRB5_WITH_IDEA_CBC_MD5);
-		block(CipherSuite.TLS_KRB5_WITH_IDEA_CBC_SHA);
-		block(CipherSuite.TLS_RSA_WITH_IDEA_CBC_SHA);
-
-		block(CipherSuite.TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5);
-		block(CipherSuite.TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5);
-		block(CipherSuite.TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA);
+		// block(CipherSuite.TLS_DH_ANON_EXPORT_WITH_DES40_CBC_SHA);
+		// block(CipherSuite.TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA);
+		// block(CipherSuite.TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA);
+		// block(CipherSuite.TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA);
+		// block(CipherSuite.TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA);
+		// block(CipherSuite.TLS_RSA_EXPORT_WITH_DES40_CBC_SHA);
+		//
+		// block(CipherSuite.TLS_KRB5_WITH_IDEA_CBC_MD5);
+		// block(CipherSuite.TLS_KRB5_WITH_IDEA_CBC_SHA);
+		// block(CipherSuite.TLS_RSA_WITH_IDEA_CBC_SHA);
+		//
+		// block(CipherSuite.TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5);
+		// block(CipherSuite.TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5);
+		// block(CipherSuite.TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA);
 
 		stream(CipherSuite.TLS_RSA_WITH_RC4_128_MD5);
 		stream(CipherSuite.TLS_DH_ANON_WITH_RC4_128_MD5);

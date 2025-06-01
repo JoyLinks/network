@@ -28,7 +28,7 @@ import com.joyzl.network.http.MultipartRange.MultipartRanges;
  * @author ZhangXi
  * @date 2021年10月7日
  */
-public class HTTPCoder extends HTTP1 {
+public class HTTP1Coder extends HTTP1 {
 
 	public final static char CR = '\r';
 	public final static char LF = '\n';
@@ -595,6 +595,7 @@ public class HTTPCoder extends HTTP1 {
 	public static boolean writeHeaders(DataBuffer buffer, Response message) throws IOException {
 		for (Entry<String, String> header : message.getHeaders().entrySet()) {
 			if (header.getKey() != null && header.getValue() != null) {
+
 				buffer.writeASCIIs(header.getKey());
 				buffer.writeASCII(COLON);
 				buffer.writeASCII(SPACE);
@@ -603,7 +604,9 @@ public class HTTPCoder extends HTTP1 {
 				buffer.writeASCII(LF);
 			}
 		}
+
 		// 这是特殊处理，输出服务端配置的附加信息头
+		// 通常这些附加头信息是静态的集合
 		if (message.getAttachHeaders() != null) {
 			for (Entry<String, String> header : message.getAttachHeaders().entrySet()) {
 				if (header.getKey() != null && header.getValue() != null) {
@@ -616,6 +619,8 @@ public class HTTPCoder extends HTTP1 {
 				}
 			}
 		}
+
+		// END
 		buffer.writeASCII(CR);
 		buffer.writeASCII(LF);
 		return true;
@@ -631,7 +636,6 @@ public class HTTPCoder extends HTTP1 {
 	 */
 	public static boolean writeContent(DataBuffer buffer, Request request) throws IOException {
 		if (request.getContent() == null) {
-			// HEAD
 			return true;
 		}
 		if (buffer.readable() >= BLOCK_BYTES) {
@@ -691,6 +695,10 @@ public class HTTPCoder extends HTTP1 {
 				return false;
 			}
 		}
+
+		// END
+		// buffer.writeASCII(CR);
+		// buffer.writeASCII(LF);
 		return true;
 	}
 

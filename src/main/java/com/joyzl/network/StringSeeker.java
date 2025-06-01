@@ -72,6 +72,17 @@ public class StringSeeker implements Iterable<String> {
 	}
 
 	/**
+	 * 检查是否存在指定的字符串常量实例
+	 */
+	public boolean contains(CharSequence chars) {
+		final String[] constants = dichotomy(chars.length());
+		if (constants == null) {
+			return false;
+		}
+		return simple(constants, chars) != null;
+	}
+
+	/**
 	 * 查找指定长度的字符串常量组
 	 */
 	private String[] dichotomy(int length) {

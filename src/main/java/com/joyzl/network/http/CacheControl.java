@@ -79,10 +79,10 @@ public final class CacheControl extends Header {
 	@Override
 	public String getHeaderValue() {
 		if (MAX_AGE.equalsIgnoreCase(control) || MIN_FRESH.equalsIgnoreCase(control) || S_MAXAGE.equalsIgnoreCase(control)) {
-			return control + HTTPCoder.EQUAL + seconds;
+			return control + HTTP1Coder.EQUAL + seconds;
 		}
 		if (MAX_STALE.equalsIgnoreCase(control) && seconds > 0) {
-			return control + HTTPCoder.EQUAL + seconds;
+			return control + HTTP1Coder.EQUAL + seconds;
 		}
 		return control;
 	}
@@ -90,7 +90,7 @@ public final class CacheControl extends Header {
 	@Override
 	public void setHeaderValue(String value) {
 		int index;
-		if ((index = value.indexOf(HTTPCoder.EQUAL)) > 0) {
+		if ((index = value.indexOf(HTTP1Coder.EQUAL)) > 0) {
 			control = value.substring(0, index);
 			seconds = Integer.parseInt(value, index + 1, value.length(), 10);
 		} else {

@@ -209,7 +209,7 @@ public class WEBSocketCoder {
 			buffer.writeByte(0);
 			buffer.writeByte(0);
 
-			int length = HTTPCoder.BLOCK_BYTES - buffer.readable();
+			int length = HTTP1Coder.BLOCK_BYTES - buffer.readable();
 			final boolean complete = writeContentMasked(message, buffer, length);
 			length = buffer.readable() - 14;
 			if (length <= 125) {
@@ -282,7 +282,7 @@ public class WEBSocketCoder {
 			buffer.writeByte(0);
 			buffer.writeByte(0);
 
-			int length = HTTPCoder.BLOCK_BYTES - buffer.readable();
+			int length = HTTP1Coder.BLOCK_BYTES - buffer.readable();
 			final boolean complete = writeContent(message, buffer, length);
 			length = buffer.readable() - 10;
 			if (length <= 125) {

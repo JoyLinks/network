@@ -56,17 +56,17 @@ public final class ContentType extends Header {
 				// "multipart"必须设置boundary
 				boundary = boundary();
 			}
-			return type + HTTPCoder.SEMI + HTTPCoder.SPACE + BOUNDARY + HTTPCoder.EQUAL + boundary;
+			return type + HTTP1Coder.SEMI + HTTP1Coder.SPACE + BOUNDARY + HTTP1Coder.EQUAL + boundary;
 		}
 		if (Utility.noEmpty(charset)) {
-			return type + HTTPCoder.SEMI + HTTPCoder.SPACE + CHARSET + HTTPCoder.EQUAL + charset;
+			return type + HTTP1Coder.SEMI + HTTP1Coder.SPACE + CHARSET + HTTP1Coder.EQUAL + charset;
 		}
 		return type;
 	}
 
 	@Override
 	public void setHeaderValue(String value) {
-		int start = value.indexOf(HTTPCoder.SEMI);
+		int start = value.indexOf(HTTP1Coder.SEMI);
 		if (start > 0) {
 			type = value.substring(0, start);
 			start = start + 1;
@@ -77,7 +77,7 @@ public final class ContentType extends Header {
 					break;
 				}
 			}
-			int equal = value.indexOf(HTTPCoder.EQUAL, start);
+			int equal = value.indexOf(HTTP1Coder.EQUAL, start);
 			if (equal > 0) {
 				if (Utility.same(CHARSET, value, start, equal)) {
 					charset = value.substring(equal + 1);

@@ -75,51 +75,51 @@ public final class SetCookie extends Header {
 
 		StringBuilder sb = new StringBuilder();
 		sb.append(getName());
-		sb.append(HTTPCoder.EQUAL);
+		sb.append(HTTP1Coder.EQUAL);
 		sb.append(getValue());
 		if (getExpires() != null) {
-			sb.append(HTTPCoder.SEMI);
-			sb.append(HTTPCoder.SPACE);
+			sb.append(HTTP1Coder.SEMI);
+			sb.append(HTTP1Coder.SPACE);
 			sb.append(EXPIRES);
-			sb.append(HTTPCoder.EQUAL);
+			sb.append(HTTP1Coder.EQUAL);
 			sb.append(DateTimeFormatter.RFC_1123_DATE_TIME.format(getExpires()));
 		}
 		if (getMaxAge() != null) {
-			sb.append(HTTPCoder.SEMI);
-			sb.append(HTTPCoder.SPACE);
+			sb.append(HTTP1Coder.SEMI);
+			sb.append(HTTP1Coder.SPACE);
 			sb.append(MAX_AGE);
-			sb.append(HTTPCoder.EQUAL);
+			sb.append(HTTP1Coder.EQUAL);
 			sb.append(getMaxAge());
 		}
 		if (Utility.noEmpty(getDomain())) {
-			sb.append(HTTPCoder.SEMI);
-			sb.append(HTTPCoder.SPACE);
+			sb.append(HTTP1Coder.SEMI);
+			sb.append(HTTP1Coder.SPACE);
 			sb.append(DOMAIN);
-			sb.append(HTTPCoder.EQUAL);
+			sb.append(HTTP1Coder.EQUAL);
 			sb.append(getDomain());
 		}
 		if (Utility.noEmpty(getPath())) {
-			sb.append(HTTPCoder.SEMI);
-			sb.append(HTTPCoder.SPACE);
+			sb.append(HTTP1Coder.SEMI);
+			sb.append(HTTP1Coder.SPACE);
 			sb.append(PATH);
-			sb.append(HTTPCoder.EQUAL);
+			sb.append(HTTP1Coder.EQUAL);
 			sb.append(getPath());
 		}
 		if (Utility.noEmpty(getSameSite())) {
-			sb.append(HTTPCoder.SEMI);
-			sb.append(HTTPCoder.SPACE);
+			sb.append(HTTP1Coder.SEMI);
+			sb.append(HTTP1Coder.SPACE);
 			sb.append(SAME_SITE);
-			sb.append(HTTPCoder.EQUAL);
+			sb.append(HTTP1Coder.EQUAL);
 			sb.append(getSameSite());
 		}
 		if (isSecure()) {
-			sb.append(HTTPCoder.SEMI);
-			sb.append(HTTPCoder.SPACE);
+			sb.append(HTTP1Coder.SEMI);
+			sb.append(HTTP1Coder.SPACE);
 			sb.append(SECURE);
 		}
 		if (isHttpOnly()) {
-			sb.append(HTTPCoder.SEMI);
-			sb.append(HTTPCoder.SPACE);
+			sb.append(HTTP1Coder.SEMI);
+			sb.append(HTTP1Coder.SPACE);
 			sb.append(HTTP_ONLY);
 		}
 		return sb.toString();
@@ -129,7 +129,7 @@ public final class SetCookie extends Header {
 	public void setHeaderValue(String value) {
 		String name = null;
 		for (int start = 0, end = 0, index = 0; index <= value.length(); index++) {
-			if (index >= value.length() || value.charAt(index) == HTTPCoder.SEMI) {
+			if (index >= value.length() || value.charAt(index) == HTTP1Coder.SEMI) {
 				if (name == null) {
 					if (start < end) {
 						name = value.substring(start, end);
@@ -160,7 +160,7 @@ public final class SetCookie extends Header {
 				}
 				name = null;
 				end = start = index + 1;
-			} else if (value.charAt(index) == HTTPCoder.EQUAL) {
+			} else if (value.charAt(index) == HTTP1Coder.EQUAL) {
 				name = value.substring(start, end);
 				end = start = index + 1;
 			} else if (Character.isWhitespace(value.charAt(index))) {

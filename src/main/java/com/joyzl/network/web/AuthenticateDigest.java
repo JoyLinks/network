@@ -19,7 +19,7 @@ import com.joyzl.network.Utility;
 import com.joyzl.network.http.Authorization;
 import com.joyzl.network.http.ContentType;
 import com.joyzl.network.http.HTTP1;
-import com.joyzl.network.http.HTTPCoder;
+import com.joyzl.network.http.HTTP1Coder;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.Request;
 import com.joyzl.network.http.Response;
@@ -75,9 +75,9 @@ public class AuthenticateDigest extends Authenticate {
 				// 解析参数
 				int end, equal, start = TYPE.length() + 1;
 				do {
-					equal = a.indexOf(HTTPCoder.EQUAL, start);
+					equal = a.indexOf(HTTP1Coder.EQUAL, start);
 					if (equal > 0) {
-						end = a.indexOf(HTTPCoder.COMMA, equal + 1);
+						end = a.indexOf(HTTP1Coder.COMMA, equal + 1);
 						if (end < 0) {
 							end = a.length();
 						}
@@ -345,11 +345,11 @@ public class AuthenticateDigest extends Authenticate {
 		try (final FileInputStream input = new FileInputStream(file);
 			final InputStreamReader reader = new InputStreamReader(input, StandardCharsets.UTF_8);) {
 			while ((c = reader.read()) >= 0) {
-				if (c == HTTPCoder.NUM) {
+				if (c == HTTP1Coder.NUM) {
 					ignore = builder.length() == 0;
 					continue;
 				}
-				if (c == HTTPCoder.COLON) {
+				if (c == HTTP1Coder.COLON) {
 					if (ignore) {
 						continue;
 					}
@@ -358,7 +358,7 @@ public class AuthenticateDigest extends Authenticate {
 					} else if (c2 <= 0) {
 						c2 = builder.length();
 					}
-				} else if (c == HTTPCoder.CR || c == HTTPCoder.LF) {
+				} else if (c == HTTP1Coder.CR || c == HTTP1Coder.LF) {
 					if (!ignore) {
 						if (c1 > 0) {
 							if (c2 > 0) {
@@ -383,12 +383,12 @@ public class AuthenticateDigest extends Authenticate {
 			final OutputStreamWriter writer = new OutputStreamWriter(input, StandardCharsets.UTF_8);) {
 			writer.write("# ");
 			writer.write(LocalDateTime.now().toString());
-			writer.write(HTTPCoder.CR);
+			writer.write(HTTP1Coder.CR);
 			for (Entry<String, String> user : USERS.entrySet()) {
 				writer.write(user.getKey());
-				writer.write(HTTPCoder.COLON);
+				writer.write(HTTP1Coder.COLON);
 				writer.write(user.getValue());
-				writer.write(HTTPCoder.CR);
+				writer.write(HTTP1Coder.CR);
 			}
 		}
 	}

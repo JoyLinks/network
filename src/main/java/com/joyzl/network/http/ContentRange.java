@@ -58,11 +58,11 @@ public class ContentRange extends Header {
 	public String getHeaderValue() {
 		StringBuilder sb = new StringBuilder();
 		sb.append(UNIT);
-		sb.append(HTTPCoder.SPACE);
+		sb.append(HTTP1Coder.SPACE);
 		sb.append(start);
-		sb.append(HTTPCoder.MINUS);
+		sb.append(HTTP1Coder.MINUS);
 		sb.append(end);
-		sb.append(HTTPCoder.SLASH);
+		sb.append(HTTP1Coder.SLASH);
 		if (length > 0) {
 			sb.append(length);
 		} else {
@@ -76,10 +76,10 @@ public class ContentRange extends Header {
 		// bytes 200-1000/67589
 		int a, b;
 		if ((a = value.indexOf(UNIT)) >= 0) {
-			a = value.indexOf(HTTPCoder.SPACE, a + UNIT.length());
-			b = value.indexOf(HTTPCoder.MINUS, ++a);
+			a = value.indexOf(HTTP1Coder.SPACE, a + UNIT.length());
+			b = value.indexOf(HTTP1Coder.MINUS, ++a);
 			start = Long.parseUnsignedLong(value, a, b, 10);
-			a = value.indexOf(HTTPCoder.SLASH, ++b);
+			a = value.indexOf(HTTP1Coder.SLASH, ++b);
 			end = Long.parseUnsignedLong(value, b, a, 10);
 			length = Long.parseUnsignedLong(value, ++a, value.length(), 10);
 		} else {

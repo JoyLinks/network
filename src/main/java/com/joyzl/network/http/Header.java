@@ -26,6 +26,6 @@ public abstract class Header {
 
 	@Override
 	public String toString() {
-		return getHeaderName() + HTTPCoder.COLON + HTTPCoder.SPACE + getHeaderValue();
+		return getHeaderName() + HTTP1Coder.COLON + HTTP1Coder.SPACE + getHeaderValue();
 	}
 }

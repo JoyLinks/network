@@ -73,6 +73,10 @@ public enum HTTPStatus {
 	 * 该请求必须包含Range头信息来指示客户端希望得到的内容范围，并且可能包含If-Range来作为请求条件。
 	 */
 	PARTIAL_CONTENT(206, "Partial Content"),
+	/**
+	 * 207 多态响应，状态代码提供了多个独立操作的状态
+	 */
+	MULTI_STATUS(207, "Multi-Status"),
 
 	// 重定向(300–399)
 
@@ -130,7 +134,7 @@ public enum HTTPStatus {
 	// 客户端错误(400–499)
 
 	/**
-	 * 400 1、语义有误，当前请求无法被服务器理解。除非进行修改，否则客户端不应该重复提交这个请求。 2、请求参数有误。
+	 * 400 请求参数有误；语义有误，当前请求无法被服务器理解。除非进行修改，否则客户端不应该重复提交这个请求。
 	 */
 	BAD_REQUEST(400, "Bad Request"),
 	/**
@@ -140,7 +144,7 @@ public enum HTTPStatus {
 	 */
 	UNAUTHORIZED(401, "Unauthorized"),
 	/**
-	 * 4012 此响应码保留以便将来使用，创造此响应码的最初目的是用于数字支付系统，然而现在并未使用。
+	 * 402 此响应码保留以便将来使用，创造此响应码的最初目的是用于数字支付系统，然而现在并未使用。
 	 */
 	PAYMENT_REQUIRED(402, "Payment Required"),
 	/**
@@ -226,6 +230,18 @@ public enum HTTPStatus {
 	 */
 	MISDIRECTED_REQUEST(421, "Misdirected Request"),
 	/**
+	 * 422 （不可处理的实体）状态代码表示服务器理解请求实体的内容类型，并且请求实体的语法正确，但无法处理其中的指示。
+	 */
+	UNPROCESSABLE_ENTITY(422, "Unprocessable Entity"),
+	/**
+	 * 423（锁定）状态码表示源或目标资源已锁定
+	 */
+	LOCKED(423, "Locked"),
+	/**
+	 * 424（依赖失败）状态码表示由于请求的操作依赖于另一个操作但它失败了，所以无法在资源上执行该方法。
+	 */
+	FAILED_DEPENDENCY(424, "Failed Dependency"),
+	/**
 	 * 425 服务器不愿意冒着风险去处理可能重播的请求。
 	 */
 	TOO_EARLY(425, "Too Early"),
@@ -288,7 +304,7 @@ public enum HTTPStatus {
 	 */
 	VARIANT_ALSO_NEGOTIATES(506, "Variant Also Negotiates"),
 	/**
-	 * 507 服务器有内部配置错误：所选的变体资源被配置为参与透明内容协商本身，因此不是协商过程中的适当端点。
+	 * 507（存储空间不足）状态码表示无法在资源上执行该方法，因为服务器无法提供成功完成请求所需的存储空间。
 	 */
 	INSUFFICIENT_STORAGE(507, "Insufficient Storage"),
 	/**

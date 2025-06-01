@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.joyzl.network.http.Authorization;
-import com.joyzl.network.http.HTTPCoder;
+import com.joyzl.network.http.HTTP1Coder;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.Request;
 import com.joyzl.network.http.Response;
@@ -57,7 +57,7 @@ public class AuthenticateBearer extends Authenticate {
 
 	public void setRealm(String vlaue) {
 		super.setRealm(vlaue);
-		www = TYPE + " realm=\"" + vlaue + HTTPCoder.QUOTE;
+		www = TYPE + " realm=\"" + vlaue + HTTP1Coder.QUOTE;
 	}
 
 	public void setUsers(String value) throws IOException {

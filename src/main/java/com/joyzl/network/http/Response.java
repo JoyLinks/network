@@ -51,7 +51,7 @@ public class Response extends HTTPMessage {
 
 	@Override
 	public String toString() {
-		return status + " " + getVersion() + HTTPCoder.SPACE + text;
+		return status + " " + getVersion() + HTTP1Coder.SPACE + text;
 	}
 
 	/**

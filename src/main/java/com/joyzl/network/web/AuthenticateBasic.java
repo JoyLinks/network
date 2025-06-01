@@ -18,7 +18,7 @@ import java.util.Map.Entry;
 import com.joyzl.network.Utility;
 import com.joyzl.network.http.Authorization;
 import com.joyzl.network.http.ContentType;
-import com.joyzl.network.http.HTTPCoder;
+import com.joyzl.network.http.HTTP1Coder;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.Request;
 import com.joyzl.network.http.Response;
@@ -57,7 +57,7 @@ public class AuthenticateBasic extends Authenticate {
 			if (a.startsWith(TYPE)) {
 				a = a.substring(TYPE.length() + 1);
 				a = new String(Base64.getDecoder().decode(a), StandardCharsets.UTF_8);
-				int colon = a.indexOf(HTTPCoder.COLON);
+				int colon = a.indexOf(HTTP1Coder.COLON);
 				if (colon > 0) {
 					final String password = USERS.get(a.substring(0, colon));
 					if (password != null) {
@@ -93,7 +93,7 @@ public class AuthenticateBasic extends Authenticate {
 
 	public void setRealm(String vlaue) {
 		super.setRealm(vlaue);
-		www = TYPE + " realm=\"" + vlaue + HTTPCoder.QUOTE;
+		www = TYPE + " realm=\"" + vlaue + HTTP1Coder.QUOTE;
 	}
 
 	public void setUsers(String value) throws IOException {
@@ -119,17 +119,17 @@ public class AuthenticateBasic extends Authenticate {
 		try (final FileInputStream input = new FileInputStream(file);
 			final InputStreamReader reader = new InputStreamReader(input, StandardCharsets.UTF_8);) {
 			while ((c = reader.read()) >= 0) {
-				if (c == HTTPCoder.NUM) {
+				if (c == HTTP1Coder.NUM) {
 					ignore = builder.length() == 0;
 					continue;
 				}
-				if (c == HTTPCoder.COLON) {
+				if (c == HTTP1Coder.COLON) {
 					if (ignore) {
 						continue;
 					} else {
 						colon = builder.length();
 					}
-				} else if (c == HTTPCoder.CR || c == HTTPCoder.LF) {
+				} else if (c == HTTP1Coder.CR || c == HTTP1Coder.LF) {
 					if (!ignore) {
 						if (builder.length() > 0 && colon > 0) {
 							USERS.put(builder.substring(0, colon), builder.substring(colon + 1));
@@ -150,12 +150,12 @@ public class AuthenticateBasic extends Authenticate {
 			final OutputStreamWriter writer = new OutputStreamWriter(input, StandardCharsets.UTF_8);) {
 			writer.write("# ");
 			writer.write(LocalDateTime.now().toString());
-			writer.write(HTTPCoder.CR);
+			writer.write(HTTP1Coder.CR);
 			for (Entry<String, String> user : USERS.entrySet()) {
 				writer.write(user.getKey());
-				writer.write(HTTPCoder.COLON);
+				writer.write(HTTP1Coder.COLON);
 				writer.write(user.getValue());
-				writer.write(HTTPCoder.CR);
+				writer.write(HTTP1Coder.CR);
 			}
 		}
 	}

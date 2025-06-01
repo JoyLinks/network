@@ -86,8 +86,8 @@ public abstract class Session<T> {
 	 * @param value 要设置的值
 	 * @return 返回之前设置的值，如果已过期则返回空(null)
 	 */
-	public T set(Object key, T value) {
-		final Timely<T> previous = VALUES.put(key, null);
+	public T set(Object key, Timely<T> value) {
+		final Timely<T> previous = VALUES.put(key, value);
 		if (previous != null) {
 			if (previous.valid(System.currentTimeMillis())) {
 				return previous.value();
@@ -110,6 +110,17 @@ public abstract class Session<T> {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * 移除会话键值
+	 * 
+	 * @param key 键可为任意对象，应确保有合理的哈希值(Object.hashCode())
+	 * @return Timely<T>
+	 */
+	public T remove(Object key) {
+		final Timely<T> current = VALUES.remove(key);
+		return current == null ? null : current.value();
 	}
 
 	/**

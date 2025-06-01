@@ -13,7 +13,7 @@ import com.joyzl.network.http.ContentType;
 import com.joyzl.network.http.Date;
 import com.joyzl.network.http.FormDataCoder;
 import com.joyzl.network.http.HTTP1;
-import com.joyzl.network.http.HTTPCoder;
+import com.joyzl.network.http.HTTP1Coder;
 import com.joyzl.network.http.HTTPSlave;
 import com.joyzl.network.http.HTTPStatus;
 import com.joyzl.network.http.QueryCoder;
@@ -132,8 +132,8 @@ public abstract class WEBServlet extends Servlet {
 		// response.addHeader(TransferEncoding.NAME, TransferEncoding.CHUNKED);
 		// 将请求首行和头部作为内容原样返回
 		final DataBuffer buffer = DataBuffer.instance();
-		HTTPCoder.writeCommand(buffer, request);
-		HTTPCoder.writeHeaders(buffer, request);
+		HTTP1Coder.writeCommand(buffer, request);
+		HTTP1Coder.writeHeaders(buffer, request);
 		response.setContent(buffer);
 	}
 }

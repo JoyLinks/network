@@ -104,22 +104,22 @@ public final class ContentDisposition extends Header {
 			if (Utility.noEmpty(filename)) {
 				StringBuilder builder = new StringBuilder();
 				builder.append(disposition);
-				builder.append(HTTPCoder.SEMI);
-				builder.append(HTTPCoder.SPACE);
+				builder.append(HTTP1Coder.SEMI);
+				builder.append(HTTP1Coder.SPACE);
 				if (hasChinese(filename)) {
 					builder.append(FILENAME_);
-					builder.append(HTTPCoder.EQUAL);
-					builder.append(HTTPCoder.QUOTE);
+					builder.append(HTTP1Coder.EQUAL);
+					builder.append(HTTP1Coder.QUOTE);
 					builder.append("UTF-8");
 					builder.append(SEPARATER);
 					builder.append(URLEncoder.encode(filename, StandardCharsets.UTF_8));
-					builder.append(HTTPCoder.QUOTE);
+					builder.append(HTTP1Coder.QUOTE);
 				} else {
 					builder.append(FILENAME);
-					builder.append(HTTPCoder.EQUAL);
-					builder.append(HTTPCoder.QUOTE);
+					builder.append(HTTP1Coder.EQUAL);
+					builder.append(HTTP1Coder.QUOTE);
 					builder.append(filename);
-					builder.append(HTTPCoder.QUOTE);
+					builder.append(HTTP1Coder.QUOTE);
 				}
 				return builder.toString();
 			} else {
@@ -130,30 +130,30 @@ public final class ContentDisposition extends Header {
 			if (Utility.noEmpty(field)) {
 				StringBuilder builder = new StringBuilder();
 				builder.append(disposition);
-				builder.append(HTTPCoder.SEMI);
-				builder.append(HTTPCoder.SPACE);
+				builder.append(HTTP1Coder.SEMI);
+				builder.append(HTTP1Coder.SPACE);
 				builder.append(FIELD);
-				builder.append(HTTPCoder.EQUAL);
-				builder.append(HTTPCoder.QUOTE);
+				builder.append(HTTP1Coder.EQUAL);
+				builder.append(HTTP1Coder.QUOTE);
 				builder.append(field);
-				builder.append(HTTPCoder.QUOTE);
+				builder.append(HTTP1Coder.QUOTE);
 				if (Utility.noEmpty(filename)) {
-					builder.append(HTTPCoder.SEMI);
-					builder.append(HTTPCoder.SPACE);
+					builder.append(HTTP1Coder.SEMI);
+					builder.append(HTTP1Coder.SPACE);
 					if (hasChinese(filename)) {
 						builder.append(FILENAME_);
-						builder.append(HTTPCoder.EQUAL);
-						builder.append(HTTPCoder.QUOTE);
+						builder.append(HTTP1Coder.EQUAL);
+						builder.append(HTTP1Coder.QUOTE);
 						builder.append("UTF-8");
 						builder.append(SEPARATER);
 						builder.append(URLEncoder.encode(filename, StandardCharsets.UTF_8));
-						builder.append(HTTPCoder.QUOTE);
+						builder.append(HTTP1Coder.QUOTE);
 					} else {
 						builder.append(FILENAME);
-						builder.append(HTTPCoder.EQUAL);
-						builder.append(HTTPCoder.QUOTE);
+						builder.append(HTTP1Coder.EQUAL);
+						builder.append(HTTP1Coder.QUOTE);
 						builder.append(filename);
-						builder.append(HTTPCoder.QUOTE);
+						builder.append(HTTP1Coder.QUOTE);
 					}
 				}
 				return builder.toString();
@@ -165,12 +165,12 @@ public final class ContentDisposition extends Header {
 	@Override
 	public void setHeaderValue(String value) {
 		int start;
-		if ((start = value.indexOf(HTTPCoder.SEMI)) > 0) {
+		if ((start = value.indexOf(HTTP1Coder.SEMI)) > 0) {
 			disposition = value.substring(0, start);
 
 			String name = null;
 			for (int end = 0, index = ++start; index <= value.length(); index++) {
-				if (index >= value.length() || value.charAt(index) == HTTPCoder.SEMI) {
+				if (index >= value.length() || value.charAt(index) == HTTP1Coder.SEMI) {
 					if (name == null) {
 						break;
 					} else if (FIELD.equalsIgnoreCase(name)) {
@@ -189,10 +189,10 @@ public final class ContentDisposition extends Header {
 					}
 					name = null;
 					end = start = index + 1;
-				} else if (value.charAt(index) == HTTPCoder.EQUAL) {
+				} else if (value.charAt(index) == HTTP1Coder.EQUAL) {
 					name = value.substring(start, end);
 					end = start = index + 1;
-				} else if (value.charAt(index) == HTTPCoder.QUOTE || Character.isWhitespace(value.charAt(index))) {
+				} else if (value.charAt(index) == HTTP1Coder.QUOTE || Character.isWhitespace(value.charAt(index))) {
 					if (end <= start) {
 						start = index + 1;
 					}

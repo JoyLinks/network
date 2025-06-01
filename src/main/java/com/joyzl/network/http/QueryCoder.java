@@ -10,7 +10,7 @@ import java.util.Map.Entry;
  * 
  * @author ZhangXi 2024年11月20日
  */
-public class QueryCoder extends HTTPCoder {
+public class QueryCoder extends HTTP1Coder {
 
 	// TODO URLDecode和URLEncode创建了中间字符串，应优化
 

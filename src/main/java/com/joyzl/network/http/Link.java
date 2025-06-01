@@ -48,11 +48,11 @@ public final class Link extends Header {
 					continue;
 				}
 				if (builder.length() > 0) {
-					builder.append(HTTPCoder.SEMI);
-					builder.append(HTTPCoder.SPACE);
+					builder.append(HTTP1Coder.SEMI);
+					builder.append(HTTP1Coder.SPACE);
 				}
 				builder.append(item.getKey());
-				builder.append(HTTPCoder.EQUAL);
+				builder.append(HTTP1Coder.EQUAL);
 				builder.append(item.getValue());
 			}
 			return builder.toString();
@@ -63,7 +63,7 @@ public final class Link extends Header {
 	public void setHeaderValue(String value) {
 		String name = null;
 		for (int start = 0, end = 0, index = 0; index <= value.length(); index++) {
-			if (index >= value.length() || value.charAt(index) == HTTPCoder.SEMI) {
+			if (index >= value.length() || value.charAt(index) == HTTP1Coder.SEMI) {
 				if (name == null) {
 					break;
 				} else {
@@ -71,7 +71,7 @@ public final class Link extends Header {
 				}
 				name = null;
 				end = start = index + 1;
-			} else if (value.charAt(index) == HTTPCoder.EQUAL) {
+			} else if (value.charAt(index) == HTTP1Coder.EQUAL) {
 				name = value.substring(start, end);
 				end = start = index + 1;
 			} else if (Character.isWhitespace(value.charAt(index))) {

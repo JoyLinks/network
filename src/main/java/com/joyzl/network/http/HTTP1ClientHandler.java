@@ -29,21 +29,21 @@ public abstract class HTTP1ClientHandler implements ChainGenericsHandler<HTTPCli
 		final DataBuffer buffer = DataBuffer.instance();
 		// 消息逐段编码
 		if (request.state() == Message.COMMAND) {
-			if (HTTPCoder.writeCommand(buffer, request)) {
+			if (HTTP1Coder.writeCommand(buffer, request)) {
 				request.state(Message.HEADERS);
 			} else {
 				return buffer;
 			}
 		}
 		if (request.state() == Message.HEADERS) {
-			if (HTTPCoder.writeHeaders(buffer, request)) {
+			if (HTTP1Coder.writeHeaders(buffer, request)) {
 				request.state(Message.CONTENT);
 			} else {
 				return buffer;
 			}
 		}
 		if (request.state() == Message.CONTENT) {
-			if (HTTPCoder.writeContent(buffer, request)) {
+			if (HTTP1Coder.writeContent(buffer, request)) {
 				request.state(Message.COMPLETE);
 			} else {
 				return buffer;
@@ -84,21 +84,21 @@ public abstract class HTTP1ClientHandler implements ChainGenericsHandler<HTTPCli
 			client.setResponse(response = new Response());
 		}
 		if (response.state() == Message.COMMAND) {
-			if (HTTPCoder.readCommand(buffer, response)) {
+			if (HTTP1Coder.readCommand(buffer, response)) {
 				response.state(Message.HEADERS);
 			} else {
 				return null;
 			}
 		}
 		if (response.state() == Message.HEADERS) {
-			if (HTTPCoder.readHeaders(buffer, response)) {
+			if (HTTP1Coder.readHeaders(buffer, response)) {
 				response.state(Message.CONTENT);
 			} else {
 				return null;
 			}
 		}
 		if (response.state() == Message.CONTENT) {
-			if (HTTPCoder.readContent(buffer, response)) {
+			if (HTTP1Coder.readContent(buffer, response)) {
 				response.state(Message.COMPLETE);
 			} else {
 				return null;

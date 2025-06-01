@@ -14,7 +14,7 @@ import java.security.NoSuchAlgorithmException;
 import com.joyzl.network.Utility;
 
 /**
- * 响应头是资源的特定版本的标识符。
+ * ETag(Entity-Tag)响应头是资源的特定版本的标识符。
  * 
  * <pre>
  * ETag: W/"<etag_value>"

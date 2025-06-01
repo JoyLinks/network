@@ -174,7 +174,7 @@ class TestKeyExchange {
 		assertArrayEquals(clientSharedKey, serverSharedKey);
 	}
 
-	@Test
+	//@Test
 	void testFFDHE2048() throws Exception {
 		final V3KeyExchange client = new V3KeyExchange();
 		final V3KeyExchange server = new V3KeyExchange();

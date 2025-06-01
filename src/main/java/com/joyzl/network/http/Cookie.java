@@ -57,11 +57,11 @@ public class Cookie extends Header {
 				continue;
 			}
 			if (sb.length() > 0) {
-				sb.append(HTTPCoder.SEMI);
-				sb.append(HTTPCoder.SPACE);
+				sb.append(HTTP1Coder.SEMI);
+				sb.append(HTTP1Coder.SPACE);
 			}
 			sb.append(item.getKey());
-			sb.append(HTTPCoder.EQUAL);
+			sb.append(HTTP1Coder.EQUAL);
 			sb.append(URLEncoder.encode(item.getValue(), StandardCharsets.UTF_8));
 		}
 		return sb.toString();
@@ -71,7 +71,7 @@ public class Cookie extends Header {
 	public void setHeaderValue(String value) {
 		String name = null;
 		for (int start = 0, end = 0, index = 0; index <= value.length(); index++) {
-			if (index >= value.length() || value.charAt(index) == HTTPCoder.SEMI) {
+			if (index >= value.length() || value.charAt(index) == HTTP1Coder.SEMI) {
 				if (name == null) {
 					break;
 				} else {
@@ -79,7 +79,7 @@ public class Cookie extends Header {
 				}
 				name = null;
 				end = start = index + 1;
-			} else if (value.charAt(index) == HTTPCoder.EQUAL) {
+			} else if (value.charAt(index) == HTTP1Coder.EQUAL) {
 				name = value.substring(start, end);
 				end = start = index + 1;
 			} else if (Character.isWhitespace(value.charAt(index))) {

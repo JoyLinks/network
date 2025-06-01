@@ -27,12 +27,12 @@ public abstract class QualityValueHeader extends Header {
 		StringBuilder builder = new StringBuilder();
 		for (int index = 0; index < values.length; index++) {
 			if (index > 0) {
-				builder.append(HTTPCoder.COMMA);
-				builder.append(HTTPCoder.SPACE);
+				builder.append(HTTP1Coder.COMMA);
+				builder.append(HTTP1Coder.SPACE);
 			}
 			builder.append(values[index].getValue());
 			if (values[index].getQuality() < 1) {
-				builder.append(HTTPCoder.SEMI);
+				builder.append(HTTP1Coder.SEMI);
 				builder.append("q=");
 				builder.append(Float.toString(values[index].getQuality()));
 			}
@@ -46,7 +46,7 @@ public abstract class QualityValueHeader extends Header {
 
 		char c;
 		for (int begin = 0, end = 0, semi = 0, equal = 0, index = 0; index <= value.length(); index++) {
-			if (index >= value.length() || (c = value.charAt(index)) == HTTPCoder.COMMA) {
+			if (index >= value.length() || (c = value.charAt(index)) == HTTP1Coder.COMMA) {
 				if (begin < semi && semi < equal && equal < end) {
 					addValue(value.substring(begin, semi), Float.parseFloat(value.substring(equal + 1, end + 1)));
 				} else {
@@ -54,9 +54,9 @@ public abstract class QualityValueHeader extends Header {
 				}
 				begin = end = index + 1/* 跳过逗号 */;
 				semi = equal = index;
-			} else if (c == HTTPCoder.SEMI) {
+			} else if (c == HTTP1Coder.SEMI) {
 				semi = index;
-			} else if (c == HTTPCoder.EQUAL) {
+			} else if (c == HTTP1Coder.EQUAL) {
 				equal = index;
 			} else if (Character.isWhitespace(c)) {
 				if (begin >= end) {
