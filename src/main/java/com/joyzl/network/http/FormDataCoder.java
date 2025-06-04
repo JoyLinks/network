@@ -16,7 +16,6 @@ import java.util.Map.Entry;
 import com.joyzl.network.Utility;
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.http.MultipartFile.MultipartFiles;
-import com.joyzl.network.web.MIMEType;
 
 /**
  * Content-Type: multipart/form-data<br>

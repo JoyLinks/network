@@ -6,7 +6,6 @@
 package com.joyzl.network.http;
 
 import com.joyzl.network.Utility;
-import com.joyzl.network.web.MIMEType;
 
 /**
  * Content-Type实体头部用于指示资源的MIME类型 media type。 在请求中(如POST或 PUT)，客户端告诉服务器实际发送的数据类型。

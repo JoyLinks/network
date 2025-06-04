@@ -39,6 +39,7 @@ public abstract class HTTP1ServerHandler implements ChainGenericsHandler<HTTPSla
 				return null;
 			}
 		}
+
 		if (request.state() == Message.HEADERS) {
 			if (HTTP1Coder.readHeaders(buffer, request)) {
 				request.state(Message.CONTENT);
