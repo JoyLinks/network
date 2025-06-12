@@ -5,6 +5,9 @@
  */
 package com.joyzl.network.http;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -14,6 +17,7 @@ import java.util.Map.Entry;
 
 import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.buffer.DataBufferUnit;
+import com.joyzl.network.codec.UTF8Coder;
 import com.joyzl.network.http.MultipartRange.MultipartRanges;
 
 /**
@@ -677,8 +681,7 @@ public class HTTP1Coder extends HTTP1 {
 	public static boolean writeContentIdentity(DataBuffer buffer, Message message) throws IOException {
 		// 当前最多可发送字节数
 		final int max = BLOCK_BYTES - buffer.readable();
-		if (message.getContent() instanceof DataBuffer) {
-			final DataBuffer content = (DataBuffer) message.getContent();
+		if (message.getContent() instanceof DataBuffer content) {
 			if (content.readable() > 0) {
 				if (content.readable() > max) {
 					content.transfer(buffer, max);
@@ -688,11 +691,15 @@ public class HTTP1Coder extends HTTP1 {
 				}
 			}
 		} else //
-		if (message.getContent() instanceof InputStream) {
-			final InputStream content = (InputStream) message.getContent();
+		if (message.getContent() instanceof InputStream content) {
 			int length = buffer.write(content, max);
 			if (length == max) {
 				return false;
+			}
+		} else {
+			// 转换后输出
+			if (contentConvert(message)) {
+				return writeContentIdentity(buffer, message);
 			}
 		}
 
@@ -769,6 +776,11 @@ public class HTTP1Coder extends HTTP1 {
 				// 流必须确定无数据才能结束
 				// available == 0
 				return false;
+			}
+		} else {
+			// 转换后输出
+			if (contentConvert(message)) {
+				return writeContentChunked(buffer, message);
 			}
 		}
 
@@ -850,6 +862,25 @@ public class HTTP1Coder extends HTTP1 {
 		} else {
 			throw new IllegalArgumentException("响应内容不是有效的Part集合");
 		}
+	}
+
+	/**
+	 * 将消息内容体转换为可多次读取的流实例
+	 */
+	public static boolean contentConvert(Message message) throws IOException {
+		if (message.getContent() instanceof File content) {
+			message.setContent(new FileInputStream(content));
+			return true;
+		}
+		if (message.getContent() instanceof byte[] content) {
+			message.setContent(new ByteArrayInputStream(content));
+			return true;
+		}
+		if (message.getContent() instanceof CharSequence content) {
+			message.setContent(UTF8Coder.encode(content));
+			return true;
+		}
+		return false;
 	}
 
 	/**

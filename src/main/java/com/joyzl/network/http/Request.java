@@ -19,6 +19,7 @@ import com.joyzl.network.http.MultipartFile.MultipartFiles;
  */
 public class Request extends HTTPMessage {
 
+	private long timestamp;
 	private String method = HTTP1.GET;
 	private String url;
 	// SCHEME://HOST:PORT/PATH?QUERY#ANCHOR
@@ -28,6 +29,11 @@ public class Request extends HTTPMessage {
 	private int uriHost = -1, uriPort, uriPath = -1, uriQuery, uriAnchor;
 
 	public Request() {
+		timestamp = System.currentTimeMillis();
+	}
+
+	public long getTimestamp() {
+		return timestamp;
 	}
 
 	public Request(int id, String version) {

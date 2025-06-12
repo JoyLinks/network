@@ -89,7 +89,7 @@ public abstract class Message {
 	/**
 	 * 获取消息内容大小（估计字节数）
 	 */
-	public int getContentSize() throws IOException {
+	public int contentSize() throws IOException {
 		if (content == null) {
 			return 0;
 		}

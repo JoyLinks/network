@@ -376,7 +376,7 @@ public class HTTP2Coder extends HTTP2 {
 							return new Goaway(id, PROTOCOL_ERROR);
 						}
 					} else {
-						if (request.getContentSize() > hpack.getWindowSize()) {
+						if (request.contentSize() > hpack.getWindowSize()) {
 							buffer.skipBytes(length + pad);
 							// 流数据超过窗口大小
 							return new ResetStream(id, REFUSED_STREAM);
