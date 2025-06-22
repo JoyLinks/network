@@ -1,7 +1,6 @@
-/*-
- * www.joyzl.net
- * 重庆骄智科技有限公司
- * Copyright © JOY-Links Company. All rights reserved.
+/*
+ * Copyright © 2017-2025 重庆骄智科技有限公司.
+ * 本软件根据 Apache License 2.0 开源，详见 LICENSE 文件。
  */
 module com.joyzl.network {
 	requires transitive com.joyzl.odbs;
@@ -17,5 +16,4 @@ module com.joyzl.network {
 	exports com.joyzl.network.odbs;
 	exports com.joyzl.network.http;
 	exports com.joyzl.network.ftp;
-	exports com.joyzl.network.web;
 }

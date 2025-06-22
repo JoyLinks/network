@@ -1,8 +1,12 @@
+/*
+ * Copyright © 2017-2025 重庆骄智科技有限公司.
+ * 本软件根据 Apache License 2.0 开源，详见 LICENSE 文件。
+ */
 package com.joyzl.network.odbs;
 
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.IOException;
 

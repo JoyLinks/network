@@ -1,10 +1,8 @@
 # JOYZL Network
 
-#### 介绍
-
 JOYZL network 是高性能网络通信框架，实现 HTTP, ODBS, TLS 通信协议。
 
-更多详细信息和应用请访问 [www.joyzl.com](http://www.joyzl.com) [www.huatens.com](http://www.huatens.com)
+更多详细信息和应用请访问 [www.joyzl.com](http://www.joyzl.com)
 
 
 JOYZL network 是NIO服务端和客户端通信框架，可以快速轻松的开发网络应用程序，极大的简化了网络应用编程。
@@ -51,8 +49,8 @@ ODBS通信主要用于C/S通信场景，客户端通过单个连接实现与服�
 为我们提供了有力的帮助。
 
 
+---
+[www.joyzl.com](http://www.joyzl.com)
 
-中国制造，智造中国
-
-Made in China, Intelligent China
-
+Copyright © 2017-2025 重庆骄智科技有限公司.
+本软件根据 Apache License 2.0 开源，详见 LICENSE 文件。

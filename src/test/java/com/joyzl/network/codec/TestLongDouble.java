@@ -1,7 +1,6 @@
 /*
- * www.joyzl.net
- * 重庆骄智科技有限公司
- * Copyright © JOY-Links Company. All rights reserved.
+ * Copyright © 2017-2025 重庆骄智科技有限公司.
+ * 本软件根据 Apache License 2.0 开源，详见 LICENSE 文件。
  */
 package com.joyzl.network.codec;
 
@@ -35,37 +34,43 @@ class TestLongDouble {
 
 	@Test
 	void test() {
-//		final NumberFormat format = NumberFormat.getInstance();
-//		format.setGroupingUsed(false);
-//		format.setMaximumFractionDigits(10);
-//		format.setMinimumFractionDigits(1);
-//
-//		final DataBuffer buffer = DataBuffer.getB2048();
-//		buffer.writeDouble(123.456789D);
-//		System.out.println("double:" + double64(buffer.readLong()));
-//
-//		buffer.writeDouble(-123.456789D);
-//		System.out.println("double:" + double64(buffer.readLong()));
-//
-//		// bytes 对应的 LongDouble = 3.3 小端序
-//		buffer.write(new byte[] { 0x05, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x0a, 0x40 });
-//		buffer.readDoubleLE();
-//		System.out.println(format.format(buffer.readDoubleLE()));
-//
-//		// bytes 对应的 LongDouble = 3.3 大端序
-//		buffer.write(new byte[] { 0x40, 0x0a, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x05 });
-//		System.out.println(format.format(buffer.readDouble()));
-//		buffer.readDouble();
-//
-//		// bytes 对应的 LongDouble = 0.12794 大端序
-//		buffer.write(new byte[] { 0x3f, (byte) 0xc0, 0x60, 0x56, (byte) 0x81, (byte) 0xec, (byte) 0xd6, (byte) 0xd7, 0x00, 0x00, 0x00, 0x01, 0x00, 0x04, 0x00, 0x08 });
-//		System.out.println(format.format(buffer.readDouble()));
-//		buffer.readDouble();
-//
-//		// bytes 对应的 LongDouble = 0.12794 小端序
-//		buffer.write(new byte[] { 0x08, 0x00, 0x04, 0x00, 0x01, 0x00, 0x00, 0x00, (byte) 0xd7, (byte) 0xd6, (byte) 0xec, (byte) 0x81, 0x56, 0x60, (byte) 0xc0, 0x3f });
-//		buffer.readDouble();
-//		System.out.println(format.format(buffer.readDoubleLE()));
+		// final NumberFormat format = NumberFormat.getInstance();
+		// format.setGroupingUsed(false);
+		// format.setMaximumFractionDigits(10);
+		// format.setMinimumFractionDigits(1);
+		//
+		// final DataBuffer buffer = DataBuffer.getB2048();
+		// buffer.writeDouble(123.456789D);
+		// System.out.println("double:" + double64(buffer.readLong()));
+		//
+		// buffer.writeDouble(-123.456789D);
+		// System.out.println("double:" + double64(buffer.readLong()));
+		//
+		// // bytes 对应的 LongDouble = 3.3 小端序
+		// buffer.write(new byte[] { 0x05, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00,
+		// 0x00, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x0a, 0x40 });
+		// buffer.readDoubleLE();
+		// System.out.println(format.format(buffer.readDoubleLE()));
+		//
+		// // bytes 对应的 LongDouble = 3.3 大端序
+		// buffer.write(new byte[] { 0x40, 0x0a, 0x66, 0x66, 0x66, 0x66, 0x66,
+		// 0x66, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x05 });
+		// System.out.println(format.format(buffer.readDouble()));
+		// buffer.readDouble();
+		//
+		// // bytes 对应的 LongDouble = 0.12794 大端序
+		// buffer.write(new byte[] { 0x3f, (byte) 0xc0, 0x60, 0x56, (byte) 0x81,
+		// (byte) 0xec, (byte) 0xd6, (byte) 0xd7, 0x00, 0x00, 0x00, 0x01, 0x00,
+		// 0x04, 0x00, 0x08 });
+		// System.out.println(format.format(buffer.readDouble()));
+		// buffer.readDouble();
+		//
+		// // bytes 对应的 LongDouble = 0.12794 小端序
+		// buffer.write(new byte[] { 0x08, 0x00, 0x04, 0x00, 0x01, 0x00, 0x00,
+		// 0x00, (byte) 0xd7, (byte) 0xd6, (byte) 0xec, (byte) 0x81, 0x56, 0x60,
+		// (byte) 0xc0, 0x3f });
+		// buffer.readDouble();
+		// System.out.println(format.format(buffer.readDoubleLE()));
 	}
 
 	@Test
