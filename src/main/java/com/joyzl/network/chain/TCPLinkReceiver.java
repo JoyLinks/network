@@ -12,17 +12,17 @@ import java.nio.channels.CompletionHandler;
  * @author ZhangXi
  * @date 2023年8月25日
  */
-public class ClientReceiveHandler implements CompletionHandler<Integer, Client> {
+public class TCPLinkReceiver implements CompletionHandler<Integer, TCPLink> {
 
-	final static ClientReceiveHandler INSTANCE = new ClientReceiveHandler();
+	final static TCPLinkReceiver INSTANCE = new TCPLinkReceiver();
 
 	@Override
-	public void completed(Integer result, Client chain) {
+	public void completed(Integer result, TCPLink chain) {
 		chain.received(result);
 	}
 
 	@Override
-	public void failed(Throwable e, Client chain) {
+	public void failed(Throwable e, TCPLink chain) {
 		chain.received(e);
 	}
 }

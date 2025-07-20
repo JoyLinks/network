@@ -22,7 +22,7 @@ public class TLSParameters {
 	/** 可用的签名算法 */
 	private short[] signatureSchemes = Signaturer.AVAILABLES;
 	/** 可用的版本 */
-	private short[] versions = new short[] { TLS.V13, TLS.V12 };
+	private short[] versions = new short[] { TLS.V13, TLS.V12, TLS.V10, TLS.V10 };
 	/** 忽略证书有效性检查 */
 	private boolean ignoreCertificate = false;
 

@@ -12,17 +12,17 @@ import java.nio.channels.CompletionHandler;
  * @author ZhangXi
  * @date 2023年8月25日
  */
-public class ClientConnectHandler implements CompletionHandler<Void, Client> {
+public class TCPLinkConnecter implements CompletionHandler<Void, TCPLink> {
 
-	final static ClientConnectHandler INSTANCE = new ClientConnectHandler();
+	final static TCPLinkConnecter INSTANCE = new TCPLinkConnecter();
 
 	@Override
-	public void completed(Void result, Client chain) {
+	public void completed(Void result, TCPLink chain) {
 		chain.connected();
 	}
 
 	@Override
-	public void failed(Throwable e, Client chain) {
+	public void failed(Throwable e, TCPLink chain) {
 		// completed()方法抛出的异常不会到达此方法
 		// 连接不成功通道处于关闭状态isOpen()为false
 		chain.connected(e);

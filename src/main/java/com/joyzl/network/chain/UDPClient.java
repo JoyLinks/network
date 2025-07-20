@@ -8,9 +8,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.DatagramChannel;
-import java.nio.channels.SelectionKey;
 
-import com.joyzl.network.ChainSelector;
 import com.joyzl.network.Point;
 import com.joyzl.network.buffer.DataBuffer;
 
@@ -35,24 +33,11 @@ import com.joyzl.network.buffer.DataBuffer;
 public class UDPClient extends Client {
 
 	private final SocketAddress remote;
-	private final DatagramChannel datagram_channel;
+	private DatagramChannel datagram_channel;
 
-	public UDPClient(ChainHandler handler, String host, int port) throws IOException {
+	public UDPClient(ChainHandler handler, String host, int port) {
 		super(handler);
-
 		remote = new InetSocketAddress(host, port);
-		datagram_channel = DatagramChannel.open();
-		if (datagram_channel.isOpen()) {
-			datagram_channel.configureBlocking(false);
-		} else {
-			throw new IOException("UDP连接打开失败，" + key());
-		}
-		// 注册NIO.1选择器,当可读时触发receive()方法
-		ChainSelector.register(this, datagram_channel, SelectionKey.OP_READ);
-		ChainGroup.add(this);
-
-		// datagram_channel.register(ChainSelector.writes(),SelectionKey.OP_WRITE,this);
-		// ChainSelector.writes().wakeup();
 	}
 
 	@Override
@@ -62,7 +47,7 @@ public class UDPClient extends Client {
 
 	@Override
 	public boolean active() {
-		return datagram_channel.isOpen() && datagram_channel.isConnected();
+		return datagram_channel != null && datagram_channel.isOpen() && datagram_channel.isConnected();
 	}
 
 	@Override
@@ -91,38 +76,54 @@ public class UDPClient extends Client {
 	////////////////////////////////////////////////////////////////////////////////
 
 	public void connect() {
-		if (datagram_channel.isOpen()) {
+		if (datagram_channel == null) {
 			try {
-				if (datagram_channel.isConnected()) {
-					datagram_channel.disconnect();
+				synchronized (this) {
+					if (datagram_channel == null) {
+						datagram_channel = DatagramChannel.open();
+					} else {
+						return;
+					}
+				}
+				if (datagram_channel.isOpen()) {
+					datagram_channel.configureBlocking(false);
+				} else {
+					datagram_channel = null;
+					return;
 				}
 				datagram_channel.connect(remote);
-				// ChainSelector.reads().wakeup();
-				connected();
 			} catch (Exception e) {
-				connected(e);
+				datagram_channel = null;
+				handler().error(this, e);
+				return;
 			}
+			try {
+				handler().connected(this);
+			} catch (Exception e) {
+				handler().error(this, e);
+			}
+		} else {
+			throw new IllegalStateException("UDPClient:重复连接");
 		}
 	}
 
 	@Override
-	protected void connected() {
+	public void receive() {
 		try {
-			handler().connected(this);
+			// 注册NIO.1选择器,当可读时触发received()方法
+			UDPClientReceiver.register(this, datagram_channel);
+			// UDP永远不会触发OP_WRITE
+			// datagram_channel.register(ChainSelector.writes(),SelectionKey.OP_WRITE,this);
+			// ChainSelector.writes().wakeup();
 		} catch (Exception e) {
 			handler().error(this, e);
 		}
 	}
 
-	@Override
-	protected void connected(Throwable e) {
-		handler().error(this, e);
-	}
-
-	@Override
-	public void receive() {
+	protected void received() {
 		// UDP数据报特性:如果ByteBuffer不足够接收所有的数据，剩余的被静默抛弃，不会抛出任何异常
 		// DataBuffer不能接续，必须清空并确保可以接受最长数据
+		// 如果发送长数据必须在协议层拆分，UDP无法确保数据报顺序
 		final DataBuffer buffer = DataBuffer.instance();
 		try {
 			int size = datagram_channel.read(buffer.write());
@@ -136,39 +137,35 @@ public class UDPClient extends Client {
 					// UDP特性决定后续接收的数据只会是另外的数据帧
 					buffer.clear();
 				} else {
+					// 已解析消息对象
+					if (buffer.readable() >= size) {
+						throw new IllegalStateException("UDPClient:已解析消息但数据未减少");
+					}
 					handler().received(this, message);
 				}
 			} else if (size == 0) {
 				// DataBuffer提供的ByteBuffer已满，无补救措施
+				handler().error(this, new IllegalStateException("UDPClient:零读"));
 			} else {
-				// 未知情况
+				// 流结束
 			}
 		} catch (Exception e) {
-			received(e);
+			handler().error(this, e);
 		} finally {
 			buffer.release();
 		}
 	}
 
 	@Override
-	protected void received(int size) {
-	}
-
-	@Override
-	protected void received(Throwable e) {
-		handler().error(this, e);
-	}
-
-	@Override
 	public void send(Object message) {
-		// 执行消息编码
 		DataBuffer buffer = null;
 		try {
+			// 执行消息编码
 			buffer = handler().encode(this, message);
 			if (buffer == null) {
-				throw new IllegalStateException("消息未编码数据 " + message);
+				throw new IllegalStateException("UDPClient:未编码数据 " + message);
 			} else if (buffer.readable() <= 0) {
-				throw new IllegalStateException("消息编码零数据 " + message);
+				throw new IllegalStateException("UDPClient:编码零数据 " + message);
 			} else {
 				if (buffer.units() > 1) {
 					long length = datagram_channel.write(buffer.reads());
@@ -180,7 +177,7 @@ public class UDPClient extends Client {
 				if (buffer.readable() > 0) {
 					// 如果超出UDP包最大长度可能出现
 					// 经Windows11测试65536数据时发送数量为16384(16Kb)
-					throw new IllegalStateException("数据未能全部送出 " + message);
+					throw new IllegalStateException("UDPClient:数据未全部发送 " + message);
 				} else {
 					handler().sent(this, message);
 				}
@@ -189,53 +186,41 @@ public class UDPClient extends Client {
 			if (buffer != null) {
 				buffer.release();
 			}
-			sent(e);
-		}
-	}
-
-	@Override
-	protected void sent(int size) {
-		// 此方法未使用
-	}
-
-	@Override
-	protected void sent(Throwable e) {
-		handler().error(this, e);
-	}
-
-	@Override
-	public void close() {
-		if (datagram_channel.isOpen()) {
-			ChainGroup.remove(this);
-			if (datagram_channel.isConnected()) {
-				try {
-					datagram_channel.disconnect();
-				} catch (Exception e) {
-					handler().error(this, e);
-				} finally {
-					try {
-						handler().disconnected(this);
-					} catch (Exception e) {
-						handler().error(this, e);
-					}
-				}
-			}
-			try {
-				ChainSelector.unRegister(this, datagram_channel);
-				datagram_channel.close();
-			} catch (Exception e) {
-				handler().error(this, e);
-			}
-			try {
-				clearContext();
-			} catch (IOException e) {
-				handler().error(this, e);
-			}
+			handler().error(this, e);
 		}
 	}
 
 	@Override
 	public void reset() {
-		close();
+		if (datagram_channel != null) {
+			try {
+				if (datagram_channel.isOpen()) {
+					if (datagram_channel.isConnected()) {
+						datagram_channel.disconnect();
+					}
+					datagram_channel.close();
+				}
+			} catch (Exception e) {
+				handler().error(this, e);
+			} finally {
+				UDPClientReceiver.unRegister(this, datagram_channel);
+				datagram_channel = null;
+				try {
+					handler().disconnected(this);
+				} catch (Exception e) {
+					handler().error(this, e);
+				}
+			}
+		}
+	}
+
+	@Override
+	public void close() {
+		reset();
+		try {
+			clearContext();
+		} catch (IOException e) {
+			handler().error(this, e);
+		}
 	}
 }

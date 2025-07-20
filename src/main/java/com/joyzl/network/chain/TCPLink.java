@@ -100,6 +100,7 @@ public class TCPLink extends Client {
 	// 关闭中:channel!=null && connected==false
 	// 已关闭:channel==null && connected==false
 
+	@Override
 	public void connect() {
 		// 此方法多次调用须防止已创建的AsynchronousSocketChannel对象实例泄露
 		// 持续调用最终会导致AsynchronousSocketChannel创建抛出"文件打开过多异常"
@@ -126,7 +127,7 @@ public class TCPLink extends Client {
 					return;
 				}
 				// 如果无法建立连接，通道状态为关闭。
-				socket_channel.connect(remote, this, ClientConnectHandler.INSTANCE);
+				socket_channel.connect(remote, this, TCPLinkConnecter.INSTANCE);
 			} catch (Exception e) {
 				socket_channel = null;
 				handler().error(this, e);
@@ -136,7 +137,6 @@ public class TCPLink extends Client {
 		}
 	}
 
-	@Override
 	protected void connected() {
 		// 连接成功
 		connected = true;
@@ -149,7 +149,6 @@ public class TCPLink extends Client {
 		}
 	}
 
-	@Override
 	protected void connected(Throwable e) {
 		// 连接异常
 		connected = false;
@@ -180,14 +179,13 @@ public class TCPLink extends Client {
 					socket_channel.read(//
 						read.write(), // ByteBuffer
 						handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
-						this, ClientReceiveHandler.INSTANCE // Handler
+						this, TCPLinkReceiver.INSTANCE // Handler
 					);
 				}
 			}
 		}
 	}
 
-	@Override
 	protected void received(int size) {
 		if (size > 0) {
 			read.written(size);
@@ -222,7 +220,7 @@ public class TCPLink extends Client {
 					socket_channel.read(//
 						read.write(), // ByteBuffer
 						handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
-						this, ClientReceiveHandler.INSTANCE // Handler
+						this, TCPLinkReceiver.INSTANCE // Handler
 					);
 				} else {
 					read.release();
@@ -250,7 +248,6 @@ public class TCPLink extends Client {
 		}
 	}
 
-	@Override
 	protected void received(Throwable e) {
 		// 读取失败
 		if (read != null) {
@@ -308,7 +305,7 @@ public class TCPLink extends Client {
 						socket_channel.write(//
 							write.read(), // ByteBuffer
 							handler().getTimeoutWrite(), TimeUnit.MILLISECONDS, // Timeout
-							this, ClientSendHandler.INSTANCE // Handler
+							this, TCPLinkSender.INSTANCE // Handler
 						);
 					}
 				} catch (Exception e) {
@@ -327,31 +324,39 @@ public class TCPLink extends Client {
 		}
 	}
 
-	@Override
 	protected void sent(int size) {
 		if (size > 0) {
 			write.read(size);
-			if (write.readable() > 0) {
-				// 数据未发完,继续发送
-				socket_channel.write(//
-					write.read(), // ByteBuffer
-					handler().getTimeoutWrite(), TimeUnit.MILLISECONDS, // Timeout
-					this, ClientSendHandler.INSTANCE// Handler
-				);
-			} else {
-				// 数据已发完
-				write.release();
-				write = null;
-				// 必须在通知处理对象之前清空当前消息关联
-				// 20250420重置时导致最后发送的消息被置空
-				final Object message = sendMessage;
-				sendMessage = null;
-				try {
+			try {
+				if (write.readable() > 0) {
+					// 数据未发完,继续发送
+					if (connected) {
+						socket_channel.write(//
+							write.read(), // ByteBuffer
+							handler().getTimeoutWrite(), TimeUnit.MILLISECONDS, // Timeout
+							this, TCPLinkSender.INSTANCE// Handler
+						);
+					} else {
+						write.release();
+						write = null;
+					}
+				} else {
+					// 数据已发完
+					write.release();
+					write = null;
+					// 必须在通知处理对象之前清空当前消息关联
+					// 20250420重置时导致最后发送的消息被置空
+					final Object message = sendMessage;
+					sendMessage = null;
 					handler().sent(this, message);
-				} catch (Exception e) {
-					handler().error(this, e);
-					reset();
 				}
+			} catch (Exception e) {
+				if (write != null) {
+					write.release();
+					write = null;
+				}
+				handler().error(this, e);
+				reset();
 			}
 		} else if (size == 0) {
 			// 客户端缓存满会导致零发送
@@ -368,7 +373,6 @@ public class TCPLink extends Client {
 		}
 	}
 
-	@Override
 	protected void sent(Throwable e) {
 		// 发送失败
 		if (write != null) {

@@ -32,6 +32,11 @@ public class DataBufferReader extends Reader {
 	}
 
 	@Override
+	public boolean ready() throws IOException {
+		return buffer.readable() > 0;
+	}
+
+	@Override
 	public int read(char[] chars, int offset, int length) throws IOException {
 		if (offset < 0 || offset >= chars.length) {
 			throw new IndexOutOfBoundsException(offset);

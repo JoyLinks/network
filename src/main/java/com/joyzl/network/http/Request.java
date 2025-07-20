@@ -78,7 +78,7 @@ public class Request extends HTTPMessage {
 				uriQuery = value.indexOf('?', uriHost);
 				uriAnchor = value.indexOf('#', uriHost);
 			} else {
-				uriPath = 0;
+				uriPath = value.indexOf('/');
 				uriQuery = value.indexOf('?');
 				uriAnchor = value.indexOf('#');
 			}

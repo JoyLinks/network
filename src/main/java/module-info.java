@@ -16,4 +16,5 @@ module com.joyzl.network {
 	exports com.joyzl.network.odbs;
 	exports com.joyzl.network.http;
 	exports com.joyzl.network.ftp;
+	exports com.joyzl.network.tls;
 }

@@ -33,7 +33,7 @@ public abstract class ChainChannel extends Chain {
 	public abstract boolean active();
 
 	/**
-	 * 链路接收数据
+	 * 链路开始接收数据
 	 */
 	public abstract void receive();
 

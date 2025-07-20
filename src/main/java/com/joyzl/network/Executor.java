@@ -13,6 +13,9 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import com.joyzl.network.chain.UDPClientReceiver;
+import com.joyzl.network.chain.UDPServerReceiver;
+
 /**
  * 线程池执行器
  *
@@ -52,7 +55,8 @@ public final class Executor {
 
 		try {
 			// 初始化NIO.1线程
-			ChainSelector.initialize();
+			UDPServerReceiver.initialize();
+			UDPClientReceiver.initialize();
 			thead_size -= 3;
 
 			// 初始化NIO.2线程
@@ -69,7 +73,8 @@ public final class Executor {
 	}
 
 	public static final void shutdown() {
-		ChainSelector.shutdown();
+		UDPServerReceiver.shutdown();
+		UDPClientReceiver.shutdown();
 
 		if (CHANNEL_GROUP != null) {
 			// NIO.2 终止并关闭

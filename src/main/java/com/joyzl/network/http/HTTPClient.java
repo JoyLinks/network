@@ -8,7 +8,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.joyzl.network.IndexMap;
 import com.joyzl.network.LinkQueue;
-import com.joyzl.network.chain.ChainGenericsHandler;
+import com.joyzl.network.chain.ChainHandler;
 import com.joyzl.network.chain.ChainType;
 import com.joyzl.network.chain.TCPLink;
 
@@ -22,7 +22,7 @@ public class HTTPClient extends TCPLink {
 
 	private final ReentrantLock k = new ReentrantLock(true);
 
-	public HTTPClient(ChainGenericsHandler<HTTPClient, Message> handler, String host, int port) {
+	public HTTPClient(ChainHandler handler, String host, int port) {
 		super(handler, host, port);
 	}
 

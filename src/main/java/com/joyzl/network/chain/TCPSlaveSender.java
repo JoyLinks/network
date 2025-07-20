@@ -7,22 +7,22 @@ package com.joyzl.network.chain;
 import java.nio.channels.CompletionHandler;
 
 /**
- * WRITE CompletionHandler
+ * NIO.2 WRITE CompletionHandler
  * 
  * @author ZhangXi
  * @date 2023年8月25日
  */
-public class SlaveSendHandler implements CompletionHandler<Integer, Slave> {
+public class TCPSlaveSender implements CompletionHandler<Integer, TCPSlave> {
 
-	final static SlaveSendHandler INSTANCE = new SlaveSendHandler();
+	final static TCPSlaveSender INSTANCE = new TCPSlaveSender();
 
 	@Override
-	public void completed(Integer result, Slave chain) {
+	public void completed(Integer result, TCPSlave chain) {
 		chain.sent(result);
 	}
 
 	@Override
-	public void failed(Throwable e, Slave chain) {
+	public void failed(Throwable e, TCPSlave chain) {
 		chain.sent(e);
 	}
 }

@@ -7,7 +7,7 @@ package com.joyzl.network.http;
 import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
 
-import com.joyzl.network.chain.ChainGenericsHandler;
+import com.joyzl.network.chain.ChainHandler;
 import com.joyzl.network.chain.ChainType;
 import com.joyzl.network.chain.TCPServer;
 
@@ -19,15 +19,15 @@ import com.joyzl.network.chain.TCPServer;
  */
 public class HTTPServer extends TCPServer {
 
-	public HTTPServer(ChainGenericsHandler<HTTPSlave, Message> handler, String host, int port, int backlog) throws IOException {
+	public HTTPServer(ChainHandler handler, String host, int port, int backlog) throws IOException {
 		super(handler, host, port, backlog);
 	}
 
-	public HTTPServer(ChainGenericsHandler<HTTPSlave, Message> handler, String host, int port) throws IOException {
+	public HTTPServer(ChainHandler handler, String host, int port) throws IOException {
 		super(handler, host, port);
 	}
 
-	public HTTPServer(ChainGenericsHandler<HTTPSlave, Message> handler, int port) throws IOException {
+	public HTTPServer(ChainHandler handler, int port) throws IOException {
 		super(handler, null, port);
 	}
 

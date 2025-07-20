@@ -58,9 +58,6 @@ public class TCPServer extends Server {
 		} else {
 			throw new IOException("TCP服务端打开失败，" + key());
 		}
-
-		ChainGroup.add(this);
-		accept();
 	}
 
 	@Override
@@ -95,7 +92,7 @@ public class TCPServer extends Server {
 
 	@Override
 	public void receive() {
-		throw new UnsupportedOperationException();
+		accept();
 	}
 
 	@Override
@@ -106,7 +103,6 @@ public class TCPServer extends Server {
 	@Override
 	public void close() {
 		if (server_socket_channel.isOpen()) {
-			ChainGroup.remove(this);
 			try {
 				server_socket_channel.close();
 				super.close();
@@ -123,16 +119,15 @@ public class TCPServer extends Server {
 
 	////////////////////////////////////////////////////////////////////////////////
 
-	private void accept() {
+	protected void accept() {
 		if (Executor.channelGroup().isShutdown() || Executor.channelGroup().isTerminated()) {
 			return;
 		}
 		if (server_socket_channel.isOpen()) {
-			server_socket_channel.accept(this, ServerAcceptHandler.INSTANCE);
+			server_socket_channel.accept(this, TCPServerAccepter.INSTANCE);
 		}
 	}
 
-	@Override
 	protected void accepted(AsynchronousSocketChannel socket_channel) {
 		try {
 			handler().connected(create(socket_channel));
@@ -143,7 +138,6 @@ public class TCPServer extends Server {
 		}
 	}
 
-	@Override
 	protected void accepted(Throwable e) {
 		if (e instanceof ClosedChannelException) {
 			return;

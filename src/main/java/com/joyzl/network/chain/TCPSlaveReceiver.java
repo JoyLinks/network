@@ -12,17 +12,17 @@ import java.nio.channels.CompletionHandler;
  * @author ZhangXi
  * @date 2023年8月25日
  */
-public class SlaveReceiveHandler implements CompletionHandler<Integer, Slave> {
+public class TCPSlaveReceiver implements CompletionHandler<Integer, TCPSlave> {
 
-	final static SlaveReceiveHandler INSTANCE = new SlaveReceiveHandler();
+	final static TCPSlaveReceiver INSTANCE = new TCPSlaveReceiver();
 
 	@Override
-	public void completed(Integer result, Slave chain) {
+	public void completed(Integer result, TCPSlave chain) {
 		chain.received(result);
 	}
 
 	@Override
-	public void failed(Throwable e, Slave chain) {
+	public void failed(Throwable e, TCPSlave chain) {
 		chain.received(e);
 	}
 }

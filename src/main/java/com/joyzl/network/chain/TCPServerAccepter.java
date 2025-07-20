@@ -8,22 +8,22 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 
 /**
- * ACCEPT CompletionHandler
+ * NIO.2 ACCEPT CompletionHandler
  * 
  * @author ZhangXi
  * @date 2023年8月25日
  */
-public class ServerAcceptHandler implements CompletionHandler<AsynchronousSocketChannel, Server> {
+public class TCPServerAccepter implements CompletionHandler<AsynchronousSocketChannel, TCPServer> {
 
-	final static ServerAcceptHandler INSTANCE = new ServerAcceptHandler();
+	final static TCPServerAccepter INSTANCE = new TCPServerAccepter();
 
 	@Override
-	public void completed(AsynchronousSocketChannel channel, Server server) {
+	public void completed(AsynchronousSocketChannel channel, TCPServer server) {
 		server.accepted(channel);
 	}
 
 	@Override
-	public void failed(Throwable e, Server chain) {
+	public void failed(Throwable e, TCPServer chain) {
 		// completed()方法抛出的异常不会到达此方法
 		// 连接不成功通道处于关闭状态isOpen()为false
 		chain.accepted(e);

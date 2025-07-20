@@ -10,7 +10,7 @@ import java.net.SocketAddress;
 import com.joyzl.network.Point;
 
 /**
- * UDP通道
+ * UDP从链路，由UDPServer创建，记录对端地址
  *
  * @author ZhangXi 2019年7月9日
  *
@@ -54,48 +54,29 @@ public class UDPSlave extends Slave {
 	}
 
 	@Override
-	protected void received(int size) {
-	}
-
-	@Override
-	protected void received(Throwable e) {
-	}
-
-	@Override
 	public void send(Object message) {
-		try {
-			((UDPServer) server()).send(this, message);
-		} catch (IOException e) {
-			sent(e);
-		}
+		((UDPServer) server()).send(this, message);
 	}
 
 	@Override
-	protected void sent(int size) {
-	}
-
-	@Override
-	protected void sent(Throwable e) {
-	}
-
-	@Override
-	public void close() {
-		server().offSlave(this);
+	public void reset() {
 		// UDP从连接与UDP Server共用通道,因此不能关闭通道
 		try {
 			handler().disconnected(this);
 		} catch (Exception e) {
 			handler().error(this, e);
+		} finally {
+			((UDPServer) server()).close(this);
 		}
+	}
+
+	@Override
+	public void close() {
+		reset();
 		try {
 			clearContext();
 		} catch (IOException e) {
 			handler().error(this, e);
 		}
-	}
-
-	@Override
-	public void reset() {
-		close();
 	}
 }

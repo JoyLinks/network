@@ -24,15 +24,6 @@ public abstract class Client extends ChainChannel {
 		return handler;
 	}
 
-	protected abstract void connected();
-
-	protected abstract void connected(Throwable e);
-
-	protected abstract void received(int size);
-
-	protected abstract void received(Throwable e);
-
-	protected abstract void sent(int size);
-
-	protected abstract void sent(Throwable e);
+	/** 连接 */
+	public abstract void connect();
 }

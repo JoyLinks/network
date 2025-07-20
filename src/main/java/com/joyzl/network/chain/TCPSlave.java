@@ -107,14 +107,13 @@ public class TCPSlave extends Slave {
 					socketChannel.read(//
 						read.write(), // ByteBuffer
 						handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
-						this, SlaveReceiveHandler.INSTANCE // Handler
+						this, TCPSlaveReceiver.INSTANCE // Handler
 					);
 				}
 			}
 		}
 	}
 
-	@Override
 	protected void received(int size) {
 		if (size > 0) {
 			read.written(size);
@@ -149,7 +148,7 @@ public class TCPSlave extends Slave {
 					socketChannel.read(//
 						read.write(), // ByteBuffer
 						handler().getTimeoutRead(), TimeUnit.MILLISECONDS, // Timeout
-						this, SlaveReceiveHandler.INSTANCE // Handler
+						this, TCPSlaveReceiver.INSTANCE // Handler
 					);
 				} else {
 					read.release();
@@ -177,7 +176,6 @@ public class TCPSlave extends Slave {
 		}
 	}
 
-	@Override
 	protected void received(Throwable e) {
 		// 读取失败
 		if (read != null) {
@@ -235,7 +233,7 @@ public class TCPSlave extends Slave {
 						socketChannel.write(//
 							write.read(), // ByteBuffer
 							handler().getTimeoutWrite(), TimeUnit.MILLISECONDS, // Timeout
-							this, SlaveSendHandler.INSTANCE // Handler
+							this, TCPSlaveSender.INSTANCE // Handler
 						);
 					}
 				} catch (Exception e) {
@@ -254,30 +252,38 @@ public class TCPSlave extends Slave {
 		}
 	}
 
-	@Override
 	protected void sent(int size) {
 		if (size > 0) {
 			write.read(size);
-			if (write.readable() > 0) {
-				// 数据未发完,继续发送
-				socketChannel.write(//
-					write.read(), // ByteBuffer
-					handler().getTimeoutWrite(), TimeUnit.MILLISECONDS, // Timeout
-					this, SlaveSendHandler.INSTANCE// Handler
-				);
-			} else {
-				// 数据已发完
-				// 必须在通知处理对象之前清空当前消息关联
-				write.release();
-				write = null;
-				final Object message = sendMessage;
-				sendMessage = null;
-				try {
+			try {
+				if (write.readable() > 0) {
+					// 数据未发完,继续发送
+					if (connected) {
+						socketChannel.write(//
+							write.read(), // ByteBuffer
+							handler().getTimeoutWrite(), TimeUnit.MILLISECONDS, // Timeout
+							this, TCPSlaveSender.INSTANCE// Handler
+						);
+					} else {
+						write.release();
+						write = null;
+					}
+				} else {
+					// 数据已发完
+					// 必须在通知处理对象之前清空当前消息关联
+					write.release();
+					write = null;
+					final Object message = sendMessage;
+					sendMessage = null;
 					handler().sent(this, message);
-				} catch (Exception e) {
-					handler().error(this, e);
-					close();
 				}
+			} catch (Exception e) {
+				if (write != null) {
+					write.release();
+					write = null;
+				}
+				handler().error(this, e);
+				close();
 			}
 		} else if (size == 0) {
 			// 客户端缓存满会导致零发送
@@ -294,7 +300,6 @@ public class TCPSlave extends Slave {
 		}
 	}
 
-	@Override
 	protected void sent(Throwable e) {
 		// 发送失败
 		if (write != null) {
