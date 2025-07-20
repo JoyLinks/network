@@ -14,11 +14,11 @@ import java.util.regex.Pattern;
 /**
  * 通信接点
  * <p>
- * IP接点格式[IP/HOST:PORT],"[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:8000"/"192.168.0.1:8000"/"www.joyzl.net:1030"/"Localhost:8000"
+ * IP接点格式[IP/HOST:PORT],"[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:8000","192.168.0.1:8000","www.joyzl.net:1030","Localhost:8000"
  * </p>
  * 
  * <p>
- * 串口接点格式[NAME:BAUD.DATA.STOP.PARITY],"COM3:9600.8.1.0"/"/dev/ttyS0:19200.8.1.1"<br>
+ * 串口接点格式[NAME:BAUD.DATA.STOP.PARITY],"COM3:9600.8.1.0","/dev/ttyS0:19200.8.1.1"<br>
  * 串口值定义<br>
  * 波特率(baud_rate):110,300,600,1200,4800,9600,14400,19200,38400,57600,115200,128000,256000<br>
  * 数据位(data bits):8,7,6,5<br>
@@ -41,7 +41,7 @@ public final class Point {
 	public final static Pattern PATTERN_IP_CLIENT = Pattern.compile("[\\w,.,:,[,]]+:\\d+");
 	/** IP接点格式 "8000" */
 	public final static Pattern PATTERN_IP_SERVER = Pattern.compile("\\d+");
-	/** 串口接点格式 "COM3:9600.8.1.0" / "/dev/ttyS0:19200.8.1.1" */
+	/** 串口接点格式 "COM3:9600.8.1.0", "/dev/ttyS0:19200.8.1.1" */
 	public final static Pattern PATTERN_SERIAL_PORT = Pattern.compile("[\\w,//]+:\\d{3,6}.\\d{1}.\\d{1}.\\d{1}");
 
 	public final static boolean isSerialPort(String point) {
@@ -54,20 +54,6 @@ public final class Point {
 
 	public final static boolean isIPServer(String point) {
 		return PATTERN_IP_SERVER.matcher(point).matches();
-	}
-
-	/**
-	 * 获取指定接点的唯一标识
-	 * 
-	 * @param point
-	 */
-	public final static long getID(String point) {
-		// IPv4 255.255.255.255:65535, 4Byte+2Byte
-		// IPv6 [ABCD:EF01:2345:6789:ABCD:EF01:2345:6789]:65535, 16Byte+2Byte
-		// Server 65535
-		// COM 不支持
-
-		return 0;
 	}
 
 	/**
@@ -85,39 +71,22 @@ public final class Point {
 	}
 
 	/**
-	 * 获取主机
-	 * 
-	 * @param SocketAddress
-	 * @return 返回IP/主机名
-	 */
-	public final static String getHost(SocketAddress address) {
-		if (address instanceof InetSocketAddress) {
-			return ((InetSocketAddress) address).getHostString();
-		}
-		throw new UnsupportedAddressTypeException();
-	}
-
-	/**
 	 * 获取端口
 	 * 
 	 * @param point
 	 * @return 如果是客户端/服务端返回端口号,如果是串口返回波特率
 	 */
 	public final static int getPort(String point) {
-		int index = point.lastIndexOf(SP);
-		if (index > 0) {
-			point = point.substring(index + 1);
-			// 串口可能存在多个分段
-			index = point.indexOf(DOT);
-			if (index > 0) {
-				point = point.substring(0, index);
+		int end, begin = point.lastIndexOf(SP);
+		if (begin > 0) {
+			end = point.indexOf(DOT, begin);
+			if (end < 0) {
+				end = point.length();
 			}
+		} else {
+			end = point.length();
 		}
-		try {
-			return Integer.parseInt(point);
-		} catch (NumberFormatException e) {
-			return 0;
-		}
+		return Integer.parseUnsignedInt(point, begin, end, 10);
 	}
 
 	/**
@@ -127,16 +96,12 @@ public final class Point {
 	 * @return 如果接点不是串口或未指定则返回0
 	 */
 	public final static int getBaudRate(String point) {
-		int index = point.lastIndexOf(SP);
-		if (index > 0) {
-			point = point.substring(index + 1);
-			String[] items = point.split(DOTS);
-			if (items.length == 4) {
-				try {
-					return Integer.parseInt(items[0]);
-				} catch (NumberFormatException e) {
-					return 0;
-				}
+		// COM3:9600.8.1.0
+		int begin = point.lastIndexOf(SP);
+		if (begin > 0) {
+			int end = point.indexOf(DOT, begin);
+			if (end > begin) {
+				return Integer.parseUnsignedInt(point, begin, end, 10);
 			}
 		}
 		return 0;
@@ -149,15 +114,15 @@ public final class Point {
 	 * @return 如果接点不是串口或未指定则返回0
 	 */
 	public final static int getDataBits(String point) {
-		int index = point.lastIndexOf(SP);
-		if (index > 0) {
-			point = point.substring(index + 1);
-			String[] items = point.split(DOTS);
-			if (items.length == 4) {
-				try {
-					return Integer.parseInt(items[1]);
-				} catch (NumberFormatException e) {
-					return 0;
+		// COM3:9600.8.1.0
+		int begin = point.lastIndexOf(SP);
+		if (begin > 0) {
+			int end = point.indexOf(DOT, begin);
+			if (end > begin) {
+				begin = end + 1;
+				end = point.indexOf(DOT, begin);
+				if (end > begin) {
+					return Integer.parseUnsignedInt(point, begin, end, 10);
 				}
 			}
 		}
@@ -171,15 +136,19 @@ public final class Point {
 	 * @return 如果接点不是串口或未指定则返回0
 	 */
 	public final static int getStopBits(String point) {
-		int index = point.lastIndexOf(SP);
-		if (index > 0) {
-			point = point.substring(index + 1);
-			String[] items = point.split(DOTS);
-			if (items.length == 4) {
-				try {
-					return Integer.parseInt(items[2]);
-				} catch (NumberFormatException e) {
-					return 0;
+		// COM3:9600.8.1.0
+		int begin = point.lastIndexOf(SP);
+		if (begin > 0) {
+			int end = point.indexOf(DOT, begin);
+			if (end > begin) {
+				begin = end + 1;
+				end = point.indexOf(DOT, begin);
+				if (end > begin) {
+					begin = end + 1;
+					end = point.indexOf(DOT, begin);
+					if (end > begin) {
+						return Integer.parseUnsignedInt(point, begin, end, 10);
+					}
 				}
 			}
 		}
@@ -193,43 +162,27 @@ public final class Point {
 	 * @return 如果接点不是串口或未指定则返回0
 	 */
 	public final static int getParity(String point) {
-		int index = point.lastIndexOf(SP);
-		if (index > 0) {
-			point = point.substring(index + 1);
-			String[] items = point.split(DOTS);
-			if (items.length == 4) {
-				try {
-					return Integer.parseInt(items[3]);
-				} catch (NumberFormatException e) {
-					return 0;
+		// COM3:9600.8.1.0
+		int begin = point.lastIndexOf(SP);
+		if (begin > 0) {
+			int end = point.indexOf(DOT, begin);
+			if (end > begin) {
+				begin = end + 1;
+				end = point.indexOf(DOT, begin);
+				if (end > begin) {
+					begin = end + 1;
+					end = point.indexOf(DOT, begin);
+					if (end > begin) {
+						return Integer.parseUnsignedInt(point, end, point.length(), 10);
+					}
 				}
 			}
 		}
 		return 0;
 	}
 
-	public final static String getPoint(byte[] ip, int port) throws UnknownHostException {
-		final InetAddress address = InetAddress.getByAddress(ip);
-		return address.getHostAddress() + SP + port;
-	}
-
-	public final static String getPoint(InetAddress address, int port) {
-		return address.getHostAddress() + SP + port;
-	}
-
-	public final static String getPoint(SocketAddress address) {
-		if (address instanceof InetSocketAddress) {
-			return getPoint((InetSocketAddress) address);
-		}
-		throw new UnsupportedAddressTypeException();
-	}
-
-	public final static String getPoint(InetSocketAddress address) {
-		return address.getAddress().getHostAddress() + SP + address.getPort();
-	}
-
-	public final static String getPoint(String port, int baudrates, int databits, int stopbits, int parities) {
-		return port + SP + baudrates + DOT + databits + DOT + stopbits + DOT + parities;
+	public final static String getPoint(int port) {
+		return Integer.toString(port);
 	}
 
 	public final static String getPoint(String host, int port) {
@@ -239,7 +192,27 @@ public final class Point {
 		return host + SP + port;
 	}
 
-	public final static String getPoint(int port) {
-		return Integer.toString(port);
+	public final static String getPoint(byte[] ip, int port) throws UnknownHostException {
+		final InetAddress address = InetAddress.getByAddress(ip);
+		return address.getHostAddress() + SP + port;
+	}
+
+	public final static String getPoint(String port, int baudrates, int databits, int stopbits, int parities) {
+		return port + SP + baudrates + DOT + databits + DOT + stopbits + DOT + parities;
+	}
+
+	public final static String getPoint(InetAddress address, int port) {
+		return address.getHostAddress() + SP + port;
+	}
+
+	public final static String getPoint(SocketAddress address) {
+		if (address instanceof InetSocketAddress isa) {
+			return getPoint(isa);
+		}
+		throw new UnsupportedAddressTypeException();
+	}
+
+	public final static String getPoint(InetSocketAddress address) {
+		return address.getAddress().getHostAddress() + SP + address.getPort();
 	}
 }
