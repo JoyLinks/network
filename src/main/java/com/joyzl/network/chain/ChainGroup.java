@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author simon(ZhangXi TEL : 13883833982) 2019年7月9日
  *
  */
+@Deprecated
 public final class ChainGroup {
 
 	private final static Map<String, Server> SERVERS = new ConcurrentHashMap<>();
@@ -92,7 +93,7 @@ public final class ChainGroup {
 		for (Server s : SERVERS.values()) {
 			if (s.type() == server) {
 				if (s.active()) {
-					for (Slave slave : s.getSlaves()) {
+					for (Slave slave : s.slaves()) {
 						if (slave.active()) {
 							slave.send(message);
 							size++;
@@ -119,7 +120,7 @@ public final class ChainGroup {
 		for (Server s : SERVERS.values()) {
 			if (s.type() == server) {
 				if (s.active()) {
-					for (Slave slave : s.getSlaves()) {
+					for (Slave slave : s.slaves()) {
 						if (slave.active() && slave.getToken() != null) {
 							slave.send(message);
 							size++;
@@ -147,7 +148,7 @@ public final class ChainGroup {
 		for (Server s : SERVERS.values()) {
 			if (s.type() == server) {
 				if (s.active()) {
-					for (Slave slave : s.getSlaves()) {
+					for (Slave slave : s.slaves()) {
 						if (slave.active() && slave != exclude && slave.getToken() != null) {
 							slave.send(message);
 							size++;

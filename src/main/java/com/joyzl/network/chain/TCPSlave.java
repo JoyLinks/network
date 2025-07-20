@@ -47,7 +47,6 @@ public class TCPSlave extends Slave {
 		socketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.TRUE);
 		socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.TRUE);
 		remote = channel.getRemoteAddress();
-		server.addSlave(this);
 	}
 
 	@Override
@@ -336,7 +335,7 @@ public class TCPSlave extends Slave {
 			}
 
 			if (socketChannel.isOpen()) {
-				server().offSlave(this);
+				((TCPServer) server()).close(this);
 				try {
 					socketChannel.shutdownOutput();
 					socketChannel.shutdownInput();

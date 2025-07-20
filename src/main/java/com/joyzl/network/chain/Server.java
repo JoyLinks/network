@@ -4,24 +4,18 @@
  */
 package com.joyzl.network.chain;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 链路服务端
- * 
- * @param <C> 从链路类型
- * @param <M> 消息类型
  * 
  * @author ZhangXi
  * @date 2021年4月6日
  */
 public abstract class Server extends ChainChannel {
 
-	/** 从链路 */
-	private final ConcurrentHashMap<String, Slave> slaves = new ConcurrentHashMap<>();
 	/** 消息处理对象 */
 	private final ChainHandler handler;
 
@@ -34,39 +28,50 @@ public abstract class Server extends ChainChannel {
 		return handler;
 	}
 
-	protected void addSlave(Slave chain) {
-		chain = slaves.put(chain.key(), chain);
-		if (chain != null) {
-			chain.close();
-		}
-	}
+	/**
+	 * 通过字符串形式的主机名或地址查找链路
+	 * 
+	 * @param host 地址或主机名
+	 * @return Slave / null
+	 */
+	public Slave findSlave(String host) {
+		// InetSocketAddress.getHostName:windows10.microdone.cn
+		// InetSocketAddress.getHostString:windows10.microdone.cn
+		// InetSocketAddress.getPort:52777
+		// InetAddress.getCanonicalHostName:windows10.microdone.cn
+		// InetAddress.getHostAddress:192.168.2.12
+		// InetAddress.getHostName:windows10.microdone.cn
 
-	protected void offSlave(Slave chain) {
-		if (slaves.remove(chain.key(), chain)) {
-		} else {
-			if (slaves.containsValue(chain)) {
-				if (slaves.values().remove(chain)) {
-					throw new RuntimeException("移除链路失败:" + chain);
-				}
+		InetSocketAddress isa;
+		for (Slave slave : slaves()) {
+			isa = (InetSocketAddress) slave.getRemoteAddress();
+			if (host.equals(isa.getAddress().getHostAddress())) {
+				return slave;
+			}
+			if (host.equals(isa.getHostName())) {
+				return slave;
 			}
 		}
+		return null;
 	}
 
-	public Slave getSlave(String key) {
-		return slaves.get(key);
-	}
-
-	public Collection<Slave> getSlaves() {
-		return slaves.values();
-	}
-
-	@Override
-	public void close() {
-		// 关闭并移除所有从链路
-		final Iterator<Entry<String, Slave>> iterator = slaves.entrySet().iterator();
-		while (iterator.hasNext()) {
-			iterator.next().getValue().close();
-			iterator.remove();
+	/**
+	 * 通过地址查找链路
+	 * 
+	 * @param address 远端地址
+	 * @return Slave / null
+	 */
+	public Slave findSlave(InetAddress address) {
+		InetSocketAddress isa;
+		for (Slave slave : slaves()) {
+			isa = (InetSocketAddress) slave.getRemoteAddress();
+			if (address.equals(isa.getAddress())) {
+				return slave;
+			}
 		}
+		return null;
 	}
+
+	/** 获取服务端所有已连接链路 */
+	public abstract Collection<Slave> slaves();
 }

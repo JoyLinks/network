@@ -9,6 +9,8 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.joyzl.network.Point;
@@ -191,5 +193,10 @@ public class UDPServer extends Server {
 	public void reset() {
 		UDPServerReceiver.unRegister(this, datagram_channel);
 		slaves.clear();
+	}
+
+	@Override
+	public Collection<Slave> slaves() {
+		return Collections.unmodifiableCollection(slaves.values());
 	}
 }

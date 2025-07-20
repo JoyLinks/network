@@ -51,10 +51,8 @@ public class TCPClient extends TCPLink {
 	 */
 	public TCPClient(ChainHandler handler, String host, int port) {
 		super(handler, host, port);
-
 		// 每秒触发检查重连和心跳以及超时
 		future = Executor.scheduleAtFixedRate(TASK, 1, 1, TimeUnit.SECONDS);
-		ChainGroup.add(this);
 	}
 
 	@Override
@@ -86,7 +84,6 @@ public class TCPClient extends TCPLink {
 	@Override
 	public void close() {
 		super.close();
-		ChainGroup.remove(this);
 		future.cancel(false);
 	}
 

@@ -11,6 +11,11 @@ import java.net.StandardSocketOptions;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.ClosedChannelException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.joyzl.network.Executor;
 import com.joyzl.network.Point;
@@ -28,6 +33,8 @@ public class TCPServer extends Server {
 
 	private final SocketAddress local;
 	private final AsynchronousServerSocketChannel server_socket_channel;
+	/** 从链路 */
+	private final ConcurrentHashMap<SocketAddress, Slave> slaves = new ConcurrentHashMap<>();
 
 	public TCPServer(ChainHandler handler, String host, int port) throws IOException {
 		this(handler, host, port, BACKLOG);
@@ -97,7 +104,12 @@ public class TCPServer extends Server {
 
 	@Override
 	public void reset() {
-		close();
+		// 关闭并移除所有从链路
+		final Iterator<Entry<SocketAddress, Slave>> iterator = slaves.entrySet().iterator();
+		while (iterator.hasNext()) {
+			iterator.next().getValue().close();
+			iterator.remove();
+		}
 	}
 
 	@Override
@@ -105,7 +117,6 @@ public class TCPServer extends Server {
 		if (server_socket_channel.isOpen()) {
 			try {
 				server_socket_channel.close();
-				super.close();
 			} catch (IOException e) {
 				handler().error(this, e);
 			}
@@ -115,6 +126,11 @@ public class TCPServer extends Server {
 				handler().error(this, e);
 			}
 		}
+	}
+
+	@Override
+	public Collection<Slave> slaves() {
+		return Collections.unmodifiableCollection(slaves.values());
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
@@ -130,7 +146,12 @@ public class TCPServer extends Server {
 
 	protected void accepted(AsynchronousSocketChannel socket_channel) {
 		try {
-			handler().connected(create(socket_channel));
+			Slave slave = create(socket_channel);
+			Slave sprev = slaves.put(slave.getRemoteAddress(), slave);
+			handler().connected(slave);
+			if (sprev != null) {
+				sprev.close();
+			}
 		} catch (Exception e) {
 			handler().error(this, e);
 		} finally {
@@ -149,4 +170,9 @@ public class TCPServer extends Server {
 	protected Slave create(AsynchronousSocketChannel socket_channel) throws Exception {
 		return new TCPSlave(this, socket_channel);
 	}
+
+	protected void close(TCPSlave slave) {
+		slaves.remove(slave.getRemoteAddress(), slave);
+	}
+
 }
