@@ -14,7 +14,9 @@ import java.util.regex.Pattern;
 /**
  * 通信接点
  * <p>
- * IP接点格式[IP/HOST:PORT],"[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:8000","192.168.0.1:8000","www.joyzl.net:1030","Localhost:8000"
+ * IP接点格式
+ * [IP/HOST:PORT],"[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:8000","[5135:2419:8210:3011::5000]:8000"
+ * "192.168.0.1:8000","www.joyzl.net:1030","Localhost:8000"
  * </p>
  * 
  * <p>
@@ -79,7 +81,7 @@ public final class Point {
 	public final static int getPort(String point) {
 		int end, begin = point.lastIndexOf(SP);
 		if (begin > 0) {
-			end = point.indexOf(DOT, begin);
+			end = point.indexOf(DOT, begin += 1);
 			if (end < 0) {
 				end = point.length();
 			}
@@ -99,7 +101,7 @@ public final class Point {
 		// COM3:9600.8.1.0
 		int begin = point.lastIndexOf(SP);
 		if (begin > 0) {
-			int end = point.indexOf(DOT, begin);
+			int end = point.indexOf(DOT, begin += 1);
 			if (end > begin) {
 				return Integer.parseUnsignedInt(point, begin, end, 10);
 			}
@@ -173,7 +175,7 @@ public final class Point {
 					begin = end + 1;
 					end = point.indexOf(DOT, begin);
 					if (end > begin) {
-						return Integer.parseUnsignedInt(point, end, point.length(), 10);
+						return Integer.parseUnsignedInt(point, end + 1, point.length(), 10);
 					}
 				}
 			}

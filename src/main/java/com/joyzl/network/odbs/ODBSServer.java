@@ -7,7 +7,6 @@ package com.joyzl.network.odbs;
 import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
 
-import com.joyzl.network.chain.ChainType;
 import com.joyzl.network.chain.Slave;
 import com.joyzl.network.chain.TCPServer;
 
@@ -21,11 +20,6 @@ public class ODBSServer extends TCPServer {
 
 	public ODBSServer(ODBSServerHandler<?> handler, String host, int port) throws IOException {
 		super(handler, host, port);
-	}
-
-	@Override
-	public ChainType type() {
-		return ChainType.TCP_ODBS_SERVER;
 	}
 
 	@Override

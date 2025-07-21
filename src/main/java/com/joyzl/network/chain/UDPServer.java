@@ -31,7 +31,7 @@ public class UDPServer extends Server {
 	private final ConcurrentHashMap<SocketAddress, UDPSlave> slaves = new ConcurrentHashMap<>();
 
 	public UDPServer(ChainHandler handler, String host, int port) throws IOException {
-		super(handler, Point.getPoint(host, port));
+		super(handler);
 
 		if (host == null || host.length() == 0) {
 			address = new InetSocketAddress(port);
@@ -44,7 +44,7 @@ public class UDPServer extends Server {
 			datagram_channel.configureBlocking(false);
 			datagram_channel.bind(address);
 		} else {
-			throw new IOException("UDPServer:打开失败" + key());
+			throw new IOException("UDPServer:打开失败 " + Point.getPoint(host, port));
 		}
 	}
 
@@ -59,7 +59,7 @@ public class UDPServer extends Server {
 	}
 
 	@Override
-	public String getPoint() {
+	public String point() {
 		return Point.getPoint(address);
 	}
 
@@ -130,11 +130,6 @@ public class UDPServer extends Server {
 				buffer.release();
 			}
 		}
-	}
-
-	@Override
-	public void send(Object message) {
-
 	}
 
 	protected void send(UDPSlave slave, Object message) {

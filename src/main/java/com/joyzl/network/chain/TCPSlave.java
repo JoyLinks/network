@@ -42,7 +42,8 @@ public class TCPSlave extends Slave {
 	private volatile boolean connected = true;
 
 	public TCPSlave(TCPServer server, AsynchronousSocketChannel channel) throws IOException {
-		super(server, Point.getPoint(channel.getRemoteAddress()));
+		super(server);
+
 		socketChannel = channel;
 		socketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.TRUE);
 		socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.TRUE);
@@ -60,7 +61,7 @@ public class TCPSlave extends Slave {
 	}
 
 	@Override
-	public String getPoint() {
+	public String point() {
 		return Point.getPoint(remote);
 	}
 

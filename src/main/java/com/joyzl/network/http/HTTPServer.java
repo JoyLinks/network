@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.nio.channels.AsynchronousSocketChannel;
 
 import com.joyzl.network.chain.ChainHandler;
-import com.joyzl.network.chain.ChainType;
 import com.joyzl.network.chain.TCPServer;
 
 /**
@@ -29,11 +28,6 @@ public class HTTPServer extends TCPServer {
 
 	public HTTPServer(ChainHandler handler, int port) throws IOException {
 		super(handler, null, port);
-	}
-
-	@Override
-	public ChainType type() {
-		return ChainType.TCP_HTTP_SERVER;
 	}
 
 	@Override

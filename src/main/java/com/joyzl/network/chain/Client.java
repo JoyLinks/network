@@ -16,7 +16,6 @@ public abstract class Client extends ChainChannel {
 	private final ChainHandler handler;
 
 	public Client(ChainHandler h) {
-		super(Long.toString(System.currentTimeMillis() + System.nanoTime(), Character.MAX_RADIX));
 		handler = h;
 	}
 

@@ -21,10 +21,6 @@ import java.net.SocketAddress;
  */
 public abstract class ChainChannel extends Chain {
 
-	public ChainChannel(String k) {
-		super(k);
-	}
-
 	/**
 	 * 链路是否处于活动状态
 	 *

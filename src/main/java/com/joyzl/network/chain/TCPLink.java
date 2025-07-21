@@ -60,7 +60,7 @@ public class TCPLink extends Client {
 
 	@Override
 	public ChainType type() {
-		return ChainType.TCP_SHORT;
+		return ChainType.TCP_CLIENT;
 	}
 
 	@Override
@@ -69,7 +69,7 @@ public class TCPLink extends Client {
 	}
 
 	@Override
-	public String getPoint() {
+	public String point() {
 		return Point.getPoint(remote);
 	}
 

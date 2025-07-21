@@ -41,7 +41,7 @@ public class TCPServer extends Server {
 	}
 
 	public TCPServer(ChainHandler handler, String host, int port, int backlog) throws IOException {
-		super(handler, Point.getPoint(host, port));
+		super(handler);
 
 		server_socket_channel = AsynchronousServerSocketChannel.open(Executor.channelGroup());
 		if (server_socket_channel.isOpen()) {
@@ -63,7 +63,7 @@ public class TCPServer extends Server {
 				local = server_socket_channel.getLocalAddress();
 			}
 		} else {
-			throw new IOException("TCP服务端打开失败，" + key());
+			throw new IOException("TCPServer:打开失败 " + Point.getPoint(host, port));
 		}
 	}
 
@@ -78,7 +78,7 @@ public class TCPServer extends Server {
 	}
 
 	@Override
-	public String getPoint() {
+	public String point() {
 		return Point.getPoint(local);
 	}
 
@@ -90,11 +90,6 @@ public class TCPServer extends Server {
 	@Override
 	public SocketAddress getRemoteAddress() {
 		return null;
-	}
-
-	@Override
-	public void send(Object source) {
-		throw new UnsupportedOperationException();
 	}
 
 	@Override

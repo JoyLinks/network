@@ -9,7 +9,6 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.joyzl.network.LinkQueue;
-import com.joyzl.network.chain.ChainType;
 import com.joyzl.network.chain.TCPSlave;
 
 /**
@@ -24,11 +23,6 @@ public class HTTPSlave extends TCPSlave {
 
 	public HTTPSlave(HTTPServer server, AsynchronousSocketChannel channel) throws IOException {
 		super(server, channel);
-	}
-
-	@Override
-	public ChainType type() {
-		return ChainType.TCP_HTTP_SLAVE;
 	}
 
 	// HTTP2

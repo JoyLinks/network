@@ -9,7 +9,6 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.joyzl.network.IndexMap;
-import com.joyzl.network.chain.ChainType;
 import com.joyzl.network.chain.TCPSlave;
 
 /**
@@ -37,11 +36,6 @@ public class ODBSSlave extends TCPSlave {
 			id = 2;
 		}
 		return i;
-	}
-
-	@Override
-	public ChainType type() {
-		return ChainType.TCP_ODBS_SLAVE;
 	}
 
 	@Override

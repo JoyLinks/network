@@ -17,8 +17,7 @@ public class ChainEmpty extends ChainChannel {
 
 	private final ChainHandler handler;
 
-	public ChainEmpty(ChainHandler h, String k) {
-		super(k);
+	public ChainEmpty(ChainHandler h) {
 		handler = h;
 		connect();
 	}
@@ -84,7 +83,7 @@ public class ChainEmpty extends ChainChannel {
 	}
 
 	@Override
-	public String getPoint() {
+	public String point() {
 		return null;
 	}
 

@@ -7,7 +7,6 @@ package com.joyzl.network.odbs;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.joyzl.network.IndexMap;
-import com.joyzl.network.chain.ChainType;
 import com.joyzl.network.chain.TCPClient;
 
 /**
@@ -35,11 +34,6 @@ public class ODBSClient extends TCPClient {
 			id = 2;
 		}
 		return i;
-	}
-
-	@Override
-	public ChainType type() {
-		return ChainType.TCP_ODBS_CLIENT;
 	}
 
 	@Override

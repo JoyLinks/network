@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 
 class TestChainContext {
 
-	private Chain chain = new Chain(null) {
+	private Chain chain = new Chain() {
 		@Override
 		public ChainType type() {
 			return null;
@@ -25,7 +25,7 @@ class TestChainContext {
 		}
 
 		@Override
-		public String getPoint() {
+		public String point() {
 			return null;
 		}
 

@@ -20,7 +20,7 @@ public class UDPSlave extends Slave {
 	private final SocketAddress remote_address;
 
 	public UDPSlave(UDPServer server, SocketAddress address) {
-		super(server, Point.getPoint(address));
+		super(server);
 		remote_address = address;
 	}
 
@@ -35,7 +35,7 @@ public class UDPSlave extends Slave {
 	}
 
 	@Override
-	public String getPoint() {
+	public String point() {
 		return Point.getPoint(remote_address);
 	}
 

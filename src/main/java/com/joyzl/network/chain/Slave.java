@@ -5,7 +5,7 @@
 package com.joyzl.network.chain;
 
 /**
- * 链路客户端
+ * 从链路
  * 
  * @author ZhangXi
  * @date 2021年4月6日
@@ -14,8 +14,7 @@ public abstract class Slave extends ChainChannel {
 
 	private final Server server;
 
-	public Slave(Server s, String k) {
-		super(k);
+	public Slave(Server s) {
 		server = s;
 	}
 

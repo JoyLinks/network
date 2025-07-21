@@ -15,33 +15,10 @@ import java.io.IOException;
  */
 public abstract class Chain {
 
-	// 链路标识
-	private final String key;
 	// 链路类型，由业务类型指定
 	private volatile int type;
 	// 链路令牌
 	private volatile String token;
-
-	/**
-	 * 创建新链路
-	 *
-	 * @param h 链路的数据处理对象
-	 * @param k 链路连接接点标识
-	 */
-	public Chain(String k) {
-		key = k;
-	}
-
-	/**
-	 * 链路标识KEY
-	 * <p>
-	 * 在同一类型链路中，KEY唯一标识一个链路接点，例如：TCP链路中的192.168.0.1:1031
-	 *
-	 * @return String
-	 */
-	public final String key() {
-		return key;
-	}
 
 	/**
 	 * 链路类型
@@ -49,6 +26,11 @@ public abstract class Chain {
 	 * @return {@link ChainType}
 	 */
 	public abstract ChainType type();
+
+	/**
+	 * 获取链路接点
+	 */
+	public abstract String point();
 
 	/**
 	 * 重置链路
@@ -80,11 +62,6 @@ public abstract class Chain {
 	}
 
 	/**
-	 * 获取链路接点
-	 */
-	public abstract String getPoint();
-
-	/**
 	 * 获取链路关联的令牌
 	 */
 	public String getToken() {
@@ -100,7 +77,7 @@ public abstract class Chain {
 
 	@Override
 	public String toString() {
-		return this.getClass().getSimpleName() + " " + key();
+		return this.getClass().getSimpleName() + " " + point();
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
