@@ -4,7 +4,7 @@
  */
 package com.joyzl.network.odbs;
 
-import com.joyzl.network.chain.Chain;
+import com.joyzl.network.chain.ChainChannel;
 
 /**
  * ODBS Message 提供消息状态
@@ -15,7 +15,7 @@ import com.joyzl.network.chain.Chain;
 public abstract class ODBSMessage {
 
 	private int tag = 0, status = EXECUTE;
-	private Chain chain = null;
+	private ChainChannel chain = null;
 
 	/** 消息标识 */
 	public int tag() {
@@ -31,14 +31,14 @@ public abstract class ODBSMessage {
 	 * 主动请求方发送的消息携带着消息的本地序列标识，回复给请求者时需要原样返回序列标识；
 	 * 如果消息需要同时发送给其它链路（群发给非发起方），此时本地序列应忽略。
 	 */
-	public Chain chain() {
+	public ChainChannel chain() {
 		return chain;
 	}
 
 	/**
 	 * 接收数据并解析完成后，设置消息的来源链路，此链路表示此消息来源
 	 */
-	void chain(Chain value) {
+	void chain(ChainChannel value) {
 		chain = value;
 	}
 
