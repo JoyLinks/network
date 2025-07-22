@@ -14,7 +14,7 @@ import com.joyzl.network.chain.ChainChannel;
  */
 public abstract class ODBSMessage {
 
-	private int tag = 0, status = EXECUTE;
+	private int tag = 0;
 	private ChainChannel chain = null;
 
 	/** 消息标识 */
@@ -40,47 +40,5 @@ public abstract class ODBSMessage {
 	 */
 	void chain(ChainChannel value) {
 		chain = value;
-	}
-
-	/** 状态：待执行 */
-	public static final int EXECUTE = 0;
-	/** 状态：已转发 */
-	public static final int FORWARD = 1;
-	/** 状态：成功 */
-	public static final int SUCCESS = 2;
-	/** 状态：网络 */
-	public static final int NETWORK = 3;
-	/** 状态：超时 */
-	public final static int TIMEOUT = 4;
-	/** 状态：失败 */
-	public static final int FAILURE = 5;
-
-	public void setStatus(int value) {
-		status = value;
-	}
-
-	public int getStatus() {
-		return status;
-	}
-
-	/**
-	 * 是否待执行，EXECUTE和FORWARD均为待执行
-	 */
-	public final boolean execution() {
-		return status == EXECUTE || status == FORWARD;
-	}
-
-	/**
-	 * 是否已转发，消息已转发其它端执行
-	 */
-	public final boolean forwarded() {
-		return status == FORWARD;
-	}
-
-	/**
-	 * 是否成功，仅表示消息成功，业务状态须额外判断
-	 */
-	public final boolean success() {
-		return status == SUCCESS;
 	}
 }

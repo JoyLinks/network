@@ -19,6 +19,13 @@ import com.joyzl.odbs.ODBSBinary;
 public abstract class ODBSClientHandler<M extends ODBSMessage> extends ODBSFrame
 		implements ChainGenericsHandler<ODBSClient, M> {
 
+	/** 状态：成功 */
+	public final static int SUCCESS = 0;
+	/** 状态：网络 */
+	public final static int NETWORK = 1;
+	/** 状态：超时 */
+	public final static int TIMEOUT = 2;
+
 	private final ODBSBinary odbs;
 
 	public ODBSClientHandler(ODBS o) {
@@ -100,14 +107,14 @@ public abstract class ODBSClientHandler<M extends ODBSMessage> extends ODBSFrame
 	@Override
 	public void received(ODBSClient client, M message) throws Exception {
 		if (message == null) {
-			fail(client, ODBSMessage.TIMEOUT);
+			fail(client, TIMEOUT);
 		} else {
 			message.chain(client);
-			execute(client, (M) message);
+			execute(client, (M) message, SUCCESS);
 		}
 	}
 
-	protected abstract void execute(ODBSClient client, M message) throws Exception;
+	protected abstract void execute(ODBSClient client, M message, int state) throws Exception;
 
 	@Override
 	public DataBuffer encode(ODBSClient client, M message) throws Exception {
@@ -161,18 +168,17 @@ public abstract class ODBSClientHandler<M extends ODBSMessage> extends ODBSFrame
 	@Override
 	public void disconnected(ODBSClient client) throws Exception {
 		client.sends().clear();
-		fail(client, ODBSMessage.NETWORK);
+		fail(client, NETWORK);
 	}
 
 	@SuppressWarnings("unchecked")
-	protected void fail(ODBSClient client, int code) throws Exception {
+	protected void fail(ODBSClient client, int state) throws Exception {
 		ODBSMessage om;
 		client.receives().iterator();
 		while (client.receives().hasNext()) {
 			om = client.receives().next().value();
-			om.setStatus(code);
 			client.receives().remove();
-			execute(client, (M) om);
+			execute(client, (M) om, state);
 		}
 	}
 }
