@@ -11,6 +11,7 @@ import java.nio.channels.DatagramChannel;
 
 import com.joyzl.network.Point;
 import com.joyzl.network.buffer.DataBuffer;
+import com.joyzl.network.buffer.DataBufferUnit;
 
 /**
  * UDP通道，无连接协议因此无心跳无重连机制
@@ -126,7 +127,12 @@ public class UDPClient extends Client {
 		// 如果发送长数据必须在协议层拆分，UDP无法确保数据报顺序
 		final DataBuffer buffer = DataBuffer.instance();
 		try {
-			int size = datagram_channel.read(buffer.write());
+			int size = handler().getMaxDatagram();
+			if (size <= DataBufferUnit.BYTES) {
+				size = datagram_channel.read(buffer.write());
+			} else {
+				size = (int) datagram_channel.read(buffer.writes(size));
+			}
 			if (size > 0) {
 				// 确认接收到的数据量
 				buffer.written(size);

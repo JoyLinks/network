@@ -92,6 +92,15 @@ public interface ChainHandler {
 	}
 
 	/**
+	 * 获取可能的最大数据报字节数
+	 * 
+	 * @return 默认0未明确
+	 */
+	default int getMaxDatagram() {
+		return 0;
+	}
+
+	/**
 	 * 连接建立
 	 * <p>
 	 * 如果要立即开始接收,应当在此方法中调用chain.receive()

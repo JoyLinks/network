@@ -61,34 +61,55 @@ public final class Point {
 	/**
 	 * 获取主机
 	 * 
-	 * @param point
+	 * @param point 字符串形式网络节点
 	 * @return 如果是客户端节点返回IP/主机名,如果是串口返回串口名,如果是未指定IP的服务端返回null
 	 */
 	public final static String getHost(String point) {
 		int index = point.lastIndexOf(SP);
 		if (index >= 0) {
+			// www.joyzl.com:80
 			return point.substring(0, index);
+		} else {
+			index = point.indexOf(DOT);
+			if (index > 0) {
+				// 192.168.0.1
+				return point;
+			}
+			if (Character.isDigit(point.charAt(0))) {
+				// 80
+				return null;
+			}
+			return point;
 		}
-		return null;
 	}
 
 	/**
 	 * 获取端口
 	 * 
-	 * @param point
+	 * @param point 字符串形式网络节点
 	 * @return 如果是客户端/服务端返回端口号,如果是串口返回波特率
 	 */
 	public final static int getPort(String point) {
-		int end, begin = point.lastIndexOf(SP);
+		int begin = point.lastIndexOf(SP);
 		if (begin > 0) {
-			end = point.indexOf(DOT, begin += 1);
+			// www.joyzl.com:80
+			int end = point.indexOf(DOT, begin += 1);
 			if (end < 0) {
 				end = point.length();
 			}
+			return Integer.parseUnsignedInt(point, begin, end, 10);
 		} else {
-			end = point.length();
+			begin = point.indexOf(DOT);
+			if (begin > 0) {
+				// 192.168.0.1
+				return 0;
+			}
+			if (Character.isDigit(point.charAt(0))) {
+				// 80
+				return Integer.parseUnsignedInt(point);
+			}
+			return 0;
 		}
-		return Integer.parseUnsignedInt(point, begin, end, 10);
 	}
 
 	/**

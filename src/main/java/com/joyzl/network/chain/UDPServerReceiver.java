@@ -11,7 +11,7 @@ import java.nio.channels.Selector;
 import java.util.Iterator;
 
 /**
- * 基于NIO.1 Selector选择器的链路超类
+ * 基于NIO.1 Selector选择器
  * <p>
  * 为基于Selector的链路提供全局的选择器实现和执行
  *

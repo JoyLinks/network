@@ -24,6 +24,10 @@ class TestPoint {
 
 		assertEquals(Point.getHost("COM3:9600.8.1.0"), "COM3");
 		assertEquals(Point.getHost("/dev/ttyS0:19200.8.1.1"), "/dev/ttyS0");
+
+		assertEquals(Point.getHost("192.168.0.1"), "192.168.0.1");
+		assertEquals(Point.getHost("localhost"), "localhost");
+		assertEquals(Point.getHost("80"), null);
 	}
 
 	@Test
@@ -35,6 +39,9 @@ class TestPoint {
 
 		assertEquals(Point.getPort("COM3:9600.8.1.0"), 9600);
 		assertEquals(Point.getPort("/dev/ttyS0:19200.8.1.1"), 19200);
+
+		assertEquals(Point.getPort("192.168.0.1"), 0);
+		assertEquals(Point.getPort("localhost"), 0);
 	}
 
 	@Test

@@ -9,6 +9,8 @@ import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.function.Predicate;
 
+import com.joyzl.network.Point;
+
 /**
  * 链路服务端
  * 
@@ -33,26 +35,47 @@ public abstract class Server extends ChainChannel {
 
 	/**
 	 * 通过字符串形式的主机名或地址查找链路
+	 * <p>
+	 * 支持的节点匹配形式：192.168.0.1,192.168.0.1:80,www.joyzl.com,www.joyzl.com:80
+	 * </p>
 	 * 
-	 * @param host 地址或主机名
-	 * @return Slave / null
+	 * @param point 地址或主机名
+	 * @return Slave / null 未能匹配要查找的链路
 	 */
-	public Slave findSlave(String host) {
-		// InetSocketAddress.getHostName:windows10.microdone.cn
-		// InetSocketAddress.getHostString:windows10.microdone.cn
+	public Slave findSlave(String point) {
+		// InetSocketAddress.getHostName:windows10.microdone.cn 可能查询DNS
+		// InetSocketAddress.getHostString:windows10.microdone.cn 不执行DNS查询
 		// InetSocketAddress.getPort:52777
 		// InetAddress.getCanonicalHostName:windows10.microdone.cn
 		// InetAddress.getHostAddress:192.168.2.12
 		// InetAddress.getHostName:windows10.microdone.cn
 
 		InetSocketAddress isa;
-		for (Slave slave : slaves()) {
-			isa = (InetSocketAddress) slave.getRemoteAddress();
-			if (host.equals(isa.getAddress().getHostAddress())) {
-				return slave;
-			}
-			if (host.equals(isa.getHostName())) {
-				return slave;
+		final String host = Point.getHost(point);
+		if (host != null) {
+			final int port = Point.getPort(point);
+			if (port > 0) {
+				for (Slave slave : slaves()) {
+					isa = (InetSocketAddress) slave.getRemoteAddress();
+					if (port == isa.getPort()) {
+						if (host.equals(isa.getAddress().getHostAddress())) {
+							return slave;
+						}
+						if (host.equals(isa.getHostString())) {
+							return slave;
+						}
+					}
+				}
+			} else {
+				for (Slave slave : slaves()) {
+					isa = (InetSocketAddress) slave.getRemoteAddress();
+					if (host.equals(isa.getAddress().getHostAddress())) {
+						return slave;
+					}
+					if (host.equals(isa.getHostString())) {
+						return slave;
+					}
+				}
 			}
 		}
 		return null;
