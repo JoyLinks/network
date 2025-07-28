@@ -49,6 +49,7 @@ public abstract class HTTP1ClientHandler implements ChainGenericsHandler<HTTPCli
 			}
 		}
 		if (request.state() == Message.COMPLETE) {
+			request.clearContent();
 			return buffer;
 		}
 		buffer.release();

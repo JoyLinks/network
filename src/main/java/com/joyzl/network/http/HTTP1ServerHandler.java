@@ -105,6 +105,7 @@ public abstract class HTTP1ServerHandler implements ChainGenericsHandler<HTTPSla
 			response.setVersion(request.getVersion());
 			// 业务处理
 			received(slave, request, response);
+			request.clearContent();
 		}
 	}
 
@@ -137,6 +138,7 @@ public abstract class HTTP1ServerHandler implements ChainGenericsHandler<HTTPSla
 			}
 		}
 		if (response.state() == Message.COMPLETE) {
+			response.clearContent();
 			return buffer;
 		}
 		buffer.release();

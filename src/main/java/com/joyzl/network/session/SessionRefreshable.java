@@ -14,10 +14,18 @@ public class SessionRefreshable<T> extends Session<T> {
 
 	private final int life;
 
+	/**
+	 * 默认1小时过期
+	 */
 	public SessionRefreshable() {
 		life = Refreshable.HOUR;
 	}
 
+	/**
+	 * 指定过期时间
+	 * 
+	 * @param life 毫秒
+	 */
 	public SessionRefreshable(int life) {
 		this.life = life;
 	}

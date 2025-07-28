@@ -10,10 +10,28 @@ package com.joyzl.network.session;
  * @author ZhangXi 2025年2月17日
  * @param <T>
  */
-public class SessionCountdown<T extends Countdown<T>> extends Session<T> {
+public class SessionCountdown<T> extends Session<T> {
+
+	private final int life;
+
+	/**
+	 * 默认1小时过期
+	 */
+	public SessionCountdown() {
+		life = Refreshable.HOUR;
+	}
+
+	/**
+	 * 指定过期时间
+	 * 
+	 * @param life
+	 */
+	public SessionCountdown(int life) {
+		this.life = life;
+	}
 
 	@Override
 	protected Timely<T> wrap(T t) {
-		return t;
+		return new Countdown<>(t, life);
 	}
 }

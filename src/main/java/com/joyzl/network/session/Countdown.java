@@ -5,18 +5,18 @@
 package com.joyzl.network.session;
 
 /**
- * 倒计时过期
+ * 倒计时过期缓存值包装类
  * 
  * @author ZhangXi 2025年2月17日
  */
-public class Countdown<T> implements Timely<T> {
+class Countdown<T> implements Timely<T> {
 
-	private volatile long time;
-	private T value;
+	private final long time;
+	private final T value;
 
-	public Countdown(T value, int time) {
+	public Countdown(T value, int life) {
 		this.value = value;
-		this.time = time;
+		this.time = System.currentTimeMillis() + life;
 	}
 
 	@Override

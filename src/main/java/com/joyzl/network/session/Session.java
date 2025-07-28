@@ -26,7 +26,7 @@ public abstract class Session<T> {
 	/** 所有实例化的会话容器，此列表用于守护进程 */
 	private final static List<Session<?>> SESSIONS = new ArrayList<>();
 
-	/** 会话过期检查 */
+	/** 会话过期清理 */
 	public final static Runnable SESSION_DAEMON = new Runnable() {
 		@Override
 		public void run() {
@@ -90,8 +90,8 @@ public abstract class Session<T> {
 	 * @param value 要设置的值
 	 * @return 返回之前设置的值，如果已过期则返回空(null)
 	 */
-	public T set(Object key, Timely<T> value) {
-		final Timely<T> previous = VALUES.put(key, value);
+	public T set(Object key, T value) {
+		final Timely<T> previous = VALUES.put(key, wrap(value));
 		if (previous != null) {
 			if (previous.valid(System.currentTimeMillis())) {
 				return previous.value();
