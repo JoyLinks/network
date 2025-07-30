@@ -192,6 +192,7 @@ public class TCPSlave extends Slave {
 				handler().received(this, null);
 			} catch (Exception e1) {
 				handler().error(this, e1);
+			} finally {
 				close();
 			}
 		} else {
@@ -316,6 +317,7 @@ public class TCPSlave extends Slave {
 				handler().sent(this, null);
 			} catch (Exception e1) {
 				handler().error(this, e1);
+			} finally {
 				close();
 			}
 		} else {

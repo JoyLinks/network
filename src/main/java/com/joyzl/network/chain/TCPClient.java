@@ -38,7 +38,7 @@ public class TCPClient extends TCPLink {
 	/** 重新连接间隔时间(秒) */
 	private int reconnect = 6;
 	/** 连接空闲心跳间隔时间(秒) */
-	private int heartbeat = 60 * 3;
+	private int heartbeat;
 
 	/**
 	 * 创建TCPClient由接点标识指定连接信息
@@ -51,6 +51,10 @@ public class TCPClient extends TCPLink {
 	 */
 	public TCPClient(ChainHandler handler, String host, int port) {
 		super(handler, host, port);
+		// 计算默认心跳时间
+		// 当用户未设置时避免心跳时间大于超时时间
+		long timeout = Math.min(handler.getTimeoutRead(), handler.getTimeoutWrite());
+		heartbeat = (int) (timeout / 1000 - 1);
 		// 每秒触发检查重连和心跳以及超时
 		future = Executor.scheduleAtFixedRate(TASK, 1, 1, TimeUnit.SECONDS);
 	}
@@ -130,36 +134,28 @@ public class TCPClient extends TCPLink {
 	}
 
 	/**
-	 * 获取自动重新连接间隔时间
-	 *
-	 * @return 秒
+	 * 获取自动重新连接间隔时间（秒）
 	 */
 	public int getReconnect() {
 		return reconnect;
 	}
 
 	/**
-	 * 设置自动重新连接间隔时间，不建议低于10秒
-	 *
-	 * @param interval 10~n秒
+	 * 设置自动重新连接间隔时间（秒）
 	 */
 	public void setReconnect(int interval) {
 		reconnect = interval;
 	}
 
 	/**
-	 * 获取连接空闲心跳间隔时间
-	 *
-	 * @return 秒
+	 * 获取连接空闲心跳间隔时间（秒）
 	 */
 	public int getHeartbeat() {
 		return heartbeat;
 	}
 
 	/**
-	 * 设置连接空闲心跳间隔时间，不建议低于60秒
-	 *
-	 * @param time 60~n秒
+	 * 设置连接空闲心跳间隔时间（秒）
 	 */
 	public void setHeartbeat(int time) {
 		heartbeat = time;

@@ -146,6 +146,7 @@ public class TCPLink extends Client {
 			handler().connected(this);
 		} catch (Exception e) {
 			handler().error(this, e);
+			reset();
 		}
 	}
 
@@ -264,6 +265,7 @@ public class TCPLink extends Client {
 				handler().received(this, null);
 			} catch (Exception e1) {
 				handler().error(this, e1);
+			} finally {
 				reset();
 			}
 		} else {
@@ -389,6 +391,7 @@ public class TCPLink extends Client {
 				handler().sent(this, null);
 			} catch (Exception e1) {
 				handler().error(this, e1);
+			} finally {
 				reset();
 			}
 		} else {

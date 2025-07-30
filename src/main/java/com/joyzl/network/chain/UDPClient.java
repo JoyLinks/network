@@ -96,12 +96,14 @@ public class UDPClient extends Client {
 			} catch (Exception e) {
 				datagram_channel = null;
 				handler().error(this, e);
+				reset();
 				return;
 			}
 			try {
 				handler().connected(this);
 			} catch (Exception e) {
 				handler().error(this, e);
+				reset();
 			}
 		} else {
 			throw new IllegalStateException("UDPClient:重复连接");
@@ -118,6 +120,7 @@ public class UDPClient extends Client {
 			// ChainSelector.writes().wakeup();
 		} catch (Exception e) {
 			handler().error(this, e);
+			reset();
 		}
 	}
 
@@ -189,10 +192,11 @@ public class UDPClient extends Client {
 				}
 			}
 		} catch (Exception e) {
+			handler().error(this, e);
+		} finally {
 			if (buffer != null) {
 				buffer.release();
 			}
-			handler().error(this, e);
 		}
 	}
 
