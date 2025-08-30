@@ -54,7 +54,7 @@ public abstract class ODBSClientHandler<M extends ODBSMessage> extends ODBSFrame
 		if (HEAD == reader.readByte()) {
 			// 数据长度
 			length = reader.readInt();
-			if (length < 0) {
+			if (length <= 0) {
 				// 错误的长度
 				reader.clear();
 				return null;
@@ -70,20 +70,20 @@ public abstract class ODBSClientHandler<M extends ODBSMessage> extends ODBSFrame
 				// 消息可能须经历多次解码
 				ODBSMessage message = null;
 				if (length > 0) {
-					message = client.receives().get(length);
+					message = client.receiveGet(length);
 					if (message == null) {
 						message = odbs.readEntity(message, reader);
 						message.tag(length);
 						if (finish) {
 							return message;
 						} else {
-							client.receives().put(length, message);
+							client.receivePut(length, message);
 						}
 					} else {
 						message = odbs.readEntity(message, reader);
 						if (finish) {
 							// client.receives().remove(length);
-							client.sendRemove(length);
+							client.receiveRemove(length);
 							return message;
 						} else {
 							return null;
@@ -137,14 +137,14 @@ public abstract class ODBSClientHandler<M extends ODBSMessage> extends ODBSFrame
 		}
 
 		// 长度不包括 HEAD 和 LENGTH 本身
-		length -= MIN_FRAME;
+		length -= 5;
 		writer.set(1, (byte) (length >>> 24));
 		writer.set(2, (byte) (length >>> 16));
 		writer.set(3, (byte) (length >>> 8));
 		writer.set(4, (byte) (length));
 
 		// 消息标识
-		length = client.sends().id();
+		length = client.sendId();
 		length = Binary.setBit(length, true, 31);
 		writer.set(5, (byte) (length >>> 24));
 		writer.set(6, (byte) (length >>> 16));
@@ -152,14 +152,14 @@ public abstract class ODBSClientHandler<M extends ODBSMessage> extends ODBSFrame
 		writer.set(8, (byte) (length));
 
 		// 标记当前消息已完成
-		client.sends().done();
+		client.sendDone();
 		return writer;
 	}
 
 	@Override
 	public void sent(ODBSClient client, M message) throws Exception {
 		if (message == null) {
-			client.sends().clear();
+			client.sendClear();
 		} else {
 			client.sendNext();
 		}
@@ -167,7 +167,7 @@ public abstract class ODBSClientHandler<M extends ODBSMessage> extends ODBSFrame
 
 	@Override
 	public void disconnected(ODBSClient client) throws Exception {
-		client.sends().clear();
+		client.sendClear();
 		fail(client, NETWORK);
 	}
 

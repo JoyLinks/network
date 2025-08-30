@@ -4,6 +4,7 @@
  */
 package com.joyzl.network.odbs;
 
+import java.io.IOException;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.joyzl.network.IndexMap;
@@ -31,7 +32,7 @@ public class ODBSClient extends TCPClient {
 		int i = id;
 		id += 2;
 		if (id <= 0) {
-			id = 2;
+			id = 1;
 		}
 		return i;
 	}
@@ -61,6 +62,14 @@ public class ODBSClient extends TCPClient {
 		}
 	}
 
+	protected int sendId() {
+		return sends.id();
+	}
+
+	protected void sendDone() {
+		sends.done();
+	}
+
 	protected void sendNext() {
 		k.lock();
 		try {
@@ -81,7 +90,34 @@ public class ODBSClient extends TCPClient {
 		super.send(sendMessage());
 	}
 
-	protected void sendRemove(int id) {
+	protected void sendClear() throws IOException {
+		k.lock();
+		try {
+			sends.clear();
+		} finally {
+			k.unlock();
+		}
+	}
+
+	protected ODBSMessage receiveGet(int id) {
+		k.lock();
+		try {
+			return receives.get(id);
+		} finally {
+			k.unlock();
+		}
+	}
+
+	protected void receivePut(int id, ODBSMessage m) {
+		k.lock();
+		try {
+			receives.put(id, m);
+		} finally {
+			k.unlock();
+		}
+	}
+
+	protected void receiveRemove(int id) {
 		k.lock();
 		try {
 			receives.remove(id);
@@ -94,7 +130,7 @@ public class ODBSClient extends TCPClient {
 		return receives;
 	}
 
-	ODBSStream<ODBSMessage> sends() {
-		return sends;
-	}
+	// ODBSStream<ODBSMessage> sends() {
+	// return sends;
+	// }
 }

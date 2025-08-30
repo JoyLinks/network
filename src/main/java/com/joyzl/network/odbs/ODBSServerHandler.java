@@ -47,7 +47,7 @@ public abstract class ODBSServerHandler<M extends ODBSMessage> extends ODBSFrame
 		if (HEAD == reader.readByte()) {
 			// 数据长度
 			length = reader.readInt();
-			if (length < 0) {
+			if (length <= 0) {
 				// 错误的长度
 				reader.clear();
 				return null;
@@ -63,19 +63,19 @@ public abstract class ODBSServerHandler<M extends ODBSMessage> extends ODBSFrame
 				// 消息可能须经历多次解码
 				ODBSMessage message = null;
 				if (length > 0) {
-					message = slave.receives().get(length);
+					message = slave.receiveGet(length);
 					if (message == null) {
 						message = odbs.readEntity(message, reader);
 						message.tag(length);
 						if (finish) {
 							return message;
 						} else {
-							slave.receives().put(length, message);
+							slave.receivePut(length, message);
 						}
 					} else {
 						message = odbs.readEntity(message, reader);
 						if (finish) {
-							slave.receives().remove(length);
+							slave.receiveRemove(length);
 							return message;
 						} else {
 							return null;
@@ -99,7 +99,7 @@ public abstract class ODBSServerHandler<M extends ODBSMessage> extends ODBSFrame
 	@Override
 	public void received(ODBSSlave slave, M message) throws Exception {
 		if (message == null) {
-			slave.receives().clear();
+			slave.receiveClear();
 		} else {
 			message.chain(slave);
 			execute(slave, (M) message);
@@ -122,14 +122,14 @@ public abstract class ODBSServerHandler<M extends ODBSMessage> extends ODBSFrame
 		odbs.writeEntity(message, writer);
 
 		// 长度不包括 HEAD 和 LENGTH 本身
-		int length = writer.readable() - MIN_FRAME;
+		int length = writer.readable() - 5;
 		writer.set(1, (byte) (length >>> 24));
 		writer.set(2, (byte) (length >>> 16));
 		writer.set(3, (byte) (length >>> 8));
 		writer.set(4, (byte) (length));
 
 		// 消息标识
-		length = slave.sends().id();
+		length = slave.sendId();
 		length = Binary.setBit(length, true, 31);
 		writer.set(5, (byte) (length >>> 24));
 		writer.set(6, (byte) (length >>> 16));
@@ -137,14 +137,14 @@ public abstract class ODBSServerHandler<M extends ODBSMessage> extends ODBSFrame
 		writer.set(8, (byte) (length));
 
 		// 标记当前消息已完成
-		slave.sends().done();
+		slave.sendDone();
 		return writer;
 	}
 
 	@Override
 	public void sent(ODBSSlave slave, M message) throws Exception {
 		if (message == null) {
-			slave.sends().clear();
+			slave.sendClear();
 		} else {
 			slave.sendNext();
 		}
@@ -152,8 +152,8 @@ public abstract class ODBSServerHandler<M extends ODBSMessage> extends ODBSFrame
 
 	@Override
 	public void disconnected(ODBSSlave slave) throws Exception {
-		slave.receives().clear();
-		slave.sends().clear();
+		slave.receiveClear();
+		slave.sendClear();
 	}
 
 	@Override

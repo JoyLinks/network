@@ -6,7 +6,7 @@
 
 	<groupId>com.joyzl</groupId>
 	<artifactId>network</artifactId>
-	<version>3.0.0</version>
+	<version>3.0.1</version>
 	<name>network</name>
 	<description>网络服务组件</description>
 	<url>https://github.com/JoyLinks/network</url>
@@ -57,13 +57,13 @@
 		<dependency>
 			<groupId>com.joyzl</groupId>
 			<artifactId>odbs</artifactId>
-			<version>3.0.0</version>
+			<version>3.0.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-jdk15on</artifactId>
 			<version>1.70</version>
-			<scope>runtime</scope>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>

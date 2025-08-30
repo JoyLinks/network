@@ -15,6 +15,16 @@ import org.junit.jupiter.api.Test;
 class TestODBSStream {
 
 	@Test
+	void testEmpty() throws IOException {
+		final ODBSStream<Message> stream = new ODBSStream<>(3);
+		stream.stream();
+		stream.remove();
+		stream.remove(new Message(1));
+		stream.clear();
+
+	}
+
+	@Test
 	void testAddRemove() throws IOException {
 		final ODBSStream<Message> stream = new ODBSStream<>(3);
 
@@ -65,6 +75,7 @@ class TestODBSStream {
 		} catch (Exception e) {
 			assertNotNull(e);
 		}
+		stream.clear();
 		stream.clear();
 		assertEquals(stream.isEmpty(), true);
 	}
@@ -164,6 +175,7 @@ class TestODBSStream {
 		stream.add(message1, 1);
 		stream.add(message2, 2);
 		stream.add(message3, 3);
+		stream.clear();
 		stream.clear();
 		assertNull(stream.stream());
 	}

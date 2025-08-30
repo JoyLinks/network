@@ -72,6 +72,14 @@ public class ODBSSlave extends TCPSlave {
 		}
 	}
 
+	protected int sendId() {
+		return sends.id();
+	}
+
+	protected void sendDone() {
+		sends.done();
+	}
+
 	protected void sendNext() {
 		k.lock();
 		try {
@@ -92,11 +100,56 @@ public class ODBSSlave extends TCPSlave {
 		super.send(sendMessage());
 	}
 
-	IndexMap<ODBSMessage> receives() {
-		return receives;
+	protected void sendClear() throws IOException {
+		k.lock();
+		try {
+			sends.clear();
+		} finally {
+			k.unlock();
+		}
 	}
 
-	ODBSStream<ODBSMessage> sends() {
-		return sends;
+	protected ODBSMessage receiveGet(int id) {
+		k.lock();
+		try {
+			return receives.get(id);
+		} finally {
+			k.unlock();
+		}
 	}
+
+	protected void receivePut(int id, ODBSMessage m) {
+		k.lock();
+		try {
+			receives.put(id, m);
+		} finally {
+			k.unlock();
+		}
+	}
+
+	protected void receiveRemove(int id) {
+		k.lock();
+		try {
+			receives.remove(id);
+		} finally {
+			k.unlock();
+		}
+	}
+
+	protected void receiveClear() {
+		k.lock();
+		try {
+			receives.clear();
+		} finally {
+			k.unlock();
+		}
+	}
+
+	// IndexMap<ODBSMessage> receives() {
+	// return receives;
+	// }
+
+	// ODBSStream<ODBSMessage> sends() {
+	// return sends;
+	// }
 }

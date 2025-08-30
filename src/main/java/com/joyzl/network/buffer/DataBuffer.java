@@ -236,6 +236,7 @@ public class DataBuffer implements Verifiable, DataInput, DataOutput, //
 					read = read.next();
 				}
 			} else {
+				System.out.println("LENGTH:" + length);
 				throw new IllegalStateException("DataBuffer:EMPTY");
 			}
 		}

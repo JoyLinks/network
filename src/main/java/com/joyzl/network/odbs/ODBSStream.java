@@ -77,20 +77,25 @@ public class ODBSStream<M> {
 	}
 
 	/** 移除指定消息 */
-	public void remove(M m) {
+	public boolean remove(M m) {
+		if (isEmpty()) {
+			return false;
+		}
 		if (head.value == m) {
 			head = free(head);
 			size--;
+			return true;
 		} else {
 			Item<M> item = head;
 			while (item.next != foot) {
 				if (item.next.value == m) {
 					item.next = free(item.next);
 					size--;
-					break;
+					return true;
 				}
 				item = item.next;
 			}
+			return false;
 		}
 	}
 
@@ -99,6 +104,7 @@ public class ODBSStream<M> {
 		while (head != foot) {
 			if (head.value instanceof Closeable) {
 				((Closeable) head.value).close();
+				head.value = null;
 			}
 			head = free(head);
 		}
@@ -112,6 +118,9 @@ public class ODBSStream<M> {
 		Item<M> next = item.next;
 		item.next = foot.next;
 		foot.next = item;
+		if (next == null) {
+			throw new IllegalStateException("FUCK" + size);
+		}
 		return next;
 	}
 
