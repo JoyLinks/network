@@ -440,6 +440,19 @@ class TestDataBuffer {
 		for (int index = 0; index < size2; index++) {
 			assertEquals(target.readByte(), (byte) index);
 		}
+
+		// 20250830
+		// 源和目标不同长度数据转移
+
+		for (int index = 0; index < 1000 * 4; index++) {
+			buffer.writeByte((byte) index);
+		}
+		for (int index = 0; index < 1000; index++) {
+			target.writeByte((byte) index);
+		}
+
+		buffer.transfer(target, 1000 * 3);
+		assertEquals(target.readable(), 1000 * 4);
 		target.release();
 	}
 

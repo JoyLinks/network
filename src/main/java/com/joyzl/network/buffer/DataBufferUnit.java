@@ -366,7 +366,7 @@ public final class DataBufferUnit {
 	}
 
 	/**
-	 * 连接缓存单元，不检查后续单元
+	 * 连接缓存单元
 	 */
 	public final void next(DataBufferUnit unit) {
 		if (next == null) {

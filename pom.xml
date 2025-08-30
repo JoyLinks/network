@@ -6,7 +6,7 @@
 
 	<groupId>com.joyzl</groupId>
 	<artifactId>network</artifactId>
-	<version>3.0.1</version>
+	<version>3.0.2</version>
 	<name>network</name>
 	<description>网络服务组件</description>
 	<url>https://github.com/JoyLinks/network</url>

@@ -236,7 +236,7 @@ public class DataBuffer implements Verifiable, DataInput, DataOutput, //
 					read = read.next();
 				}
 			} else {
-				System.out.println("LENGTH:" + length);
+				// System.out.println("LENGTH:" + length);
 				throw new IllegalStateException("DataBuffer:EMPTY");
 			}
 		}
@@ -480,6 +480,7 @@ public class DataBuffer implements Verifiable, DataInput, DataOutput, //
 				while (len >= read.readable()) {
 					len -= read.readable();
 					target.write.next(read);
+					target.write = read;
 					read = read.braek();
 				}
 
