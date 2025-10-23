@@ -41,14 +41,14 @@ public final class Executor {
 		// 则建议直接在业务ChannelHandler中执行，不需要再启业务的线程或者线程池。避免线程上下文切换，也不存在线程并发问题。
 		// 使用自己的线程池的时候注意限流，不然容易高并发情况下容易引起内存泄露。
 		// 线程池提交任务是异步无阻塞的。高并发情况下可能造成大量的请求积压在线程池的队列里，耗完内存。
-		// tomcat也使用了线程池，但是他有限制连接数。所以使用自己线程池的时候要么也限流，要么实现自己线程池，当任务超过一定量的提交任务时阻塞。
 
 		if (size > 0) {
 			throw new IllegalStateException("执行器已经初始化");
 		}
 		if (thead_size <= 0) {
 			// 自动计算最佳线程数
-			thead_size = Runtime.getRuntime().availableProcessors() * 128;
+			// threads = C处理器核心数 * U使用率 * (1 + W等待时间/C计算时间)
+			thead_size = (int) (Runtime.getRuntime().availableProcessors() * 0.75F * (1 + 50F / 10F));
 		}
 
 		size = thead_size;

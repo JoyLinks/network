@@ -112,6 +112,8 @@ public class FormDataCoder extends HTTP1Coder {
 				if (Utility.same(MIMEType.MULTIPART_FORMDATA, contentType.getType())) {
 					if (Utility.noEmpty(contentType.getBoundary())) {
 						readFormData(request, (DataBuffer) request.getContent(), contentType.getBoundary());
+					} else {
+						throw new IOException("ContentType 缺失必须的 Boundary");
 					}
 				} else //
 				if (Utility.same(MIMEType.X_WWW_FORM_URLENCODED, contentType.getType())) {
@@ -134,6 +136,9 @@ public class FormDataCoder extends HTTP1Coder {
 			if (Utility.same(MIMEType.MULTIPART_FORMDATA, contentType.getType())) {
 				if (Utility.noEmpty(contentType.getBoundary())) {
 					writeFormData(request, buffer, contentType.getBoundary());
+				} else {
+					buffer.release();
+					throw new IOException("ContentType 缺失必须的 Boundary");
 				}
 			} else //
 			if (Utility.same(MIMEType.X_WWW_FORM_URLENCODED, contentType.getType())) {
@@ -158,7 +163,7 @@ public class FormDataCoder extends HTTP1Coder {
 		final StringBuilder builder = getStringBuilder();
 		int c = 0;
 		String name = null;
-		while (buffer.readable() > 1) {
+		while (buffer.readable() > 0) {
 			c = buffer.readByte();
 			if (c == EQUAL) {
 				name = builder.toString();
@@ -185,6 +190,7 @@ public class FormDataCoder extends HTTP1Coder {
 			}
 			builder.append((char) c);
 		}
+
 		// 检查非[CRLF]结束
 		if (name == null) {
 			// ""
@@ -304,10 +310,14 @@ public class FormDataCoder extends HTTP1Coder {
 	 * 构建 multipart/form-data 格式数据
 	 */
 	public static void writeFormData(Request request, DataBuffer buffer, String boundary) throws IOException {
+		final ContentDisposition contentDisposition = new ContentDisposition(ContentDisposition.FORM_DATA);
+
 		// PARAMETERS
 		int index;
 		if (request.hasParameters()) {
 			String value;
+			// 20251023 默认UTF-8以支持中文
+			final ContentType contentType = new ContentType(MIMEType.TEXT_PLAIN, "UTF-8");
 			for (Entry<String, String[]> item : request.getParametersMap().entrySet()) {
 				if (item.getKey() != null && item.getValue() != null) {
 					for (index = 0; index < item.getValue().length; index++) {
@@ -317,17 +327,18 @@ public class FormDataCoder extends HTTP1Coder {
 						buffer.writeASCII(CR);
 						buffer.writeASCII(LF);
 						// Content-Disposition: form-data; name="field1"
-						buffer.writeASCIIs(ContentDisposition.NAME);
+						contentDisposition.setField(item.getKey());
+						buffer.writeASCIIs(contentDisposition.getHeaderName());
 						buffer.writeASCII(COLON);
 						buffer.writeASCII(SPACE);
-						buffer.writeASCIIs(ContentDisposition.FORM_DATA);
-						buffer.writeASCII(SEMI);
+						buffer.writeASCIIs(contentDisposition.getHeaderValue());
+						buffer.writeASCII(CR);
+						buffer.writeASCII(LF);
+						// Content-Type: text/plain; charset=utf-8
+						buffer.writeASCIIs(contentType.getHeaderName());
+						buffer.writeASCII(COLON);
 						buffer.writeASCII(SPACE);
-						buffer.writeASCIIs(ContentDisposition.FIELD);
-						buffer.writeASCII(EQUAL);
-						buffer.writeASCII(QUOTE);
-						buffer.writeASCIIs(item.getKey());
-						buffer.writeASCII(QUOTE);
+						buffer.writeASCIIs(contentType.getHeaderValue());
 						buffer.writeASCII(CR);
 						buffer.writeASCII(LF);
 						// HEADERS END
@@ -336,7 +347,8 @@ public class FormDataCoder extends HTTP1Coder {
 						// DATA
 						value = item.getValue()[index];
 						if (value != null && value.length() > 0) {
-							buffer.writeASCIIs(value);
+							// buffer.writeASCIIs(value);
+							buffer.writeUTF8(value);
 						}
 						buffer.writeASCII(CR);
 						buffer.writeASCII(LF);
@@ -359,24 +371,12 @@ public class FormDataCoder extends HTTP1Coder {
 						buffer.writeASCII(CR);
 						buffer.writeASCII(LF);
 						// Content-Disposition:form-data;name="files";filename="test.txt"
-						buffer.writeASCIIs(ContentDisposition.NAME);
+						contentDisposition.setField(file.getField());
+						contentDisposition.setFilename(file.getFilename());
+						buffer.writeASCIIs(contentDisposition.getHeaderName());
 						buffer.writeASCII(COLON);
 						buffer.writeASCII(SPACE);
-						buffer.writeASCIIs(ContentDisposition.FORM_DATA);
-						buffer.writeASCII(SEMI);
-						buffer.writeASCII(SPACE);
-						buffer.writeASCIIs(ContentDisposition.FIELD);
-						buffer.writeASCII(EQUAL);
-						buffer.writeASCII(QUOTE);
-						buffer.writeASCIIs(file.getField());
-						buffer.writeASCII(QUOTE);
-						buffer.writeASCII(SEMI);
-						buffer.writeASCII(SPACE);
-						buffer.writeASCIIs(ContentDisposition.FILENAME);
-						buffer.writeASCII(EQUAL);
-						buffer.writeASCII(QUOTE);
-						buffer.writeASCIIs(file.getFilename());
-						buffer.writeASCII(QUOTE);
+						buffer.writeASCIIs(contentDisposition.getHeaderValue());
 						buffer.writeASCII(CR);
 						buffer.writeASCII(LF);
 						// Content-Type: text/plain
@@ -430,12 +430,16 @@ public class FormDataCoder extends HTTP1Coder {
 			}
 		}
 		index += 2;
-		if (buffer.get(index) == CR) {
+		if (buffer.get(index) == LF) {
 			buffer.skipBytes(index + 1);
 			return true;
 		}
-		if (buffer.get(index) == LF) {
-			buffer.skipBytes(index + 1);
+		if (buffer.get(index) == CR) {
+			if (buffer.get(index + 1) == LF) {
+				buffer.skipBytes(index + 2);
+			} else {
+				buffer.skipBytes(index + 1);
+			}
 			return true;
 		}
 		if (buffer.get(index) == MINUS) {

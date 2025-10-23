@@ -54,7 +54,7 @@ public class TCPClient extends TCPLink {
 		// 计算默认心跳时间
 		// 当用户未设置时避免心跳时间大于超时时间
 		long timeout = Math.min(handler.getTimeoutRead(), handler.getTimeoutWrite());
-		heartbeat = (int) (timeout / 1000 - 1);
+		heartbeat = (int) (timeout / 1000 - 2);
 		// 每秒触发检查重连和心跳以及超时
 		future = Executor.scheduleAtFixedRate(TASK, 1, 1, TimeUnit.SECONDS);
 	}

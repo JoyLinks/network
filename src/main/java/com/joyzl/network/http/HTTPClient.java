@@ -148,6 +148,7 @@ public class HTTPClient extends TCPLink {
 		if (isHTTP2()) {
 			k.lock();
 			try {
+				// TODO NEET TEST
 				if (complete) {
 					stream.remove();
 				}
@@ -167,10 +168,10 @@ public class HTTPClient extends TCPLink {
 			k.lock();
 			try {
 				if (complete) {
-					queue.next();
-				}
-				if (queue.isEmpty()) {
-					return;
+					if (queue.next()) {
+					} else {
+						return;
+					}
 				}
 				if (sendMessage() == null) {
 					sendMessage(queue.read());

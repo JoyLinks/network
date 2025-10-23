@@ -17,7 +17,7 @@ public class MultipartFile {
 	private final File file;
 	private final String filename;
 	private String contentType;
-	private String field;
+	private String field = "file";
 
 	public MultipartFile(File file) {
 		this.file = file;

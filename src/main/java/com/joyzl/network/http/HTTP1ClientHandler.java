@@ -27,7 +27,7 @@ public abstract class HTTP1ClientHandler implements ChainGenericsHandler<HTTPCli
 		final Request request = (Request) message;
 		final DataBuffer buffer = DataBuffer.instance();
 		// 消息逐段编码
-		if (request.state() == Message.COMMAND) {
+		if (request.state() <= Message.COMMAND) {
 			if (HTTP1Coder.writeCommand(buffer, request)) {
 				request.state(Message.HEADERS);
 			} else {
@@ -78,12 +78,15 @@ public abstract class HTTP1ClientHandler implements ChainGenericsHandler<HTTPCli
 
 	@Override
 	public Object decode(HTTPClient client, DataBuffer buffer) throws Exception {
-		// 消息逐段解码
+		// 获取暂存消息
+		// 客户端提供请求消息暂存以支持消息解码
+		// 在网络传输中可能需要多次接收数据才能完成解码
 		Response response = client.getResponse();
 		if (response == null) {
 			client.setResponse(response = new Response());
 		}
-		if (response.state() == Message.COMMAND) {
+		// 消息逐段解码
+		if (response.state() <= Message.COMMAND) {
 			if (HTTP1Coder.readCommand(buffer, response)) {
 				response.state(Message.HEADERS);
 			} else {
@@ -105,6 +108,7 @@ public abstract class HTTP1ClientHandler implements ChainGenericsHandler<HTTPCli
 			}
 		}
 		if (response.state() == Message.COMPLETE) {
+			client.setResponse(null);
 			return response;
 		}
 		throw new IllegalStateException("HTTP1:消息状态无效" + response.state());
