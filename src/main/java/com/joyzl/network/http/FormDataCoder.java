@@ -4,6 +4,8 @@
  */
 package com.joyzl.network.http;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -392,7 +394,7 @@ public class FormDataCoder extends HTTP1Coder {
 						buffer.writeASCII(CR);
 						buffer.writeASCII(LF);
 						// DATA
-						input = new FileInputStream(file.getFile());
+						input = new BufferedInputStream(new FileInputStream(file.getFile()));
 						buffer.write(input);
 						input.close();
 						buffer.writeASCII(CR);
@@ -453,7 +455,7 @@ public class FormDataCoder extends HTTP1Coder {
 
 	static File readFile(DataBuffer buffer, String boundary) throws IOException {
 		final File file = File.createTempFile("JOYZL_HTTP_PART", ".tmp");
-		try (OutputStream output = new FileOutputStream(file)) {
+		try (final OutputStream output = new BufferedOutputStream(new FileOutputStream(file))) {
 			byte value;
 			while (buffer.readable() > boundary.length() + 4) {
 				value = buffer.readByte();
