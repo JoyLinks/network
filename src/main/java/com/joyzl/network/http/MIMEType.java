@@ -105,18 +105,17 @@ public final class MIMEType {
 
 	public static String getByExtension(String extension) {
 		switch (extension.toLowerCase()) {
-			case "gif":
-				return IMAGE_GIF;
-			case "jpeg":
-				return IMAGE_JPEG;
 			case "png":
 				return IMAGE_PNG;
+			case "gif":
+				return IMAGE_GIF;
+			case "jpg", "jpeg":
+				return IMAGE_JPEG;
 			case "svg":
 				return IMAGE_SVG_XML;
 			case "css":
 				return TEXT_CSS;
-			case "htm":
-			case "html":
+			case "htm", "html":
 				return TEXT_HTML;
 			case "xml":
 				return TEXT_XML;

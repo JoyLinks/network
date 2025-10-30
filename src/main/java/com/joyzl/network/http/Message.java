@@ -41,6 +41,11 @@ public abstract class Message {
 		this.id = id;
 	}
 
+	/** 消息是否发送或接收完成 */
+	public boolean isComplete() {
+		return state == COMPLETE;
+	}
+
 	/**
 	 * 获取消息状态
 	 */
