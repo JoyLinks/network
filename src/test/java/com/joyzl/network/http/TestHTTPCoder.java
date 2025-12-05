@@ -4,12 +4,11 @@
  */
 package com.joyzl.network.http;
 
+import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.junit.jupiter.api.AfterEach;
@@ -220,26 +219,49 @@ class TestHTTPCoder {
 
 	@Test
 	void testQuery() {
-		// 测试样本
-		final String sample = "http://127.0.0.1/code?error1&error2=&save=false&type=CODE_128&width=80&height=30&code=7056436484794495&error3&error4=";
-		final Map<String, String[]> parameters = new HashMap<>();
+		final Request request = new Request();
 
-		QueryCoder.parseQuery(sample, parameters);
+		request.setURL("http://127.0.0.1/test");
+		QueryCoder.parse(request);
+		assertNull(request.getParameter("code"));
 
-		assertEquals(parameters.get("save")[0], "false");
-		assertEquals(parameters.get("type")[0], "CODE_128");
-		assertEquals(parameters.get("width")[0], "80");
-		assertEquals(parameters.get("height")[0], "30");
-		assertEquals(parameters.get("code")[0], "7056436484794495");
+		request.setURL("http://127.0.0.1/test?code");
+		request.clearParameters();
+		QueryCoder.parse(request);
+		assertEquals(request.getParameter("code"), "");
 
-		String url = QueryCoder.makeQuery("http://127.0.0.1/code", parameters);
-		QueryCoder.parseQuery(url, parameters);
+		request.setURL("http://127.0.0.1/test?code=");
+		request.clearParameters();
+		QueryCoder.parse(request);
+		assertEquals(request.getParameter("code"), "");
 
-		assertEquals(parameters.get("save")[0], "false");
-		assertEquals(parameters.get("type")[0], "CODE_128");
-		assertEquals(parameters.get("width")[0], "80");
-		assertEquals(parameters.get("height")[0], "30");
-		assertEquals(parameters.get("code")[0], "7056436484794495");
+		request.setURL("http://127.0.0.1/test?code=A+B&SPACE=%20");
+		request.clearParameters();
+		QueryCoder.parse(request);
+		assertEquals(request.getParameter("code"), "A B");
+		assertEquals(request.getParameter("SPACE"), " ");
+
+		request.setURL("http://127.0.0.1/test?code=A%20B&text=%E4%B8%AD%E6%96%87%2F%E6%B5%8B%E8%AF%95");
+		request.clearParameters();
+		QueryCoder.parse(request);
+		assertEquals(request.getParameter("code"), "A B");
+		assertEquals(request.getParameter("text"), "中文/测试");
+
+		request.setURL("http://127.0.0.1/test?code=A%20B&text=%E4%B8%AD%E6%96%87%2F%E6%B5%8B%E8%AF%95&other=A");
+		request.clearParameters();
+		QueryCoder.parse(request);
+		assertEquals(request.getParameter("code"), "A B");
+		assertEquals(request.getParameter("other"), "A");
+		assertEquals(request.getParameter("text"), "中文/测试");
+
+		request.setURL("http://127.0.0.1/code?error1&error2=&save=false&type=CODE_128&width=80&height=30&code=7056436484794495&error3&error4=");
+		request.clearParameters();
+		QueryCoder.parse(request);
+		assertEquals(request.getParameter("save"), "false");
+		assertEquals(request.getParameter("type"), "CODE_128");
+		assertEquals(request.getParameter("width"), "80");
+		assertEquals(request.getParameter("height"), "30");
+		assertEquals(request.getParameter("code"), "7056436484794495");
 	}
 
 	@Test

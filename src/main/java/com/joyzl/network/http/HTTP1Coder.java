@@ -109,6 +109,9 @@ public class HTTP1Coder extends HTTP1 {
 	 * <p>
 	 * 采用 ifString 模式应事先常量化字符串，并组成顺序排序数组，递进判断匹配常量字符串；如果匹配失败则 new String() 。
 	 * </p>
+	 * <p>
+	 * 此方法使用了公用字符缓存不能与其它使用公共字符缓存的方法嵌套
+	 * </p>
 	 * 
 	 * @param buffer
 	 * @param request
@@ -216,6 +219,9 @@ public class HTTP1Coder extends HTTP1 {
 
 	/**
 	 * 读取响应首行
+	 * <p>
+	 * 此方法使用了公用字符缓存不能与其它使用公共字符缓存的方法嵌套
+	 * </p>
 	 * 
 	 * @param buffer
 	 * @param response
@@ -282,6 +288,9 @@ public class HTTP1Coder extends HTTP1 {
 
 	/**
 	 * 读取请求或响应标头
+	 * <p>
+	 * 此方法使用了公用字符缓存不能与其它使用公共字符缓存的方法嵌套
+	 * </p>
 	 * 
 	 * @param buffer
 	 * @param message
@@ -488,6 +497,9 @@ public class HTTP1Coder extends HTTP1 {
 
 	/**
 	 * 读取内容为字符串以CRLF结束
+	 * <p>
+	 * 此方法使用了公用字符缓存不能与其它使用公共字符缓存的方法嵌套
+	 * </p>
 	 */
 	public static boolean readContentText(DataBuffer buffer, Message message) throws IOException {
 		// PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n
@@ -1022,6 +1034,9 @@ public class HTTP1Coder extends HTTP1 {
 
 	/**
 	 * TEST
+	 * <p>
+	 * 此方法使用了公用字符缓存不能与其它使用公共字符缓存的方法嵌套
+	 * </p>
 	 */
 	public static String toString(DataBuffer buffer) {
 		final StringBuilder builder = getStringBuilder();

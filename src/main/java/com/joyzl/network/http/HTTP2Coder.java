@@ -531,6 +531,9 @@ public class HTTP2Coder extends HTTP2 {
 	/**
 	 * Response Pseudo-Header Fields<br>
 	 * Header Block Fragment (*)
+	 * <p>
+	 * 此方法使用了公用字符缓存不能与其它使用公共字符缓存的方法嵌套
+	 * </p>
 	 */
 	static void readHeaders(HPACK hpack, DataBuffer buffer, Response response, int length) throws IOException {
 		final StringBuilder builder = getStringBuilder();
@@ -608,6 +611,9 @@ public class HTTP2Coder extends HTTP2 {
 	/**
 	 * Request Pseudo-Header Fields<br>
 	 * Header Block Fragment (*)
+	 * <p>
+	 * 此方法使用了公用字符缓存不能与其它使用公共字符缓存的方法嵌套
+	 * </p>
 	 */
 	static void readHeaders(HPACK hpack, DataBuffer buffer, Request request, int length) throws IOException {
 		// 实测发现CONTINUATION会导致字段任意位置分割为后续帧

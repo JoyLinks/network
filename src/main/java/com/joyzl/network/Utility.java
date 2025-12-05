@@ -146,6 +146,20 @@ public class Utility {
 	}
 
 	/**
+	 * 0~9 a~f A~F
+	 */
+	public static boolean isHEXChar(char c) {
+		return c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F';
+	}
+
+	/**
+	 * "AB" -> 171
+	 */
+	public static int hex(char a, char b) {
+		return Character.digit(a, 16) * 16 + Character.digit(b, 16);
+	}
+
+	/**
 	 * [0x0A,0x1A] -> "0a1a"
 	 */
 	public static String hex(byte[] data) {

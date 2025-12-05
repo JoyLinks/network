@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 /**
- * 键值对集合，键不区分大小写
+ * 键值对集合，键区分大小写
  * 
  * @author ZhangXi
  * @date 2021年10月16日
@@ -27,4 +27,30 @@ public final class Parameters extends HashMap<String, String[]> {
 		}
 	}
 
+	public void add(String name, String value) {
+		String[] values = get(name);
+		if (values == null) {
+			put(name, new String[] { value });
+		} else {
+			values = Arrays.copyOf(values, values.length + 1);
+			values[values.length - 1] = value;
+			replace(name, values);
+		}
+	}
+
+	public void set(String name, String value) {
+		String[] values = get(name);
+		if (values == null) {
+			put(name, new String[] { value });
+		} else if (values.length == 1) {
+			values[0] = value;
+			replace(name, values);
+		} else {
+			put(name, new String[] { value });
+		}
+	}
+
+	public void set(String name, String[] values) {
+		put(name, values);
+	}
 }

@@ -24,6 +24,7 @@ import com.joyzl.network.buffer.DataBuffer;
 import com.joyzl.network.http.MultipartFile.MultipartFiles;
 
 /**
+ * HTTP 表单内容编码<br>
  * Content-Type: multipart/form-data<br>
  * Content-Type: application/x-www-form-urlencoded
  * 
@@ -155,6 +156,9 @@ public class FormDataCoder extends HTTP1Coder {
 
 	/**
 	 * 解析 application/x-www-form-urlencoded 格式数据
+	 * <p>
+	 * 此方法使用了公用字符缓存不能与其它使用公共字符缓存的方法嵌套
+	 * </p>
 	 */
 	public static void readXWWWForm(Request request, DataBuffer buffer) throws IOException {
 		// POST的键值对参数
