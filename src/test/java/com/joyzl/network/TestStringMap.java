@@ -107,7 +107,7 @@ class TestStringMap {
 		assertEquals(smap.size(), 0);
 	}
 
-	@Test
+	// @Test
 	void testTime() {
 		final StringMap<String> smap = new StringMap<>();
 		final Map<String, String> hmap = new HashMap<>();

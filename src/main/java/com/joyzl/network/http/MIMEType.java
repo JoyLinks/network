@@ -4,7 +4,14 @@
  */
 package com.joyzl.network.http;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
 
 /**
  * MIME类型 RFC2046
@@ -67,6 +74,8 @@ public final class MIMEType {
 	public final static String TEXT_HTML = "text/html";
 	/** XML文件 */
 	public final static String TEXT_XML = "text/xml";
+	/** XML文件 */
+	public final static String TEXT_CSV = "text/csv";
 
 	/** GIF图像文件 */
 	public final static String IMAGE_GIF = "image/gif";
@@ -80,6 +89,23 @@ public final class MIMEType {
 	/** HTTP TRACE DEBUG */
 	public final static String MESSAGE_HTTP = "message/http";
 
+	/** 更多类型 */
+	private final static Map<String, String> TYPES = new HashMap<>();
+	static {
+		final File file = new File("mime.types");
+		if (file.exists()) {
+			final Properties types = new Properties();
+			try (final FileInputStream input = new FileInputStream(file);) {
+				types.load(new BufferedInputStream(input));
+				for (Entry<Object, Object> entry : types.entrySet()) {
+					TYPES.put(entry.getKey().toString(), entry.getValue().toString());
+				}
+			} catch (IOException e) {
+				// 忽略这个错误
+			}
+		}
+	}
+
 	public final static String getByFile(File file) {
 		return getByFilename(file.getName());
 	}
@@ -92,7 +118,7 @@ public final class MIMEType {
 		String type;
 		int index = filename.lastIndexOf('.');
 		int end = filename.length();
-		while (index > 0) {
+		while (index > 0 && index < end) {
 			type = getByExtension(filename.substring(index + 1, end));
 			if (type == null) {
 				index = filename.lastIndexOf('.', end = index - 1);
@@ -121,12 +147,14 @@ public final class MIMEType {
 				return TEXT_XML;
 			case "txt", "log":
 				return TEXT_PLAIN;
+			case "csv":
+				return TEXT_CSV;
 			case "js":
 				return APPLICATION_JAVA_SCRIPT;
 			case "json":
 				return APPLICATION_JSON;
 			default:
-				return null;
+				return TYPES.get(extension);
 		}
 	}
 
