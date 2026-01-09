@@ -7,6 +7,7 @@ package com.joyzl.network.chain;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.util.Collection;
@@ -41,6 +42,8 @@ public class UDPServer extends Server {
 
 		datagram_channel = DatagramChannel.open();
 		if (datagram_channel.isOpen()) {
+			// 禁用最大报文段生存时间，服务重启可立即绑定之前端口
+			datagram_channel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
 			datagram_channel.configureBlocking(false);
 			datagram_channel.bind(address);
 		} else {
@@ -165,17 +168,11 @@ public class UDPServer extends Server {
 
 	@Override
 	public void close() {
-		reset();
+		UDPServerReceiver.unRegister(this, datagram_channel);
 		try {
 			datagram_channel.close();
 		} catch (IOException e) {
 			handler().error(this, e);
-		} finally {
-			try {
-				handler().disconnected(this);
-			} catch (Exception e) {
-				handler().error(this, e);
-			}
 		}
 		try {
 			clearContext();
@@ -186,7 +183,6 @@ public class UDPServer extends Server {
 
 	@Override
 	public void reset() {
-		UDPServerReceiver.unRegister(this, datagram_channel);
 		slaves.clear();
 	}
 

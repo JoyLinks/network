@@ -14,9 +14,10 @@ import com.joyzl.network.Utility;
 /**
  * Content-Disposition
  * 
- * 在常规的HTTP应答中，Content-Disposition响应头指示回复的内容该以何种形式展示，是以内联的形式（即网页或者页面的一部分），还是以附件的形式下载并保存到本地。
- * 在multipart/form-data类型的应答消息体中，Content-Disposition消息头可以被用在
- * multipart消息体的子部分中，用来给出其对应字段的相关信息。 各个子部分由在Content-Type中定义的分隔符分隔。用在消息体自身则无实际意义。
+ * 在常规的HTTP应答中，Content-Disposition响应头指示回复的内容该以何种形式展示，
+ * 是以内联的形式（即网页或者页面的一部分），还是以附件的形式下载并保存到本地。
+ * 在multipart/form-data类型的应答消息体中，Content-Disposition消息头可以被用在multipart消息体的子部分中，用来给出其对应字段的相关信息。
+ * 各个子部分由在Content-Type中定义的分隔符分隔。用在消息体自身则无实际意义。
  * 
  * <pre>
  * RESPONSE:
@@ -83,7 +84,11 @@ public final class ContentDisposition extends Header {
 
 	public ContentDisposition(String type, String name) {
 		disposition = type;
-		field = name;
+		if (ATTACHMENT.equals(type)) {
+			filename = name;
+		} else {
+			field = name;
+		}
 	}
 
 	public ContentDisposition(String type, String name, String file) {
