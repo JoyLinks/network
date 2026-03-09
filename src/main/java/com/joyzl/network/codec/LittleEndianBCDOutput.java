@@ -28,7 +28,7 @@ public interface LittleEndianBCDOutput extends BCDOutput, LittleEndianDataOutput
 
 	/** @see #writeBCD8421s(CharSequence, int, int) */
 	default void writeBCDs(CharSequence value, int offset, int length) throws IOException {
-		writeBCD8421s(value, 0, value.length());
+		writeBCD8421s(value, offset, length);
 	}
 
 	/**

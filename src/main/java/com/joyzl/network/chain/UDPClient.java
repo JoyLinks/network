@@ -7,6 +7,7 @@ package com.joyzl.network.chain;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.StandardSocketOptions;
 import java.nio.channels.DatagramChannel;
 
 import com.joyzl.network.Point;
@@ -87,6 +88,7 @@ public class UDPClient extends Client {
 					}
 				}
 				if (datagram_channel.isOpen()) {
+					datagram_channel.setOption(StandardSocketOptions.SO_BROADCAST, true);
 					datagram_channel.configureBlocking(false);
 				} else {
 					datagram_channel = null;
