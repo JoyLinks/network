@@ -105,9 +105,9 @@ public class TCPLink extends Client {
 		// 此方法多次调用须防止已创建的AsynchronousSocketChannel对象实例泄露
 		// 持续调用最终会导致AsynchronousSocketChannel创建抛出"文件打开过多异常"
 		// 已关闭的AsynchronousSocketChannel不能重用否则抛出ClosedChannelException
-		if (connected) {
-			throw new IllegalStateException("TCPLink:重复连接");
-		}
+		// if (connected) {
+		// throw new IllegalStateException("TCPLink:重复连接");
+		// }
 		if (socket_channel == null) {
 			try {
 				synchronized (this) {
@@ -132,9 +132,10 @@ public class TCPLink extends Client {
 				socket_channel = null;
 				handler().error(this, e);
 			}
-		} else {
-			throw new IllegalStateException("TCPLink:正在连接");
 		}
+		// else {
+		// throw new IllegalStateException("TCPLink:正在连接");
+		// }
 	}
 
 	protected void connected() {
