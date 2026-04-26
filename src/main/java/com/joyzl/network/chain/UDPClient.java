@@ -107,9 +107,10 @@ public class UDPClient extends Client {
 				handler().error(this, e);
 				reset();
 			}
-		} else {
-			throw new IllegalStateException("UDPClient:重复连接");
 		}
+		// else {
+		// throw new IllegalStateException("UDPClient:重复连接");
+		// }
 	}
 
 	@Override
