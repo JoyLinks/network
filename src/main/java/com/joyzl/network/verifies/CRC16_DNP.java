@@ -23,17 +23,17 @@ package com.joyzl.network.verifies;
  */
 public final class CRC16_DNP extends Verifier {
 
-	short crc = 0;
+	int crc = 0;
 
 	@Override
 	public byte check(byte value) {
-		crc ^= value;
+		crc ^= (value & 0xFF);
 		for (int i = 0; i < 8; i++) {
 			if ((crc & 1) != 0) {
 				// 0xA6BC = reverse 0x3D65
-				crc = (short) ((crc >> 1) ^ 0xA6BC);
+				crc = ((crc >>> 1) ^ 0xA6BC);
 			} else {
-				crc = (short) (crc >> 1);
+				crc = (crc >>> 1);
 			}
 		}
 		return value;

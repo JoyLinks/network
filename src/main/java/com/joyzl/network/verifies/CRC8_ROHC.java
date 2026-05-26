@@ -23,18 +23,19 @@ package com.joyzl.network.verifies;
  */
 public final class CRC8_ROHC extends Verifier {
 
-	byte crc = 0;
+	int crc = 0xFF;
 
 	@Override
 	public byte check(byte value) {
-		crc ^= value;
+		crc ^= (value & 0xFF);
 		for (int i = 0; i < 8; i++) {
-			if ((crc & 0x80) == 0) {
-				crc = (byte) ((crc & 0xFF) >> 1);
+			if ((crc & 0x80) != 0) {
+				crc = (crc << 1) ^ 0x07;
 			} else {
-				crc = (byte) (((crc & 0xFF) >> 1) ^ 0xE0);
+				crc <<= 1;
 			}
 		}
+		crc &= 0xFF;
 		return value;
 	}
 
@@ -45,6 +46,6 @@ public final class CRC8_ROHC extends Verifier {
 
 	@Override
 	public void reset() {
-		crc = 0;
+		crc = 0xFF;
 	}
 }

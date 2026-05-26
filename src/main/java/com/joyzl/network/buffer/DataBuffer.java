@@ -1073,6 +1073,16 @@ public class DataBuffer implements Verifiable, DataInput, DataOutput, //
 		verifier = v == null ? EmptyVerifier.INSTANCE : v;
 	}
 
+	public void verify(Verifier verifier) {
+		DataBufferUnit unit = read;
+		while (unit != null) {
+			for (int i = 0; i < unit.readable(); i++) {
+				verifier.check(unit.get(unit.readIndex() + i));
+			}
+			unit = unit.next();
+		}
+	}
+
 	////////////////////////////////////////////////////////////////////////////////
 
 	/**

@@ -23,17 +23,17 @@ package com.joyzl.network.verifies;
  */
 public final class CRC16_CCITT extends Verifier {
 
-	short crc = 0;
+	int crc = 0;
 
 	@Override
 	public byte check(byte value) {
-		crc ^= value;
+		crc ^= (value & 0xFF);
 		for (int i = 0; i < 8; i++) {
 			if ((crc & 1) != 0) {
 				// 0x8408 = reverse 0x1021
-				crc = (short) ((crc >> 1) ^ 0x8408);
+				crc = ((crc >>> 1) ^ 0x8408);
 			} else {
-				crc = (short) (crc >> 1);
+				crc = (crc >>> 1);
 			}
 		}
 		return value;

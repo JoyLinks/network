@@ -23,17 +23,17 @@ package com.joyzl.network.verifies;
  */
 public final class CRC16_X25 extends Verifier {
 
-	short crc = (short) 0xFFFF;
+	int crc = 0xFFFF;
 
 	@Override
 	public byte check(byte value) {
-		crc ^= value;
+		crc ^= (value & 0xFF);
 		for (int i = 0; i < 8; i++) {
 			if ((crc & 1) != 0) {
 				// 0x8408 = reverse 0x1021
-				crc = (short) ((crc >> 1) ^ 0x8408);
+				crc = ((crc >>> 1) ^ 0x8408);
 			} else {
-				crc = (short) (crc >> 1);
+				crc = (crc >>> 1);
 			}
 		}
 		return value;
@@ -41,11 +41,11 @@ public final class CRC16_X25 extends Verifier {
 
 	@Override
 	public int value() {
-		return (short) (~crc);
+		return (~crc) & 0xFFFF;
 	}
 
 	@Override
 	public void reset() {
-		crc = (short) 0xFFFF;
+		crc = 0xFFFF;
 	}
 }

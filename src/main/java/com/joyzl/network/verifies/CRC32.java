@@ -27,13 +27,13 @@ public class CRC32 extends Verifier {
 
 	@Override
 	public byte check(byte value) {
-		crc ^= value;
+		crc ^= (value & 0xFF);
 		for (int i = 0; i < 8; i++) {
 			if ((crc & 1) != 0) {
 				// 0xEDB88320=reverse 0x04C11DB7
-				crc = (crc >> 1) ^ 0xEDB88320;
+				crc = (crc >>> 1) ^ 0xEDB88320;
 			} else {
-				crc = (crc >> 1);
+				crc = (crc >>> 1);
 			}
 		}
 		return value;
