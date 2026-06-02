@@ -115,7 +115,7 @@ public class Request extends HTTPMessage {
 	 */
 	public int getPort() {
 		if (uriPort > 0) {
-			if (uriPath > 0) {
+			if (uriPath > uriPort) {
 				return Integer.parseUnsignedInt(url, uriPort, uriPath, 10);
 			}
 			return Integer.parseUnsignedInt(url, uriPort, url.length(), 10);
@@ -137,10 +137,10 @@ public class Request extends HTTPMessage {
 			return url;
 		}
 		if (uriPath > 0) {
-			if (uriQuery > 0) {
+			if (uriQuery > uriPath) {
 				return url.substring(uriPath, uriQuery);
 			}
-			if (uriAnchor > 0) {
+			if (uriAnchor > uriPath) {
 				return url.substring(uriPath, uriAnchor);
 			}
 			return url.substring(uriPath);
@@ -153,7 +153,7 @@ public class Request extends HTTPMessage {
 	 */
 	public String getQuery() {
 		if (uriQuery > 0) {
-			if (uriAnchor > 0) {
+			if (uriAnchor > uriQuery) {
 				return url.substring(uriQuery, uriAnchor);
 			}
 			return url.substring(uriQuery);
@@ -192,10 +192,10 @@ public class Request extends HTTPMessage {
 			return url.length();
 		}
 		if (uriPath > 0) {
-			if (uriQuery > 0) {
+			if (uriQuery > uriPath) {
 				return uriQuery - uriPath;
 			}
-			if (uriAnchor > 0) {
+			if (uriAnchor > uriPath) {
 				return uriAnchor - uriPath;
 			}
 			return url.length() - uriPath;
