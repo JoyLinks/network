@@ -377,6 +377,7 @@ class TestVerifies {
 		assertEquals(buffer.getVerifier().value(), 0x18);
 	}
 
+	@Test
 	void testCRC8_ROHC() {
 		final Verifier verifier = new CRC8_ROHC();
 		buffer.verify(verifier);
@@ -406,11 +407,18 @@ class TestVerifies {
 		assertEquals(buffer.getVerifier().value(), 0x14);
 	}
 
+	@Test
 	void testCS() {
-		buffer.setVerifier(new CS());
+		final Verifier verifier = new CS();
+		buffer.verify(verifier);
+		final int value = verifier.value();
+		assertEquals(value, 0x80);
+
+		verifier.reset();
+		buffer.setVerifier(verifier);
 		while (buffer.readable() > 0) {
 			buffer.readByte();
 		}
-		assertEquals(buffer.getVerifier().value(), 0x00);
+		assertEquals(buffer.getVerifier().value(), 0x80);
 	}
 }

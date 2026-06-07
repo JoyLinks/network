@@ -27,25 +27,32 @@ public final class CRC8_ROHC extends Verifier {
 
 	@Override
 	public byte check(byte value) {
-		crc ^= (value & 0xFF);
+		crc ^= reverse(value & 0xFF);
 		for (int i = 0; i < 8; i++) {
 			if ((crc & 0x80) != 0) {
 				crc = (crc << 1) ^ 0x07;
 			} else {
-				crc <<= 1;
+				crc = crc << 1;
 			}
 		}
-		crc &= 0xFF;
+		// crc &= 0xFF;
 		return value;
 	}
 
 	@Override
 	public int value() {
-		return crc;
+		return reverse(crc);
 	}
 
 	@Override
 	public void reset() {
 		crc = 0xFF;
+	}
+
+	static int reverse(int x) {
+		x = ((x & 0xF0) >> 4) | ((x & 0x0F) << 4);
+		x = ((x & 0xCC) >> 2) | ((x & 0x33) << 2);
+		x = ((x & 0xAA) >> 1) | ((x & 0x55) << 1);
+		return x & 0xFF;
 	}
 }

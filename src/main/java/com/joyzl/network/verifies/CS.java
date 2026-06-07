@@ -25,7 +25,7 @@ public final class CS extends Verifier {
 
 	@Override
 	public int value() {
-		return cs;
+		return cs & 0xFF;
 	}
 
 	@Override
