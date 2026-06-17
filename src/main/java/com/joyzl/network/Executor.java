@@ -36,7 +36,7 @@ public final class Executor {
 		// 禁止实例化
 	}
 
-	public static final void initialize(int thead_size) {
+	public static final void initialize(int theadSize) {
 		// 如果业务非常简单，执行时间非常短，不需要与外部网元交互、访问数据库和磁盘，不需要等待其它资源，
 		// 则建议直接在业务ChannelHandler中执行，不需要再启业务的线程或者线程池。避免线程上下文切换，也不存在线程并发问题。
 		// 使用自己的线程池的时候注意限流，不然容易高并发情况下容易引起内存泄露。
@@ -45,28 +45,28 @@ public final class Executor {
 		if (size > 0) {
 			throw new IllegalStateException("执行器已经初始化");
 		}
-		if (thead_size <= 0) {
+		if (theadSize <= 0) {
 			// 自动计算最佳线程数
 			// threads = C处理器核心数 * U使用率 * (1 + W等待时间/C计算时间)
-			thead_size = (int) (Runtime.getRuntime().availableProcessors() * 0.75F * (1 + 50F / 10F));
+			theadSize = (int) (Runtime.getRuntime().availableProcessors() * 0.75F * (1 + 50F / 10F));
 		}
 
-		size = thead_size;
+		size = theadSize + 2/* NIO.1 */;
+		theadSize = theadSize / 2/* NIO.2 WORK */;
+		if (theadSize <= 0) {
+			theadSize = 1;
+		}
 
 		try {
 			// 初始化NIO.1线程
 			UDPServerReceiver.initialize();
 			UDPClientReceiver.initialize();
-			thead_size -= 3;
 
 			// 初始化NIO.2线程
-			CHANNEL_GROUP = AsynchronousChannelGroup.withFixedThreadPool(thead_size / 2, new ThreadFactory("nio.2-"));
-			thead_size -= thead_size / 2;
+			CHANNEL_GROUP = AsynchronousChannelGroup.withFixedThreadPool(theadSize, new ThreadFactory("nio.2-"));
 
 			// 初始化业务线程池
-			// WORK_THREAD_POOL = Executors.newScheduledThreadPool(thead_size,
-			// new ThreadFactory("work-"));
-			WORK_THREAD_POOL = new ScheduledThreadPoolExecutor(thead_size, new ThreadFactory("work-"));
+			WORK_THREAD_POOL = new ScheduledThreadPoolExecutor(theadSize, new ThreadFactory("work-"));
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
