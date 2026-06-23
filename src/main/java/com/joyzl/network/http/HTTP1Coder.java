@@ -148,6 +148,12 @@ public class HTTP1Coder extends HTTP1 {
 		// CONNECT developer.mozilla.org:80 HTTP/1.1
 		// OPTIONS * HTTP/1.1
 
+		// 20260623 浏览器的坑
+		// 浏览器 URL 编码行为在 HREF 和 AJAX 中不一致
+		// HREF 中 '+' 保持不变，空格编码为 %20，遵循RFC3986
+		// AJAX 中 '+' 编码为 %2b，空格编码为 '+'，遵循application/x-www-form-urlencoded
+		// 向新标准RFC3986靠拢，保持 '+' 不变
+
 		a = b = 0;
 		builder.setLength(0);
 		request.setQuery(0);
@@ -192,6 +198,9 @@ public class HTTP1Coder extends HTTP1 {
 				percentDecode(buffer, builder);
 				continue;
 			}
+			// else if (c == '+') {
+			// c = SPACE;
+			// }
 			builder.append((char) c);
 		}
 
@@ -899,13 +908,20 @@ public class HTTP1Coder extends HTTP1 {
 
 	/**
 	 * 百分号解码字节，假定第一个'%'已被读取识别；<br>
-	 * 此方法仅处理百分号编码，不处理 application/x-www-form-urlencoded 中的'+'转换为空格字符；<br>
-	 * URL中空格转换为%20，FORM中空格转换为'+'。
+	 * 此方法仅处理百分号编码，未处理'+'转换为空格字符；<br>
+	 * URL中空格转换为%20，'+'保持不变。
 	 */
 	public static void percentDecode(DataBuffer buffer, StringBuilder builder) {
 		// %XX%XX
 		// 如果%后两位不是有效16进制字符则视为非百分号编码
 		// 百分号编码是个很糟糕的设计
+
+		// 20260623 浏览器的坑
+		// 浏览器 URL 编码行为在 HREF 和 AJAX 中不一致
+		// HREF 中 '+' 保持不变，空格编码为 %20，遵循RFC3986
+		// AJAX 中 '+' 编码为 %2b，空格编码为 '+'，遵循application/x-www-form-urlencoded
+		// 向新标准RFC3986靠拢，保持 '+' 不变
+
 		ByteBuffer bytes = null;
 		int h = -1, l = -1, c = 0;
 		while (buffer.readable() > 1) {
@@ -962,7 +978,7 @@ public class HTTP1Coder extends HTTP1 {
 	/**
 	 * 百分号编码字节<br>
 	 * 保留字符：ASCII 'a'~'z' 'A'~'Z' '0'~'9' '-' '_' '*' '.'；<br>
-	 * 转义字符：' '='+'
+	 * 转义字符：' ' 转 '+'
 	 * 
 	 * @param plus 空格转'+'时设置为 true
 	 */

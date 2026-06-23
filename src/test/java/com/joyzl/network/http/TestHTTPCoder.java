@@ -222,46 +222,52 @@ class TestHTTPCoder {
 		final Request request = new Request();
 
 		request.setURL("http://127.0.0.1/test");
-		QueryCoder.parse(request);
+		request.clearParameters();
+		QueryCoder.parsePercent(request.getURL(), 0, request.getURL().length(), request);
 		assertNull(request.getParameter("code"));
 
 		request.setURL("http://127.0.0.1/test?code");
 		request.clearParameters();
-		QueryCoder.parse(request);
+		QueryCoder.parsePercent(request.getURL(), 0, request.getURL().length(), request);
 		assertEquals(request.getParameter("code"), "");
 
 		request.setURL("http://127.0.0.1/test?code=");
 		request.clearParameters();
-		QueryCoder.parse(request);
+		QueryCoder.parsePercent(request.getURL(), 0, request.getURL().length(), request);
 		assertEquals(request.getParameter("code"), "");
 
 		request.setURL("http://127.0.0.1/test?code=A+B&SPACE=%20");
 		request.clearParameters();
-		QueryCoder.parse(request);
+		QueryCoder.parsePercent(request.getURL(), 0, request.getURL().length(), request);
 		assertEquals(request.getParameter("code"), "A B");
 		assertEquals(request.getParameter("SPACE"), " ");
 
 		request.setURL("http://127.0.0.1/test?code=A%20B&text=%E4%B8%AD%E6%96%87%2F%E6%B5%8B%E8%AF%95");
 		request.clearParameters();
-		QueryCoder.parse(request);
+		QueryCoder.parsePercent(request.getURL(), 0, request.getURL().length(), request);
 		assertEquals(request.getParameter("code"), "A B");
 		assertEquals(request.getParameter("text"), "中文/测试");
 
 		request.setURL("http://127.0.0.1/test?code=A%20B&text=%E4%B8%AD%E6%96%87%2F%E6%B5%8B%E8%AF%95&other=A");
 		request.clearParameters();
-		QueryCoder.parse(request);
+		QueryCoder.parsePercent(request.getURL(), 0, request.getURL().length(), request);
 		assertEquals(request.getParameter("code"), "A B");
 		assertEquals(request.getParameter("other"), "A");
 		assertEquals(request.getParameter("text"), "中文/测试");
 
 		request.setURL("http://127.0.0.1/code?error1&error2=&save=false&type=CODE_128&width=80&height=30&code=7056436484794495&error3&error4=");
 		request.clearParameters();
-		QueryCoder.parse(request);
+		QueryCoder.parsePercent(request.getURL(), 0, request.getURL().length(), request);
 		assertEquals(request.getParameter("save"), "false");
 		assertEquals(request.getParameter("type"), "CODE_128");
 		assertEquals(request.getParameter("width"), "80");
 		assertEquals(request.getParameter("height"), "30");
 		assertEquals(request.getParameter("code"), "7056436484794495");
+
+		request.setURL("http://127.0.0.1/archive/?code=214601667-mcccmaw260614y0831%2B260601245+20260604+0061");
+		request.clearParameters();
+		QueryCoder.parsePercent(request.getURL(), 0, request.getURL().length(), request);
+		assertEquals(request.getParameter("code"), "214601667-mcccmaw260614y0831+260601245 20260604 0061");
 	}
 
 	@Test
@@ -357,6 +363,7 @@ class TestHTTPCoder {
 			}
 		}
 		assertEquals(builder.toString(), "≡Say what‽");
+
 	}
 
 	private final static ConcurrentLinkedQueue<Request> REQUESTS = new ConcurrentLinkedQueue<>();

@@ -23,8 +23,6 @@ public class QueryCoder extends HTTP1Coder {
 	// 虽然编码格式相同，但 FormDataCoder 侧重于字节
 	// QueryCoder 仅处理字符串
 
-	// TODO URLDecode和URLEncode创建了中间字符串，应优化
-
 	/**
 	 * 构造查询字符串参数
 	 * 
@@ -109,24 +107,24 @@ public class QueryCoder extends HTTP1Coder {
 	}
 
 	/**
-	 * 解析URL编码的字符串
+	 * 解析URL编码的字符串，并处理百分号编码
 	 * <p>
 	 * 此方法使用了公用字符缓存不能与其它使用公共字符缓存的方法嵌套
 	 * </p>
 	 * 
-	 * @param offset 开始解析的字符位置，应小于等于'?'位置
-	 * @param length 应解析的字符长度，应小于等于字符结束长度
+	 * @param begin 开始解析的字符位置，应小于等于'?'位置
+	 * @param end 应解析的字符结束位置，应小于等于字符总长度
 	 * @param request 解析后的参数载体
 	 */
-	public static void parse(String url, int offset, int length, Request request) {
-		length += offset;
+	public static void parsePercent(String url, int begin, int end, Request request) {
+		end += begin;
 		// 确认问号位置
-		while (offset < length) {
-			if (url.charAt(offset++) == QUEST) {
+		while (begin < end) {
+			if (url.charAt(begin++) == QUEST) {
 				break;
 			}
 		}
-		if (offset < length) {
+		if (begin < end) {
 			// '+'还原为空格
 			// "%FF"还原为字符
 			// 可能的情形 name1&name2=&name3=value
@@ -134,29 +132,29 @@ public class QueryCoder extends HTTP1Coder {
 			char c;
 			String name = null;
 			final StringBuilder buffer = getStringBuilder();
-			for (; offset < length; offset++) {
-				c = url.charAt(offset);
+			for (; begin < end; begin++) {
+				c = url.charAt(begin);
 				if (c == '%') {
 					// %XX%XX
 					// 如果%后两位不是有效16进制字符则视为非百分号编码
 					// 百分号编码是个很糟糕的设计
-					if (offset < length - 2) {
-						c = url.charAt(++offset);
+					if (begin < end - 2) {
+						c = url.charAt(++begin);
 						if (Utility.isHEXChar(c)) {
-							char d = url.charAt(++offset);
+							char d = url.charAt(++begin);
 							if (Utility.isHEXChar(d)) {
 								c = (char) Utility.hex(c, d);
 								if (c > 0x7F) {
-									if (offset < length - 3) {
+									if (begin < end - 3) {
 										// 按字节序列继续解析
 										ByteBuffer bytes = ByteBuffer.allocate(64);
 										bytes.put((byte) c);
 										do {
-											c = url.charAt(++offset);
+											c = url.charAt(++begin);
 											if (c == '%') {
-												c = url.charAt(++offset);
+												c = url.charAt(++begin);
 												if (Utility.isHEXChar(c)) {
-													d = url.charAt(++offset);
+													d = url.charAt(++begin);
 													if (Utility.isHEXChar(d)) {
 														if (!bytes.hasRemaining()) {
 															// 扩充序列空间
@@ -184,11 +182,11 @@ public class QueryCoder extends HTTP1Coder {
 											} else {
 												break;
 											}
-										} while (offset < length - 3);
+										} while (begin < end - 3);
 										// DONE
 										if (bytes.position() > 0) {
 											buffer.append(StandardCharsets.UTF_8.decode(bytes.flip()));
-											if (offset < length - 3) {
+											if (begin < end - 3) {
 												// NEXT c
 											} else {
 												break;
@@ -234,6 +232,58 @@ public class QueryCoder extends HTTP1Coder {
 					}
 				} else if (c == '+') {
 					buffer.append(SPACE);
+				} else {
+					buffer.append(c);
+				}
+			}
+
+			// 收尾
+			if (name == null) {
+				request.addParameter(buffer.toString(), "");
+			} else {
+				request.addParameter(name, buffer.toString());
+			}
+		}
+	}
+
+	/**
+	 * 解析URL编码的字符串，不处理百分号编码
+	 * <p>
+	 * 此方法使用了公用字符缓存不能与其它使用公共字符缓存的方法嵌套
+	 * </p>
+	 * 
+	 * @param begin 开始解析的字符位置，应小于等于'?'位置
+	 * @param end 应解析的字符结束位置，应小于等于字符总长度
+	 * @param request 解析后的参数载体
+	 */
+	public static void parse(String url, int begin, int end, Request request) {
+		end += begin;
+		// 确认问号位置
+		while (begin < end) {
+			if (url.charAt(begin++) == QUEST) {
+				break;
+			}
+		}
+		if (begin < end) {
+			// 可能的情形 name1&name2=&name3=value
+			// 解析的结果 name1="" name2="" name3=value name4=null
+			char c;
+			String name = null;
+			final StringBuilder buffer = getStringBuilder();
+			for (; begin < end; begin++) {
+				c = url.charAt(begin);
+				if (c == EQUAL) {
+					name = buffer.toString();
+					buffer.setLength(0);
+				} else if (c == AND) {
+					if (name == null) {
+						request.addParameter(buffer.toString(), "");
+						buffer.setLength(0);
+					} else {
+						request.addParameter(name, buffer.toString());
+						buffer.setLength(0);
+						name = null;
+					}
 				} else {
 					buffer.append(c);
 				}
