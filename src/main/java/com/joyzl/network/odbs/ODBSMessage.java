@@ -38,7 +38,7 @@ public abstract class ODBSMessage {
 	/**
 	 * 接收数据并解析完成后，设置消息的来源链路，此链路表示此消息来源
 	 */
-	void chain(ChainChannel value) {
+	protected void chain(ChainChannel value) {
 		chain = value;
 	}
 }
