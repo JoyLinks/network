@@ -22,7 +22,7 @@ public abstract class ODBSMessage {
 		return tag;
 	}
 
-	void tag(int value) {
+	protected void tag(int value) {
 		tag = value;
 	}
 

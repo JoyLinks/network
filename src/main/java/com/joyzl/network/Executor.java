@@ -80,23 +80,25 @@ public final class Executor {
 			// NIO.2 终止并关闭
 			CHANNEL_GROUP.shutdown();
 			try {
-				CHANNEL_GROUP.awaitTermination(10, TimeUnit.SECONDS);
+				CHANNEL_GROUP.awaitTermination(8, TimeUnit.SECONDS);
 				CHANNEL_GROUP.shutdownNow();
 			} catch (InterruptedException | IOException e) {
 				e.printStackTrace();
+			} finally {
+				CHANNEL_GROUP = null;
 			}
-			CHANNEL_GROUP = null;
 		}
 
 		if (WORK_THREAD_POOL != null) {
 			WORK_THREAD_POOL.shutdown();
 			try {
-				WORK_THREAD_POOL.awaitTermination(10, TimeUnit.SECONDS);
+				WORK_THREAD_POOL.awaitTermination(8, TimeUnit.SECONDS);
+				WORK_THREAD_POOL.shutdownNow();
 			} catch (InterruptedException e) {
 				e.printStackTrace();
+			} finally {
+				WORK_THREAD_POOL = null;
 			}
-			WORK_THREAD_POOL.shutdownNow();
-			WORK_THREAD_POOL = null;
 		}
 		size = 0;
 	}
