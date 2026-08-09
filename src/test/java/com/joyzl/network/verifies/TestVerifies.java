@@ -421,4 +421,11 @@ class TestVerifies {
 		}
 		assertEquals(buffer.getVerifier().value(), 0x80);
 	}
+
+	@Test
+	void testXOR() {
+		final XOR xor = new XOR((byte) 1);
+		final byte value = xor.check((byte) 1);
+		assertEquals(1, xor.check(value));
+	}
 }

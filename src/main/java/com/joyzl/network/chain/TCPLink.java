@@ -470,6 +470,21 @@ public class TCPLink extends Client {
 					// sendMessage = null;
 				}
 			}
+		} else {
+			// 20260809
+			// 通道已打开正处于连接中
+			// 此时也应关闭通道
+			if (socket_channel != null) {
+				try {
+					if (socket_channel.isOpen()) {
+						socket_channel.close();
+					}
+				} catch (Exception e) {
+					handler().error(this, e);
+				} finally {
+					socket_channel = null;
+				}
+			}
 		}
 	}
 

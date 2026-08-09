@@ -151,11 +151,13 @@ public class IndexQueue<M> implements Iterable<M> {
 	 * 根据标记取出消息，不能取出未读取的消息
 	 * 
 	 * @param index
-	 * @return 如果消息已取出则返回空
+	 * @return 如果消息已取出则返回空，如果索引无效返回空
 	 */
 	public M take(int index) {
 		if (index < head || index >= foot) {
-			throw new IndexOutOfBoundsException();
+			// 20260809 返回空不抛出异常
+			// throw new IndexOutOfBoundsException("Invalid index " + index);
+			return null;
 		}
 		if (index == head) {
 			return poll();
