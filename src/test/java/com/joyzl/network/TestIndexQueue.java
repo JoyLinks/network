@@ -6,29 +6,19 @@ package com.joyzl.network;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Iterator;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class TestIndexQueue {
 
-	private IndexQueue<Object> deque = new IndexQueue<>();
-
-	@BeforeEach
-	void setUp() throws Exception {
-	}
-
-	@AfterEach
-	void tearDown() throws Exception {
-		deque.clear();
-	}
-
 	@Test
 	void testAddPoll() {
+		final IndexQueue<Object> deque = new IndexQueue<>();
+
 		// EMPTY
 
 		assertEquals(deque.size(), 0);
@@ -100,24 +90,18 @@ class TestIndexQueue {
 		assertEquals(deque.peek(), null);
 	}
 
+	@Test
 	void testAddPeekTake() {
+		final IndexQueue<Object> deque = new IndexQueue<>(256, 512);
+
 		// EMPTY
 
 		assertEquals(deque.size(), 0);
 		assertEquals(deque.queue(), 0);
 		assertEquals(deque.peek(), null);
-		try {
-			deque.take(0);
-			fail("应抛出异常");
-		} catch (Exception e) {
-			assertNotNull(e);
-		}
-		try {
-			deque.take(256);
-			fail("应抛出异常");
-		} catch (Exception e) {
-			assertNotNull(e);
-		}
+
+		assertNull(deque.take(0));
+		assertNull(deque.take(256));
 
 		// LITTEL
 
@@ -136,20 +120,15 @@ class TestIndexQueue {
 
 		// MORE
 
-		int tags[] = new int[255];
-		for (int index = 0; index < 255; index++) {
+		int tags[] = new int[256];
+		for (int index = 0; index < 256; index++) {
 			tags[index] = deque.add(index);
 		}
-		assertEquals(deque.size(), 255);
-		assertEquals(deque.queue(), 255);
+		assertEquals(deque.size(), 256);
+		assertEquals(deque.queue(), 256);
+		assertEquals(deque.peek(), 0);
 
-		for (int index = 0; index < 255; index++) {
-			assertEquals(deque.peek(), index);
-		}
-		assertEquals(deque.size(), 255);
-		assertEquals(deque.queue(), 0);
-
-		for (int index = 0; index < 255; index++) {
+		for (int index = 0; index < 256; index++) {
 			assertEquals(deque.take(tags[index]), index);
 		}
 		assertEquals(deque.size(), 0);
@@ -158,6 +137,8 @@ class TestIndexQueue {
 
 	@Test
 	void testIterator() {
+		final IndexQueue<Object> deque = new IndexQueue<>(64, 256);
+
 		// EMPTY
 
 		Iterator<Object> iterator = deque.iterator();
@@ -167,10 +148,12 @@ class TestIndexQueue {
 
 		deque.add(1);
 
+		// 遍历
 		iterator = deque.iterator();
 		assertEquals(iterator.hasNext(), true);
 		assertEquals(iterator.next(), 1);
 
+		// 遍历移除
 		iterator = deque.iterator();
 		assertEquals(iterator.hasNext(), true);
 		assertEquals(iterator.next(), 1);
@@ -193,5 +176,45 @@ class TestIndexQueue {
 		}
 		assertEquals(deque.size(), 0);
 		assertEquals(size, deque.capacity());
+	}
+
+	@Test
+	void testMaxTag() {
+		final IndexQueue<Object> deque = new IndexQueue<>(64, 65536);
+
+		// 0~65534
+
+		int tag = 0;
+		for (int index = 0; index < deque.max() - 1; index++) {
+			// SEND
+			tag = deque.add(index);
+			// ENCODE
+			assertNotNull(deque.read());
+			// DECODE
+			assertNotNull(deque.take(tag));
+		}
+		assertEquals(tag, 65534);
+
+		// 65535
+
+		// SEND
+		tag = deque.add(65535);
+		// ENCODE
+		assertNotNull(deque.read());
+		// DECODE
+		assertNotNull(deque.take(tag));
+
+		assertEquals(tag, 65535);
+
+		// 0
+
+		// SEND
+		tag = deque.add(0);
+		// ENCODE
+		assertNotNull(deque.read());
+		// DECODE
+		assertNotNull(deque.take(tag));
+
+		assertEquals(tag, 0);
 	}
 }

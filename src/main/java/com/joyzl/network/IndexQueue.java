@@ -27,9 +27,9 @@ public class IndexQueue<M> implements Iterable<M> {
 	private final M[] elements;
 	/**
 	 * 为了消除头尾重叠歧义，索引范围为0 ~ max，实际索引通过模除获得 index % elements.length
-	 * 存储形式：[head|read-foot]
+	 * 逻辑存储形式：[head.read...foot]，head read foot 范围 0~max
 	 */
-	private int read, head, foot;
+	private int read = 0, head = 0, foot = 0;
 
 	public IndexQueue() {
 		this(64, Integer.MAX_VALUE);
@@ -86,7 +86,7 @@ public class IndexQueue<M> implements Iterable<M> {
 	}
 
 	/**
-	 * 排队消息数量，所有未发送消息，不含未取出的消息
+	 * 排队消息数量，所有未读取消息，不含未取出的消息
 	 */
 	public int queue() {
 		if (foot > read) {
@@ -131,20 +131,40 @@ public class IndexQueue<M> implements Iterable<M> {
 		if (head == foot) {
 			return null;
 		}
+
 		final int index = head % elements.length;
 		final M m = elements[index];
 		elements[index] = null;
+
 		if (read == head) {
 			read++;
 			if (read == max) {
 				read = 0;
 			}
 		}
+
 		head++;
 		if (head == max) {
 			head = 0;
 		}
 		return m;
+	}
+
+	/** 读取当前对象 */
+	public M read() {
+		if (read == foot) {
+			return null;
+		}
+		return elements[read % elements.length];
+	}
+
+	/** 读取位置推进到下一个 */
+	public boolean next() {
+		if (read < foot) {
+			read++;
+			return read < foot;
+		}
+		return false;
 	}
 
 	/**
@@ -154,46 +174,65 @@ public class IndexQueue<M> implements Iterable<M> {
 	 * @return 如果消息已取出则返回空，如果索引无效返回空
 	 */
 	public M take(int index) {
-		if (index < head || index >= foot) {
-			// 20260809 返回空不抛出异常
-			// throw new IndexOutOfBoundsException("Invalid index " + index);
-			return null;
-		}
-		if (index == head) {
-			return poll();
-		}
-		if (index + 1 == foot) {
-			index = index % elements.length;
-			final M m = elements[index];
-			elements[index] = null;
-			foot--;
-			if (read >= foot) {
-				read = foot;
+		// 20260809 标记超限返回空不抛出异常
+		// throw new IndexOutOfBoundsException("Invalid index " + index);
+
+		// 取出中间位置时计数会不准确
+
+		if (head < read) {
+			// [.H...R...F.]
+			if (index < head || index > read) {
+				return null;
 			}
-			return m;
+			if (index == head) {
+				head++;
+				if (head == max) {
+					head = 0;
+				}
+			}
+		} else if (head > read) {
+			// [.R...F...H.]
+			if (index < head || index > read) {
+				return null;
+			}
+			if (index == head) {
+				head++;
+				if (head == max) {
+					head = 0;
+				}
+			}
+		} else {
+			// head==read
+			if (read == foot) {
+				// EMPTY
+				return null;
+			}
+			if (index != read) {
+				return null;
+			} else {
+				head++;
+				if (head == max) {
+					head = 0;
+				}
+				read = head;
+			}
 		}
 
+		// if (index + 1 == foot) {
+		// index = index % elements.length;
+		// final M m = elements[index];
+		// elements[index] = null;
+		// foot--;
+		// if (read >= foot) {
+		// read = foot;
+		// }
+		// return m;
+		// }
+
+		index = index % elements.length;
 		final M m = elements[index];
-		if (m != null) {
-			elements[index] = null;
-			return m;
-		}
-		return null;
-	}
-
-	public M read() {
-		if (read == foot) {
-			return null;
-		}
-		return elements[read % elements.length];
-	}
-
-	public boolean next() {
-		read++;
-		if (read < foot) {
-			return true;
-		}
-		return false;
+		elements[index] = null;
+		return m;
 	}
 
 	/** 清除所有消息，如果消息携带资源并实现Closeable接口将自动关闭 */
@@ -211,11 +250,11 @@ public class IndexQueue<M> implements Iterable<M> {
 
 	@Override
 	public String toString() {
-		return size() + ":" + head + '~' + foot;
+		return size() + ":" + head + '~' + read + '~' + foot;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
-	// 提供队列遍历支持，且不会额外创建对象，不保证顺序
+	// 提供队列遍历支持，且不会额外创建对象
 
 	private int index;
 
@@ -235,6 +274,9 @@ public class IndexQueue<M> implements Iterable<M> {
 
 		@Override
 		public void remove() {
+			// 取出中间位置时计数会不准确
+			// 未修订读取位置
+
 			elements[index % elements.length] = null;
 			if (index == head) {
 				head++;
