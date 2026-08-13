@@ -152,7 +152,7 @@ public class DataBuffer implements Verifiable, DataInput, DataOutput, //
 
 	@Override
 	public void writeByte(byte value) {
-		getVerifier().check(value);
+		value = getVerifier().check(value);
 		if (write.isFull()) {
 			write = write.extend();
 		}
