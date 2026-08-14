@@ -65,8 +65,8 @@ public interface LittleEndianBCDInput extends BCDInput, LittleEndianDataInput {
 		char[] values = new char[size];
 		while (size > 0) {
 			value = readBCD8421();
-			values[--size] = Character.forDigit(value / 10, 10);
 			values[--size] = Character.forDigit(value % 10, 10);
+			values[--size] = Character.forDigit(value / 10, 10);
 		}
 		return String.valueOf(values);
 	}
@@ -110,8 +110,8 @@ public interface LittleEndianBCDInput extends BCDInput, LittleEndianDataInput {
 		char[] values = new char[size];
 		while (size > 0) {
 			value = readBCD3();
-			values[--size] = Character.forDigit(value / 10, 10);
 			values[--size] = Character.forDigit(value % 10, 10);
+			values[--size] = Character.forDigit(value / 10, 10);
 		}
 		return String.valueOf(values);
 	}
@@ -155,8 +155,8 @@ public interface LittleEndianBCDInput extends BCDInput, LittleEndianDataInput {
 		char[] values = new char[size];
 		while (size > 0) {
 			value = readBCD2421();
-			values[--size] = Character.forDigit(value / 10, 10);
 			values[--size] = Character.forDigit(value % 10, 10);
+			values[--size] = Character.forDigit(value / 10, 10);
 		}
 		return String.valueOf(values);
 	}
@@ -200,8 +200,8 @@ public interface LittleEndianBCDInput extends BCDInput, LittleEndianDataInput {
 		char[] values = new char[size];
 		while (size > 0) {
 			value = readBCD5421();
-			values[--size] = Character.forDigit(value / 10, 10);
 			values[--size] = Character.forDigit(value % 10, 10);
+			values[--size] = Character.forDigit(value / 10, 10);
 		}
 		return String.valueOf(values);
 	}
