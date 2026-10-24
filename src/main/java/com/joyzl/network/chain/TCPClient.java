@@ -75,7 +75,9 @@ public class TCPClient extends TCPLink {
 
 	@Override
 	protected void received(int size) {
-		timestamp = System.currentTimeMillis();
+		// 此时间戳更新会导致仅接收到消息时服务端超时
+		// 因为此更新时间戳导致最后发送时间戳变化
+		// timestamp = System.currentTimeMillis();
 		super.received(size);
 	}
 
