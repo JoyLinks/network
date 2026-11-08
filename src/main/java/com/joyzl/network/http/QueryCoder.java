@@ -99,9 +99,9 @@ public class QueryCoder extends HTTP1Coder {
 	public static void parse(Request request) {
 		if (request.getQueryIndex() > 0) {
 			if (request.getAnchorIndex() > 0) {
-				parse(request.getURL(), request.getQueryIndex(), request.getAnchorIndex() - request.getQueryIndex(), request);
+				parsePercent(request.getURL(), request.getQueryIndex(), request.getAnchorIndex() - request.getQueryIndex(), request);
 			} else {
-				parse(request.getURL(), request.getQueryIndex(), request.getURL().length() - request.getQueryIndex(), request);
+				parsePercent(request.getURL(), request.getQueryIndex(), request.getURL().length() - request.getQueryIndex(), request);
 			}
 		}
 	}
@@ -256,6 +256,7 @@ public class QueryCoder extends HTTP1Coder {
 	 * @param end 应解析的字符结束位置，应小于等于字符总长度
 	 * @param request 解析后的参数载体
 	 */
+	@Deprecated
 	public static void parse(String url, int begin, int end, Request request) {
 		end += begin;
 		// 确认问号位置

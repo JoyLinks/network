@@ -47,14 +47,23 @@ public final class Point {
 	public final static Pattern PATTERN_SERIAL_PORT = Pattern.compile("[\\w,//]+:\\d{3,6}.\\d{1}.\\d{1}.\\d{1}");
 
 	public final static boolean isSerialPort(String point) {
+		if (point == null || point.length() == 0) {
+			return false;
+		}
 		return PATTERN_SERIAL_PORT.matcher(point).matches();
 	}
 
 	public final static boolean isIPClient(String point) {
+		if (point == null || point.length() == 0) {
+			return false;
+		}
 		return PATTERN_IP_CLIENT.matcher(point).matches();
 	}
 
 	public final static boolean isIPServer(String point) {
+		if (point == null || point.length() == 0) {
+			return false;
+		}
 		return PATTERN_IP_SERVER.matcher(point).matches();
 	}
 
@@ -65,6 +74,9 @@ public final class Point {
 	 * @return 如果是客户端节点返回IP/主机名,如果是串口返回串口名,如果是未指定IP的服务端返回null
 	 */
 	public final static String getHost(String point) {
+		if (point == null || point.length() == 0) {
+			return null;
+		}
 		int index = point.lastIndexOf(SP);
 		if (index >= 0) {
 			// www.joyzl.com:80
@@ -90,6 +102,9 @@ public final class Point {
 	 * @return 如果是客户端/服务端返回端口号,如果是串口返回波特率
 	 */
 	public final static int getPort(String point) {
+		if (point == null || point.length() == 0) {
+			return 0;
+		}
 		int begin = point.lastIndexOf(SP);
 		if (begin > 0) {
 			// www.joyzl.com:80
@@ -119,6 +134,9 @@ public final class Point {
 	 * @return 如果接点不是串口或未指定则返回0
 	 */
 	public final static int getBaudRate(String point) {
+		if (point == null || point.length() == 0) {
+			return 0;
+		}
 		// COM3:9600.8.1.0
 		int begin = point.lastIndexOf(SP);
 		if (begin > 0) {
@@ -137,6 +155,9 @@ public final class Point {
 	 * @return 如果接点不是串口或未指定则返回0
 	 */
 	public final static int getDataBits(String point) {
+		if (point == null || point.length() == 0) {
+			return 0;
+		}
 		// COM3:9600.8.1.0
 		int begin = point.lastIndexOf(SP);
 		if (begin > 0) {
@@ -159,6 +180,9 @@ public final class Point {
 	 * @return 如果接点不是串口或未指定则返回0
 	 */
 	public final static int getStopBits(String point) {
+		if (point == null || point.length() == 0) {
+			return 0;
+		}
 		// COM3:9600.8.1.0
 		int begin = point.lastIndexOf(SP);
 		if (begin > 0) {
@@ -185,6 +209,9 @@ public final class Point {
 	 * @return 如果接点不是串口或未指定则返回0
 	 */
 	public final static int getParity(String point) {
+		if (point == null || point.length() == 0) {
+			return 0;
+		}
 		// COM3:9600.8.1.0
 		int begin = point.lastIndexOf(SP);
 		if (begin > 0) {
@@ -216,6 +243,9 @@ public final class Point {
 	}
 
 	public final static String getPoint(byte[] ip, int port) throws UnknownHostException {
+		if (ip == null) {
+			return Integer.toString(port);
+		}
 		final InetAddress address = InetAddress.getByAddress(ip);
 		return address.getHostAddress() + SP + port;
 	}
